@@ -81,6 +81,19 @@ python -m numeralform.cli --capabilities ru
 
 The CLI is a thin wrapper over the library and does not interpret sentences.
 
+## External validation
+
+Numeralform's canonical output is checked against frozen, versioned external validation corpora. The CLDR corpus is generated from a pinned ICU/Unicode CLDR oracle. ICU is not a runtime dependency.
+
+Run the offline checks with:
+
+```bash
+python -m unittest discover -s tests -v
+python tools/validation/check.py --corpus tests/validation
+```
+
+Corpus regeneration is a maintainer operation in the pinned validation environment. Regenerated external data is reviewed before canonical output changes are accepted. See `tools/validation/README.md` for provenance, licensing, compatibility-corpus separation, and the CLDR upgrade workflow.
+
 ## Development
 
 The Python package lives directly in `./numeralform`, not in a `src` directory. The package version is declared dynamically in `pyproject.toml` and calculated from git metadata by `numeralform._version`, with `0+unknown` as the source-tree fallback when git is unavailable.

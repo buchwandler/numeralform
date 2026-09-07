@@ -1,0 +1,78 @@
+schema_version = 1
+
+[cldr]
+release = "48.2"
+normalization = "NFC"
+
+[coverage]
+exhaustive_min = 0
+exhaustive_max = 9999
+random_seed = 20260907
+random_per_magnitude = 500
+boundary_radius = 3
+
+[[mapping]]
+id = "en-cardinal-default"
+numeralform_locale = "en"
+form = "cardinal"
+syntax = "standalone"
+style = "default"
+oracle = "icu-rbnf"
+oracle_locale = "en"
+rule_set = "%spellout-numbering"
+mode = "strict"
+
+[[mapping]]
+id = "es-cardinal-standalone"
+numeralform_locale = "es"
+form = "cardinal"
+syntax = "standalone"
+style = "default"
+oracle = "icu-rbnf"
+oracle_locale = "es"
+rule_set = "%spellout-numbering"
+mode = "strict"
+
+[[mapping]]
+id = "ru-cardinal-standalone"
+numeralform_locale = "ru"
+form = "cardinal"
+syntax = "standalone"
+style = "default"
+oracle = "icu-rbnf"
+oracle_locale = "ru"
+rule_set = "%spellout-numbering"
+mode = "strict"
+
+[[mapping]]
+id = "en-cardinal-british-and"
+numeralform_locale = "en"
+form = "cardinal"
+syntax = "standalone"
+style = "british-and"
+oracle = ""
+oracle_locale = "en"
+rule_set = ""
+mode = "reviewed-only"
+
+[[mapping]]
+id = "es-cardinal-attributive"
+numeralform_locale = "es"
+form = "cardinal"
+syntax = "attributive"
+style = "default"
+oracle = ""
+oracle_locale = "es"
+rule_set = ""
+mode = "reviewed-only"
+
+[[mapping]]
+id = "ru-cardinal-morphology"
+numeralform_locale = "ru"
+form = "cardinal"
+syntax = "standalone"
+style = "default"
+oracle = ""
+oracle_locale = "ru"
+rule_set = ""
+mode = "reviewed-only"
