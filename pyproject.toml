@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "numeralform"
+dynamic = ["version"]
+description = "Locale-aware numeral morphology and spoken-number rendering"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "numeralform contributors" }]
+classifiers = [
+    "Natural Language :: English",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+[project.scripts]
+numeralform = "numeralform.cli:main"
+
+[tool.setuptools]
+packages = ["numeralform", "numeralform.renderers"]
+
+[tool.setuptools.dynamic]
+version = { attr = "numeralform._version.__version__" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
