@@ -33,7 +33,9 @@ def validate_request(request: NumeralRequest, capabilities: LocaleCapabilities) 
     """Validate generic semantic and exact capability constraints."""
     _validate_value_for_form(request.form, request.value)
 
-    profiles = [profile for profile in capabilities.profiles if profile.form is request.form]
+    profiles = [
+        profile for profile in capabilities.profiles if profile.form is request.form
+    ]
     if not profiles:
         raise UnsupportedFormError(
             f"locale {request.locale!r} does not support {request.form.value} form"
@@ -84,10 +86,7 @@ def _profile_accepts_morphology(profile, morphology) -> bool:
         (morphology.gender is None or morphology.gender in profile.genders)
         and (morphology.case is None or morphology.case in profile.cases)
         and (morphology.animacy is None or profile.animacy)
-        and (
-            morphology.grammatical_number is None
-            or profile.grammatical_number
-        )
+        and (morphology.grammatical_number is None or profile.grammatical_number)
         and (morphology.noun_class is None or profile.noun_class)
     )
 

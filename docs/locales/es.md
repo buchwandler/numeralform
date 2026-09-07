@@ -37,6 +37,6 @@ Digit sequences preserve leading zeroes. Masculine apocopation is component-awar
 
 ## References
 
-- Real Academia Española, *Diccionario panhispánico de dudas*, “numerales”: https://www.rae.es/dpd/numerales
-- Real Academia Española, *Ortografía de la lengua española* overview: https://www.rae.es/obras-academicas/ortografia
+- Real Academia Española, _Diccionario panhispánico de dudas_, “numerales”: https://www.rae.es/dpd/numerales
+- Real Academia Española, _Ortografía de la lengua española_ overview: https://www.rae.es/obras-academicas/ortografia
 - Project-rendered regression matrix in `tests/test_numeralform.py` and `tests/test_hardening.py`.

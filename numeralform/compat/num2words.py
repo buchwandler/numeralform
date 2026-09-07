@@ -23,7 +23,9 @@ _FORM_MAP = {
 }
 
 
-def num2words(value: object, *, lang: str = "en", to: str = "cardinal", **kwargs) -> str:
+def num2words(
+    value: object, *, lang: str = "en", to: str = "cardinal", **kwargs
+) -> str:
     """Render a reviewed legacy-compatible request through Numeralform.
 
     Only options with direct semantic equivalents are accepted. Legacy options
@@ -34,7 +36,9 @@ def num2words(value: object, *, lang: str = "en", to: str = "cardinal", **kwargs
         raise InvalidRequestError("lang must be a non-empty locale identifier")
     if not isinstance(to, str) or to not in _FORM_MAP:
         supported = ", ".join(sorted(_FORM_MAP))
-        raise InvalidRequestError(f"unsupported num2words to={to!r}; supported: {supported}")
+        raise InvalidRequestError(
+            f"unsupported num2words to={to!r}; supported: {supported}"
+        )
     unknown = sorted(set(kwargs) - _SUPPORTED_OPTIONS)
     if unknown:
         raise InvalidRequestError(

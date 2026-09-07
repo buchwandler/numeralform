@@ -97,7 +97,9 @@ class CapabilityProfile:
         object.__setattr__(
             self, "genders", frozenset(Gender.coerce(item) for item in self.genders)
         )
-        object.__setattr__(self, "cases", frozenset(Case.coerce(item) for item in self.cases))
+        object.__setattr__(
+            self, "cases", frozenset(Case.coerce(item) for item in self.cases)
+        )
         object.__setattr__(self, "styles", frozenset(self.styles))
 
 
@@ -125,7 +127,9 @@ class LocaleCapabilities:
         profiles = tuple(self.profiles)
         if profiles:
             profiles = tuple(
-                profile if isinstance(profile, CapabilityProfile) else CapabilityProfile(**profile)
+                profile
+                if isinstance(profile, CapabilityProfile)
+                else CapabilityProfile(**profile)
                 for profile in profiles
             )
             object.__setattr__(self, "profiles", profiles)
@@ -135,7 +139,9 @@ class LocaleCapabilities:
             object.__setattr__(
                 self,
                 "syntaxes",
-                frozenset(syntax for profile in profiles for syntax in profile.syntaxes),
+                frozenset(
+                    syntax for profile in profiles for syntax in profile.syntaxes
+                ),
             )
             object.__setattr__(
                 self,

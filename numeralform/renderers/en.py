@@ -37,7 +37,18 @@ _SMALL = (
     "eighteen",
     "nineteen",
 )
-_TENS = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
+_TENS = (
+    "",
+    "",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety",
+)
 _SCALES = ((1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand"))
 _MAX_CARDINAL = 999_999_999_999
 _MAX_ORDINAL = _MAX_CARDINAL
@@ -75,7 +86,18 @@ _ORDINALS = {
     1_000_000: "millionth",
     1_000_000_000: "billionth",
 }
-_DIGITS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+_DIGITS = (
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+)
 
 
 class EnglishRenderer:
@@ -88,7 +110,11 @@ class EnglishRenderer:
                 CapabilityProfile(
                     NumeralForm.CARDINAL,
                     syntaxes=frozenset(
-                        {Syntax.STANDALONE, Syntax.ATTRIBUTIVE, Syntax.ORDINAL_ADJECTIVAL}
+                        {
+                            Syntax.STANDALONE,
+                            Syntax.ATTRIBUTIVE,
+                            Syntax.ORDINAL_ADJECTIVAL,
+                        }
                     ),
                     styles=frozenset({"default", "british-and"}),
                 ),
@@ -122,7 +148,9 @@ class EnglishRenderer:
             text = self._render_year(value)
         else:
             text = self._render_cardinal(value, request.style)
-        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
+        return NumeralResult(
+            text, request.locale, request.form, request.style, request.morphology
+        )
 
     def _render_cardinal(self, value: int, style: str | None = None) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
@@ -168,7 +196,9 @@ class EnglishRenderer:
         if not isinstance(value, DecimalNumber):
             raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
         if int(value.integer) > _MAX_CARDINAL:
-            raise InvalidValueError("English decimal integer part is outside the supported range")
+            raise InvalidValueError(
+                "English decimal integer part is outside the supported range"
+            )
         prefix = "minus " if value.negative else ""
         integer = self._render_cardinal(int(value.integer))
         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
@@ -178,7 +208,9 @@ class EnglishRenderer:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value > _MAX_ORDINAL:
-            raise InvalidValueError("English ordinal value is outside the supported range")
+            raise InvalidValueError(
+                "English ordinal value is outside the supported range"
+            )
         if value in _ORDINALS:
             return _ORDINALS[value]
         if value < 100:
@@ -188,7 +220,9 @@ class EnglishRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 prefix = f"{self._render_cardinal(quotient)} {name}"
-                return prefix + (f" {self._render_ordinal(remainder)}" if remainder else "th")
+                return prefix + (
+                    f" {self._render_ordinal(remainder)}" if remainder else "th"
+                )
         hundreds, remainder = divmod(value, 100)
         prefix = f"{self._render_cardinal(hundreds)} hundred"
         return prefix + (f" {self._render_ordinal(remainder)}" if remainder else "th")
@@ -199,7 +233,9 @@ class EnglishRenderer:
         if abs(value.numerator) > _MAX_CARDINAL or value.denominator > _MAX_ORDINAL:
             raise InvalidValueError("English fraction is outside the supported range")
         if value.numerator < 0:
-            return "minus " + self._render_fraction(FractionNumber(-value.numerator, value.denominator))
+            return "minus " + self._render_fraction(
+                FractionNumber(-value.numerator, value.denominator)
+            )
         denominator_names = {
             2: "half",
             3: "third",

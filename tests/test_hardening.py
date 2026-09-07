@@ -67,7 +67,9 @@ class RendererRegressionTests(unittest.TestCase):
         for value, text in expected.items():
             with self.subTest(value=value):
                 self.assertEqual(
-                    render(value, locale="es", syntax="attributive", gender="masculine"),
+                    render(
+                        value, locale="es", syntax="attributive", gender="masculine"
+                    ),
                     text,
                 )
 
@@ -145,12 +147,14 @@ class CapabilityCliTests(unittest.TestCase):
 class CompatibilityTests(unittest.TestCase):
     def test_supported_num2words_mappings(self):
         from numeralform.compat import num2words
+
         self.assertEqual(num2words(42, lang="en"), "forty-two")
         self.assertEqual(num2words(42, lang="en", to="ordinal"), "forty-second")
         self.assertEqual(num2words(2024, lang="en", to="year"), "twenty twenty-four")
 
     def test_unknown_legacy_options_fail(self):
         from numeralform.compat import num2words
+
         with self.assertRaises(NumeralFormError):
             num2words(42, currency="EUR")
 

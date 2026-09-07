@@ -17,36 +17,92 @@ from ..model import (
 from .base import validate_request
 
 _UNDER_20 = (
-    "cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete",
-    "ocho", "nueve", "diez", "once", "doce", "trece", "catorce", "quince",
-    "dieciséis", "diecisiete", "dieciocho", "diecinueve",
+    "cero",
+    "uno",
+    "dos",
+    "tres",
+    "cuatro",
+    "cinco",
+    "seis",
+    "siete",
+    "ocho",
+    "nueve",
+    "diez",
+    "once",
+    "doce",
+    "trece",
+    "catorce",
+    "quince",
+    "dieciséis",
+    "diecisiete",
+    "dieciocho",
+    "diecinueve",
 )
 _TWENTIES = {
-    20: "veinte", 21: "veintiuno", 22: "veintidós", 23: "veintitrés",
-    24: "veinticuatro", 25: "veinticinco", 26: "veintiséis", 27: "veintisiete",
-    28: "veintiocho", 29: "veintinueve",
+    20: "veinte",
+    21: "veintiuno",
+    22: "veintidós",
+    23: "veintitrés",
+    24: "veinticuatro",
+    25: "veinticinco",
+    26: "veintiséis",
+    27: "veintisiete",
+    28: "veintiocho",
+    29: "veintinueve",
 }
 _TENS = {
-    30: "treinta", 40: "cuarenta", 50: "cincuenta", 60: "sesenta",
-    70: "setenta", 80: "ochenta", 90: "noventa",
+    30: "treinta",
+    40: "cuarenta",
+    50: "cincuenta",
+    60: "sesenta",
+    70: "setenta",
+    80: "ochenta",
+    90: "noventa",
 }
 _HUNDREDS = {
-    100: "cien", 200: "doscientos", 300: "trescientos", 400: "cuatrocientos",
-    500: "quinientos", 600: "seiscientos", 700: "setecientos",
-    800: "ochocientos", 900: "novecientos",
+    100: "cien",
+    200: "doscientos",
+    300: "trescientos",
+    400: "cuatrocientos",
+    500: "quinientos",
+    600: "seiscientos",
+    700: "setecientos",
+    800: "ochocientos",
+    900: "novecientos",
 }
 _HUNDREDS_FEMININE = {
-    200: "doscientas", 300: "trescientas", 400: "cuatrocientas",
-    500: "quinientas", 600: "seiscientas", 700: "setecientas",
-    800: "ochocientas", 900: "novecientas",
+    200: "doscientas",
+    300: "trescientas",
+    400: "cuatrocientas",
+    500: "quinientas",
+    600: "seiscientas",
+    700: "setecientas",
+    800: "ochocientas",
+    900: "novecientas",
 }
 _DIGITS = _UNDER_20[:10]
 _ORDINALS = {
-    0: "cero", 1: "primero", 2: "segundo", 3: "tercero", 4: "cuarto",
-    5: "quinto", 6: "sexto", 7: "séptimo", 8: "octavo", 9: "noveno",
-    10: "décimo", 11: "undécimo", 12: "duodécimo", 13: "decimotercero",
-    14: "decimocuarto", 15: "decimoquinto", 16: "decimosexto",
-    17: "decimoséptimo", 18: "decimoctavo", 19: "decimonoveno", 20: "vigésimo",
+    0: "cero",
+    1: "primero",
+    2: "segundo",
+    3: "tercero",
+    4: "cuarto",
+    5: "quinto",
+    6: "sexto",
+    7: "séptimo",
+    8: "octavo",
+    9: "noveno",
+    10: "décimo",
+    11: "undécimo",
+    12: "duodécimo",
+    13: "decimotercero",
+    14: "decimocuarto",
+    15: "decimoquinto",
+    16: "decimosexto",
+    17: "decimoséptimo",
+    18: "decimoctavo",
+    19: "decimonoveno",
+    20: "vigésimo",
 }
 _MAX_CARDINAL = 999_999_999
 _MAX_ORDINAL = 20
@@ -60,7 +116,9 @@ class SpanishRenderer:
     def capabilities() -> LocaleCapabilities:
         return LocaleCapabilities(
             profiles=(
-                CapabilityProfile(NumeralForm.CARDINAL, syntaxes=frozenset({Syntax.STANDALONE})),
+                CapabilityProfile(
+                    NumeralForm.CARDINAL, syntaxes=frozenset({Syntax.STANDALONE})
+                ),
                 CapabilityProfile(
                     NumeralForm.CARDINAL,
                     syntaxes=frozenset({Syntax.ATTRIBUTIVE}),
@@ -102,7 +160,9 @@ class SpanishRenderer:
             text = self._cardinal(value, request)
         else:
             text = self._cardinal(value, request)
-        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
+        return NumeralResult(
+            text, request.locale, request.form, request.style, request.morphology
+        )
 
     def _cardinal(self, value: int, request: NumeralRequest) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
@@ -111,7 +171,9 @@ class SpanishRenderer:
             raise InvalidValueError("Spanish cardinal is outside the supported range")
         if value < 0:
             return "menos " + self._cardinal(-value, request)
-        gender = request.morphology.gender if request.syntax is Syntax.ATTRIBUTIVE else None
+        gender = (
+            request.morphology.gender if request.syntax is Syntax.ATTRIBUTIVE else None
+        )
         return self._cardinal_plain(value, gender=gender, scale_context=False)
 
     def _cardinal_plain(
@@ -146,7 +208,9 @@ class SpanishRenderer:
             else:
                 prefix = _HUNDREDS[hundreds * 100]
             return prefix + (
-                f" {self._cardinal_plain(remainder, gender=gender)}" if remainder else ""
+                f" {self._cardinal_plain(remainder, gender=gender)}"
+                if remainder
+                else ""
             )
         if value < 1_000_000:
             thousands, remainder = divmod(value, 1000)
@@ -161,7 +225,9 @@ class SpanishRenderer:
                 prefix = self._apocopate_component(raw_prefix) if gender else raw_prefix
                 prefix += " mil"
             return prefix + (
-                f" {self._cardinal_plain(remainder, gender=gender)}" if remainder else ""
+                f" {self._cardinal_plain(remainder, gender=gender)}"
+                if remainder
+                else ""
             )
         millions, remainder = divmod(value, 1_000_000)
         if millions == 1:
@@ -207,13 +273,17 @@ class SpanishRenderer:
             negative, digits = value < 0, str(abs(value))
         else:
             raise InvalidValueError("digits form requires an integer or DigitSequence")
-        return ("menos " if negative else "") + " ".join(_DIGITS[int(digit)] for digit in digits)
+        return ("menos " if negative else "") + " ".join(
+            _DIGITS[int(digit)] for digit in digits
+        )
 
     def _decimal(self, value) -> str:
         if not isinstance(value, DecimalNumber):
             raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
         if int(value.integer) > _MAX_CARDINAL:
-            raise InvalidValueError("Spanish decimal integer part is outside the supported range")
+            raise InvalidValueError(
+                "Spanish decimal integer part is outside the supported range"
+            )
         sign = "menos " if value.negative else ""
         integer = self._cardinal_plain(int(value.integer))
         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
@@ -223,14 +293,19 @@ class SpanishRenderer:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value > _MAX_ORDINAL:
-            raise InvalidValueError("Spanish ordinal is supported only for values 0 through 20")
+            raise InvalidValueError(
+                "Spanish ordinal is supported only for values 0 through 20"
+            )
         text = _ORDINALS[value]
         if request.morphology.gender is Gender.FEMININE:
             if text.endswith("primero"):
                 text = text[:-7] + "primera"
             elif text.endswith("tercero"):
                 text = text[:-7] + "tercera"
-        elif request.syntax is Syntax.ATTRIBUTIVE and request.morphology.gender is Gender.MASCULINE:
+        elif (
+            request.syntax is Syntax.ATTRIBUTIVE
+            and request.morphology.gender is Gender.MASCULINE
+        ):
             if text.endswith("primero"):
                 text = text[:-7] + "primer"
             elif text.endswith("tercero"):
@@ -241,13 +316,24 @@ class SpanishRenderer:
         if not isinstance(value, FractionNumber):
             raise InvalidValueError("fraction form requires FractionNumber or Fraction")
         if value.denominator > _MAX_FRACTION_DENOMINATOR:
-            raise InvalidValueError("Spanish fraction denominator is outside the reviewed range")
+            raise InvalidValueError(
+                "Spanish fraction denominator is outside the reviewed range"
+            )
         names = {
-            2: "medio", 3: "tercio", 4: "cuarto", 5: "quinto", 6: "sexto",
-            7: "séptimo", 8: "octavo", 9: "noveno", 10: "décimo",
+            2: "medio",
+            3: "tercio",
+            4: "cuarto",
+            5: "quinto",
+            6: "sexto",
+            7: "séptimo",
+            8: "octavo",
+            9: "noveno",
+            10: "décimo",
         }
         if value.numerator < 0:
-            return "menos " + self._fraction(FractionNumber(-value.numerator, value.denominator))
+            return "menos " + self._fraction(
+                FractionNumber(-value.numerator, value.denominator)
+            )
         denominator = names.get(value.denominator)
         if denominator is None:
             denominator = self._ordinal(

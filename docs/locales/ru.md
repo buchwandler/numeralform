@@ -43,5 +43,5 @@ Scale nouns use the final two digits for the one/few/many category, including th
 ## References
 
 - Gramota.ru, Russian language reference and consultation portal: https://gramota.ru/
-- Russian Academy of Sciences, *Russian Grammar* reference entry point: https://rusgram.ru/
+- Russian Academy of Sciences, _Russian Grammar_ reference entry point: https://rusgram.ru/
 - Project-rendered regression matrix in `tests/test_numeralform.py` and `tests/test_hardening.py`.
