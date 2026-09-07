@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 
 from .errors import InvalidRequestError
-from .model import Animacy, Case, Gender, NumeralForm, Syntax
-
+from .model import Case, Gender, NumeralForm, Syntax
 
 _LOCALE_RE = re.compile(r"^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$")
 _ALIASES = {"jp": "ja", "cn": "zh-CN"}
@@ -78,8 +77,40 @@ def fallback_chain(locale: str | Locale) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, slots=True)
+class CapabilityProfile:
+    """Capabilities for one form in one or more compatible contexts."""
+
+    form: NumeralForm
+    syntaxes: frozenset[Syntax] = frozenset({Syntax.STANDALONE})
+    genders: frozenset[Gender] = frozenset()
+    cases: frozenset[Case] = frozenset()
+    animacy: bool = False
+    grammatical_number: bool = False
+    noun_class: bool = False
+    styles: frozenset[str] = frozenset({"default"})
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "form", NumeralForm.coerce(self.form))
+        object.__setattr__(
+            self, "syntaxes", frozenset(Syntax.coerce(item) for item in self.syntaxes)
+        )
+        object.__setattr__(
+            self, "genders", frozenset(Gender.coerce(item) for item in self.genders)
+        )
+        object.__setattr__(self, "cases", frozenset(Case.coerce(item) for item in self.cases))
+        object.__setattr__(self, "styles", frozenset(self.styles))
+
+
+@dataclass(frozen=True, slots=True)
 class LocaleCapabilities:
-    forms: frozenset[NumeralForm]
+    """Renderer capabilities with exact profiles and compatibility summaries.
+
+    The summary fields remain accepted for custom renderers written against the
+    original API. Built-in renderers should provide ``profiles`` so validation
+    can distinguish form and syntax contexts.
+    """
+
+    forms: frozenset[NumeralForm] = frozenset()
     syntaxes: frozenset[Syntax] = frozenset({Syntax.STANDALONE})
     genders: frozenset[Gender] = frozenset()
     cases: frozenset[Case] = frozenset()
@@ -88,18 +119,80 @@ class LocaleCapabilities:
     noun_class: bool = False
     styles: frozenset[str] = frozenset({"default"})
     notes: tuple[str, ...] = field(default_factory=tuple)
+    profiles: tuple[CapabilityProfile, ...] = ()
 
     def __post_init__(self) -> None:
+        profiles = tuple(self.profiles)
+        if profiles:
+            profiles = tuple(
+                profile if isinstance(profile, CapabilityProfile) else CapabilityProfile(**profile)
+                for profile in profiles
+            )
+            object.__setattr__(self, "profiles", profiles)
+            object.__setattr__(
+                self, "forms", frozenset(profile.form for profile in profiles)
+            )
+            object.__setattr__(
+                self,
+                "syntaxes",
+                frozenset(syntax for profile in profiles for syntax in profile.syntaxes),
+            )
+            object.__setattr__(
+                self,
+                "genders",
+                frozenset(gender for profile in profiles for gender in profile.genders),
+            )
+            object.__setattr__(
+                self,
+                "cases",
+                frozenset(case for profile in profiles for case in profile.cases),
+            )
+            object.__setattr__(
+                self,
+                "animacy",
+                any(profile.animacy for profile in profiles),
+            )
+            object.__setattr__(
+                self,
+                "grammatical_number",
+                any(profile.grammatical_number for profile in profiles),
+            )
+            object.__setattr__(
+                self,
+                "noun_class",
+                any(profile.noun_class for profile in profiles),
+            )
+            object.__setattr__(
+                self,
+                "styles",
+                frozenset(style for profile in profiles for style in profile.styles),
+            )
+            return
+
+        forms = frozenset(NumeralForm.coerce(item) for item in self.forms)
+        syntaxes = frozenset(Syntax.coerce(item) for item in self.syntaxes)
+        genders = frozenset(Gender.coerce(item) for item in self.genders)
+        cases = frozenset(Case.coerce(item) for item in self.cases)
+        styles = frozenset(self.styles)
+        object.__setattr__(self, "forms", forms)
+        object.__setattr__(self, "syntaxes", syntaxes)
+        object.__setattr__(self, "genders", genders)
+        object.__setattr__(self, "cases", cases)
+        object.__setattr__(self, "styles", styles)
         object.__setattr__(
-            self, "forms", frozenset(NumeralForm.coerce(item) for item in self.forms)
+            self,
+            "profiles",
+            tuple(
+                CapabilityProfile(
+                    form=form,
+                    syntaxes=syntaxes,
+                    genders=genders,
+                    cases=cases,
+                    animacy=self.animacy,
+                    grammatical_number=self.grammatical_number,
+                    noun_class=self.noun_class,
+                    styles=styles,
+                )
+                for form in sorted(forms, key=lambda item: item.value)
+            ),
         )
-        object.__setattr__(
-            self, "syntaxes", frozenset(Syntax.coerce(item) for item in self.syntaxes)
-        )
-        object.__setattr__(
-            self, "genders", frozenset(Gender.coerce(item) for item in self.genders)
-        )
-        object.__setattr__(
-            self, "cases", frozenset(Case.coerce(item) for item in self.cases)
-        )
-        object.__setattr__(self, "styles", frozenset(self.styles))

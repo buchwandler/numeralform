@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from decimal import Decimal
 import json
+from decimal import Decimal
 
 from . import (
     DecimalNumber,
@@ -76,6 +76,20 @@ def _parse_value(args: argparse.Namespace):
 
 def _print_capabilities(locale: str) -> None:
     caps = capabilities(locale)
+    profiles = sorted(caps.profiles, key=lambda profile: profile.form.value)
+    profile_data = [
+        {
+            "form": profile.form.value,
+            "syntaxes": sorted(syntax.value for syntax in profile.syntaxes),
+            "genders": sorted(gender.value for gender in profile.genders),
+            "cases": sorted(case.value for case in profile.cases),
+            "animacy": profile.animacy,
+            "grammatical_number": profile.grammatical_number,
+            "noun_class": profile.noun_class,
+            "styles": sorted(profile.styles),
+        }
+        for profile in profiles
+    ]
     print(
         json.dumps(
             {
@@ -88,6 +102,7 @@ def _print_capabilities(locale: str) -> None:
                 "grammatical_number": caps.grammatical_number,
                 "noun_class": caps.noun_class,
                 "styles": sorted(caps.styles),
+                "profiles": profile_data,
             },
             ensure_ascii=False,
             indent=2,

@@ -12,8 +12,10 @@ from .errors import (
     UnsupportedFormError,
     UnsupportedLocaleError,
     UnsupportedMorphologyError,
+    UnsupportedStyleError,
 )
 from .locale import (
+    CapabilityProfile,
     Locale,
     LocaleCapabilities,
     canonicalize_locale,
@@ -127,6 +129,7 @@ def render_request(request: NumeralRequest) -> str:
 
 __all__ = [
     "Animacy",
+    "CapabilityProfile",
     "Case",
     "DecimalNumber",
     "DigitSequence",
@@ -146,8 +149,10 @@ __all__ = [
     "UnsupportedFormError",
     "UnsupportedLocaleError",
     "UnsupportedMorphologyError",
-    "capabilities",
+    "UnsupportedStyleError",
+    "__version__",
     "canonicalize_locale",
+    "capabilities",
     "fallback_chain",
     "locales",
     "parse_locale",
@@ -158,5 +163,4 @@ __all__ = [
     "resolve",
     "resolve_locale",
     "supports",
-    "__version__",
 ]

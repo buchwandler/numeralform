@@ -2,36 +2,40 @@
 
 from __future__ import annotations
 
-from typing import Type
-
 from .errors import UnsupportedLocaleError
 from .locale import LocaleCapabilities, canonicalize_locale, fallback_chain
 from .renderers.base import LocaleRenderer
 
-_RENDERER_TYPES: dict[str, type[LocaleRenderer]] = {}
 _RENDERERS: dict[str, LocaleRenderer] = {}
+_BUILTINS_INITIALIZED = False
 
 
 def register_locale(
     locale: str, renderer: type[LocaleRenderer] | LocaleRenderer
 ) -> None:
+    """Register or replace a process-local stateless locale renderer."""
     tag = canonicalize_locale(locale)
-    if isinstance(renderer, type):
-        instance = renderer()
-    else:
-        instance = renderer
+    instance = renderer() if isinstance(renderer, type) else renderer
     _RENDERERS[tag] = instance
-    _RENDERER_TYPES[tag] = type(instance)
 
 
 def _ensure_builtins() -> None:
-    if _RENDERERS:
+    global _BUILTINS_INITIALIZED
+    if _BUILTINS_INITIALIZED:
         return
+
+    # Set the guard before importing/registering so a custom pre-registration
+    # cannot suppress built-in initialization and re-entrant lookups are safe.
+    _BUILTINS_INITIALIZED = True
     from .renderers import EnglishRenderer, RussianRenderer, SpanishRenderer
 
-    register_locale("en", EnglishRenderer)
-    register_locale("es", SpanishRenderer)
-    register_locale("ru", RussianRenderer)
+    for locale, renderer in (
+        ("en", EnglishRenderer),
+        ("es", SpanishRenderer),
+        ("ru", RussianRenderer),
+    ):
+        if locale not in _RENDERERS:
+            register_locale(locale, renderer)
 
 
 def locales() -> tuple[str, ...]:
@@ -51,14 +55,6 @@ def resolve_locale(locale: str) -> str:
 
 
 def resolve(locale: str) -> LocaleRenderer:
-    return (
-        _RENDERERS[resolve_locale(locale)]
-        if _RENDERERS
-        else _resolve_after_init(locale)
-    )
-
-
-def _resolve_after_init(locale: str) -> LocaleRenderer:
     _ensure_builtins()
     return _RENDERERS[resolve_locale(locale)]
 

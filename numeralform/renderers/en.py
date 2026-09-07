@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from ..locale import LocaleCapabilities
+from ..errors import InvalidValueError
+from ..locale import CapabilityProfile, LocaleCapabilities
 from ..model import (
     DecimalNumber,
     DigitSequence,
     FractionNumber,
-    Gender,
     NumeralForm,
     NumeralRequest,
     NumeralResult,
+    Syntax,
 )
 from .base import validate_request
-
 
 _SMALL = (
     "zero",
@@ -37,19 +37,10 @@ _SMALL = (
     "eighteen",
     "nineteen",
 )
-_TENS = (
-    "",
-    "",
-    "twenty",
-    "thirty",
-    "forty",
-    "fifty",
-    "sixty",
-    "seventy",
-    "eighty",
-    "ninety",
-)
+_TENS = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
 _SCALES = ((1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand"))
+_MAX_CARDINAL = 999_999_999_999
+_MAX_ORDINAL = _MAX_CARDINAL
 _ORDINALS = {
     0: "zeroth",
     1: "first",
@@ -84,18 +75,7 @@ _ORDINALS = {
     1_000_000: "millionth",
     1_000_000_000: "billionth",
 }
-_DIGITS = (
-    "zero",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-)
+_DIGITS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
 
 
 class EnglishRenderer:
@@ -104,15 +84,31 @@ class EnglishRenderer:
     @staticmethod
     def capabilities() -> LocaleCapabilities:
         return LocaleCapabilities(
-            forms=frozenset(NumeralForm),
-            syntaxes=frozenset({"standalone", "attributive", "ordinal-adjectival"}),
-            styles=frozenset({"default", "british-and", "year"}),
-            notes=("Default cardinal composition omits British-style conjunctions.",),
+            profiles=(
+                CapabilityProfile(
+                    NumeralForm.CARDINAL,
+                    syntaxes=frozenset(
+                        {Syntax.STANDALONE, Syntax.ATTRIBUTIVE, Syntax.ORDINAL_ADJECTIVAL}
+                    ),
+                    styles=frozenset({"default", "british-and"}),
+                ),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                ),
+                CapabilityProfile(NumeralForm.DIGITS),
+                CapabilityProfile(NumeralForm.DECIMAL),
+                CapabilityProfile(NumeralForm.FRACTION),
+                CapabilityProfile(NumeralForm.YEAR),
+            ),
+            notes=(
+                "Default cardinal composition omits British-style conjunctions.",
+                "Year uses the explicit year form, not cardinal style inference.",
+            ),
         )
 
     def render(self, request: NumeralRequest) -> NumeralResult:
-        caps = self.capabilities()
-        validate_request(request, caps)
+        validate_request(request, self.capabilities())
         value = request.value
         if request.form is NumeralForm.DIGITS:
             text = self._render_digits(value)
@@ -126,15 +122,15 @@ class EnglishRenderer:
             text = self._render_year(value)
         else:
             text = self._render_cardinal(value, request.style)
-        return NumeralResult(
-            text, request.locale, request.form, request.style, request.morphology
-        )
+        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
 
-    def _render_cardinal(self, value, style: str | None = None) -> str:
+    def _render_cardinal(self, value: int, style: str | None = None) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
-            if isinstance(value, DecimalNumber):
-                raise TypeError("decimal values require form='decimal'")
-            raise TypeError("cardinal form requires an integer")
+            raise InvalidValueError("cardinal form requires an integer")
+        if abs(value) > _MAX_CARDINAL:
+            raise InvalidValueError(
+                "English cardinal supports integers from -999999999999 through 999999999999"
+            )
         if value < 0:
             return "minus " + self._render_cardinal(-value, style)
         if value < 20:
@@ -151,34 +147,38 @@ class EnglishRenderer:
             if value >= scale:
                 remainder = value % scale
                 suffix = self._render_cardinal(remainder, style) if remainder else ""
+                if suffix and style == "british-and" and remainder < 100:
+                    suffix = "and " + suffix
                 return f"{self._render_cardinal(value // scale, style)} {name}" + (
                     f" {suffix}" if suffix else ""
                 )
-        raise AssertionError("unreachable")
+        raise InvalidValueError("English cardinal value is outside the supported range")
 
     def _render_digits(self, value) -> str:
         if isinstance(value, DigitSequence):
-            digits = value.digits
-            negative = False
+            digits, negative = value.digits, False
         elif isinstance(value, int) and not isinstance(value, bool):
-            negative = value < 0
-            digits = str(abs(value))
+            negative, digits = value < 0, str(abs(value))
         else:
-            raise TypeError("digits form requires an integer or DigitSequence")
+            raise InvalidValueError("digits form requires an integer or DigitSequence")
         text = " ".join(_DIGITS[int(digit)] for digit in digits)
         return ("minus " if negative else "") + text
 
     def _render_decimal(self, value) -> str:
         if not isinstance(value, DecimalNumber):
-            raise TypeError("decimal form requires DecimalNumber or Decimal")
+            raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
+        if int(value.integer) > _MAX_CARDINAL:
+            raise InvalidValueError("English decimal integer part is outside the supported range")
         prefix = "minus " if value.negative else ""
         integer = self._render_cardinal(int(value.integer))
         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
         return f"{prefix}{integer} point {fraction}"
 
-    def _render_ordinal(self, value) -> str:
+    def _render_ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise TypeError("ordinal form requires a non-negative integer")
+            raise InvalidValueError("ordinal form requires a non-negative integer")
+        if value > _MAX_ORDINAL:
+            raise InvalidValueError("English ordinal value is outside the supported range")
         if value in _ORDINALS:
             return _ORDINALS[value]
         if value < 100:
@@ -188,20 +188,18 @@ class EnglishRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 prefix = f"{self._render_cardinal(quotient)} {name}"
-                return prefix + (
-                    f" {self._render_ordinal(remainder)}" if remainder else "th"
-                )
+                return prefix + (f" {self._render_ordinal(remainder)}" if remainder else "th")
         hundreds, remainder = divmod(value, 100)
         prefix = f"{self._render_cardinal(hundreds)} hundred"
         return prefix + (f" {self._render_ordinal(remainder)}" if remainder else "th")
 
     def _render_fraction(self, value) -> str:
         if not isinstance(value, FractionNumber):
-            raise TypeError("fraction form requires FractionNumber or Fraction")
+            raise InvalidValueError("fraction form requires FractionNumber or Fraction")
+        if abs(value.numerator) > _MAX_CARDINAL or value.denominator > _MAX_ORDINAL:
+            raise InvalidValueError("English fraction is outside the supported range")
         if value.numerator < 0:
-            return "minus " + self._render_fraction(
-                FractionNumber(-value.numerator, value.denominator)
-            )
+            return "minus " + self._render_fraction(FractionNumber(-value.numerator, value.denominator))
         denominator_names = {
             2: "half",
             3: "third",
@@ -213,22 +211,36 @@ class EnglishRenderer:
             9: "ninth",
             10: "tenth",
         }
-        denominator = denominator_names.get(
-            value.denominator, self._render_ordinal(value.denominator)
-        )
+        denominator = denominator_names.get(value.denominator)
+        if denominator is None:
+            denominator = self._render_ordinal(value.denominator)
         if value.numerator == 1:
             return f"one {denominator}"
-        if denominator in {"half", "quarter"}:
-            denominator += "s"
-        elif not denominator.endswith("s"):
+        if denominator in {"half", "quarter"} or not denominator.endswith("s"):
             denominator += "s"
         return f"{self._render_cardinal(value.numerator)} {denominator}"
 
-    def _render_year(self, value) -> str:
+    def _render_year(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise TypeError("year form requires a non-negative integer")
-        if 1000 <= value <= 9999:
+            raise InvalidValueError("year form requires a non-negative integer")
+        if value > 9999:
+            raise InvalidValueError("English year supports values from 0 through 9999")
+        if 1000 <= value <= 1999:
             first, second = divmod(value, 100)
-            if second:
-                return f"{self._render_cardinal(first)} {self._render_cardinal(second)}"
+            if second == 0:
+                return f"{self._render_cardinal(first)} hundred"
+            if second < 10:
+                return f"{self._render_cardinal(first)} oh {_SMALL[second]}"
+            return f"{self._render_cardinal(first)} {self._render_cardinal(second)}"
+        if value == 2000:
+            return "two thousand"
+        if 2001 <= value <= 2009:
+            return f"two thousand {self._render_cardinal(value % 1000)}"
+        if 2010 <= value <= 2099:
+            return f"twenty {self._render_cardinal(value % 100)}"
+        if 2100 <= value <= 9999:
+            first, second = divmod(value, 100)
+            if second == 0:
+                return f"{self._render_cardinal(first)} hundred"
+            return f"{self._render_cardinal(first)} {self._render_cardinal(second)}"
         return self._render_cardinal(value)

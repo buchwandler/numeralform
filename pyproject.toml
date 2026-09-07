@@ -20,8 +20,8 @@ classifiers = [
 numeralform = "numeralform.cli:main"
 
 [tool.setuptools]
-packages = ["numeralform", "numeralform.renderers"]
-
+[tool.setuptools.packages.find]
+include = ["numeralform*"]
 [tool.setuptools.dynamic]
 version = { attr = "numeralform._version.__version__" }
 

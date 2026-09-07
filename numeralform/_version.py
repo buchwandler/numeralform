@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 
 
 def _git_version() -> str:

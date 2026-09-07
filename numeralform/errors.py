@@ -23,3 +23,7 @@ class UnsupportedFormError(NumeralFormError):
 
 class UnsupportedMorphologyError(NumeralFormError):
     """A locale cannot realize the requested morphology."""
+
+
+class UnsupportedStyleError(NumeralFormError):
+    """A locale cannot realize the requested output style."""
