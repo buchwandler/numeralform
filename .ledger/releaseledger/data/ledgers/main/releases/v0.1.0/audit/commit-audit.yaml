@@ -1,0 +1,434 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: v0.1.0
+git_base_ref: 16b83b8
+git_base_sha: 16b83b846c65715dc412c610e18da0e6ab7537f6
+git_head_ref: HEAD
+git_head_sha: e3317bc647a0c6560516220b543797b6f4654d58
+git_range: 16b83b846c65715dc412c610e18da0e6ab7537f6..e3317bc647a0c6560516220b543797b6f4654d58
+commit_count: 8
+rows:
+  - sha: 88ffddc6211ce20bf8d2fa586d11ee5a056c1c83
+    source_ref: git:88ffddc6211ce20bf8d2fa586d11ee5a056c1c83
+    short_sha: 88ffddc
+    changed_paths:
+      - .codecrate.toml
+      - .gitignore
+      - .ledger/ledger.toml
+      - .ledger/taskledger/.ledger-project.toml
+      - .ledger/taskledger/config.toml
+      - .pre-commit-config.yaml
+      - README.md
+      - numeralform/__init__.py
+      - numeralform/_version.py
+      - numeralform/cli.py
+      - numeralform/errors.py
+      - numeralform/locale.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/ru.py
+      - pyproject.toml
+      - tests/test_numeralform.py
+    stats:
+      files_changed: 0
+      insertions: 1989
+      deletions: 3
+    inspected: true
+    inspected_paths:
+      - numeralform/__init__.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/cli.py
+      - tests/test_numeralform.py
+    observed_behavior:
+      The initial implementation adds typed numeric values and requests,
+      locale-aware cardinal rendering for English, Spanish, and Russian, capability
+      lookup, explicit errors, and a command-line interface.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: initial version"
+    target_entry_key: core-api
+    target_entry_id: entry-0001
+    notes: Foundation of the public rendering API.
+  - sha: 9a86acaddf9e3b378834fef1013417f55239759e
+    source_ref: git:9a86acaddf9e3b378834fef1013417f55239759e
+    short_sha: 9a86aca
+    changed_paths:
+      - docs/locales/en.md
+      - docs/locales/es.md
+      - docs/locales/ru.md
+      - numeralform/__init__.py
+      - numeralform/_version.py
+      - numeralform/cli.py
+      - numeralform/compat/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/errors.py
+      - numeralform/locale.py
+      - numeralform/py.typed
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/ru.py
+      - pyproject.toml
+      - tests/test_hardening.py
+      - tests/test_numeralform.py
+    stats:
+      files_changed: 0
+      insertions: 917
+      deletions: 444
+    inspected: true
+    inspected_paths:
+      - numeralform/__init__.py
+      - numeralform/locale.py
+      - numeralform/compat/num2words.py
+      - numeralform/cli.py
+      - tests/test_hardening.py
+    observed_behavior:
+      The package adds strict capability profiles, explicit unsupported-request
+      errors, a typed compatibility adapter, locale documentation, and regression coverage
+      for rejected morphology and value combinations.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: hardening"
+    target_entry_key: strict-api
+    target_entry_id: entry-0001
+    notes: Compatibility behavior remains separated from the canonical API.
+  - sha: 5458e69049aaf0dc495aa07514d9a05eb6c06644
+    source_ref: git:5458e69049aaf0dc495aa07514d9a05eb6c06644
+    short_sha: 5458e69
+    changed_paths:
+      - docs/locales/es.md
+      - docs/locales/ru.md
+      - numeralform/compat/num2words.py
+      - numeralform/locale.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/ru.py
+      - tests/test_hardening.py
+    stats:
+      files_changed: 0
+      insertions: 320
+      deletions: 81
+    inspected: true
+    inspected_paths:
+      - numeralform/compat/num2words.py
+      - numeralform/locale.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/en.py
+      - tests/test_hardening.py
+    observed_behavior:
+      The changes reformat existing implementation and tests without
+      changing the supported behavior or public contract.
+    public_impact: internal
+    decision: internal
+    stale: false
+    evidence_subject: "chore: pre-commit"
+    target_entry_id: entry-0006
+    notes: Formatting-only maintenance.
+  - sha: e74b7038f4af7a21df6cdeeb9267a7072d20818a
+    source_ref: git:e74b7038f4af7a21df6cdeeb9267a7072d20818a
+    short_sha: e74b703
+    changed_paths:
+      - README.md
+      - tests/test_external_validation.py
+      - tests/validation/cldr/NOTICE.md
+      - tests/validation/cldr/en.jsonl
+      - tests/validation/cldr/es.jsonl
+      - tests/validation/cldr/manifest.json
+      - tests/validation/cldr/ru.jsonl
+      - tests/validation/compatibility/num2words.jsonl
+      - tests/validation/reviewed/en.jsonl
+      - tests/validation/reviewed/es.jsonl
+      - tests/validation/reviewed/ru.jsonl
+      - tools/validation/README.md
+      - tools/validation/__init__.py
+      - tools/validation/cases.py
+      - tools/validation/check.py
+      - tools/validation/corpus.py
+      - tools/validation/generate_cldr.py
+      - tools/validation/generate_num2words.py
+      - tools/validation/mapping.py
+      - tools/validation/model.py
+      - tools/validation/normalize.py
+      - tools/validation/oracle/__init__.py
+      - tools/validation/oracle/base.py
+      - tools/validation/oracle/icu.py
+      - tools/validation/report.py
+      - validation.toml
+    stats:
+      files_changed: 0
+      insertions: 32703
+      deletions: 0
+    inspected: true
+    inspected_paths:
+      - tools/validation/cases.py
+      - tools/validation/corpus.py
+      - tools/validation/check.py
+      - tools/validation/report.py
+      - tests/test_external_validation.py
+      - validation.toml
+    observed_behavior:
+      The project adds deterministic validation case generation, versioned
+      CLDR and compatibility corpora with manifests, offline checking, mismatch reporting,
+      and tests that verify corpus integrity and runtime independence from ICU.
+    public_impact: docs
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: add validation"
+    target_entry_key: validation
+    target_entry_id: entry-0004
+    notes:
+      Validation tooling and its documented maintenance workflow are part of the
+      release quality contract.
+  - sha: e6e5cd07ad54412d89448a29e1b9df7a905b70ac
+    source_ref: git:e6e5cd07ad54412d89448a29e1b9df7a905b70ac
+    short_sha: e6e5cd0
+    changed_paths:
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - tests/test_external_validation.py
+      - tests/test_hardening.py
+      - tests/test_numeralform.py
+      - tests/validation/compatibility/exceptions.json
+      - tests/validation/compatibility/manifest.json
+      - tests/validation/compatibility/num2words-0.5.14.jsonl
+      - tests/validation/compatibility/num2words.jsonl
+      - tools/validation/generate_num2words.py
+    stats:
+      files_changed: 0
+      insertions: 1773
+      deletions: 25
+    inspected: true
+    inspected_paths:
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - tests/test_external_validation.py
+    observed_behavior:
+      The registry and built-in renderer package add Czech, German,
+      French, Italian, Japanese, Korean, Portuguese, Swedish, Thai, and Vietnamese locale
+      implementations with capability metadata and corresponding compatibility corpus
+      coverage.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: add more languages"
+    target_entry_key: locale-renderers
+    target_entry_id: entry-0002
+    notes: Locale support is advertised through the registry and tested capabilities.
+  - sha: 819936c0b4affe23b93867a6c6c4de7665186c25
+    source_ref: git:819936c0b4affe23b93867a6c6c4de7665186c25
+    short_sha: 819936c
+    changed_paths:
+      - numeralform/__init__.py
+      - numeralform/cli.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/locale.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/unsupported.py
+      - tests/test_hardening.py
+      - tests/test_numeralform.py
+      - tests/validation/compatibility/capabilities.json
+      - tests/validation/compatibility/exceptions.json
+      - tests/validation/compatibility/manifest.json
+      - tools/validation/generate_num2words.py
+    stats:
+      files_changed: 0
+      insertions: 1189
+      deletions: 490
+    inspected: true
+    inspected_paths:
+      - numeralform/__init__.py
+      - numeralform/model.py
+      - numeralform/locale.py
+      - numeralform/currency/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/unsupported.py
+    observed_behavior:
+      The public model gains locale feature and numeric-domain metadata,
+      currency value and request types, Finnish and placeholder locale handling, richer
+      capability reporting, and broader legacy num2words input translation.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: add more languages"
+    target_entry_key: semantic-features
+    target_entry_id: entry-0003
+    notes: Includes explicit rejection for unsupported locale capabilities.
+  - sha: bcab274acc238d2c09cbcaec58d4b86e7411c303
+    source_ref: git:bcab274acc238d2c09cbcaec58d4b86e7411c303
+    short_sha: bcab274
+    changed_paths:
+      - .github/workflows/upstream-num2words.yml
+      - compatibility.toml
+      - docs/compatibility.md
+      - docs/locales/README.md
+      - docs/morphology.md
+      - numeralform/__init__.py
+      - numeralform/cli.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/locale.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/generic.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/unsupported.py
+      - numeralform/renderers/vi.py
+      - tests/test_compat_num2words.py
+      - tests/test_external_validation.py
+      - tests/test_hardening.py
+      - tests/validation/compatibility/NOTICE.md
+      - tests/validation/compatibility/capabilities.json
+      - tests/validation/compatibility/exceptions.json
+      - tests/validation/compatibility/manifest.json
+      - tests/validation/compatibility/num2words-0.5.14.jsonl
+      - tools/validation/check.py
+      - tools/validation/generate_num2words.py
+      - tools/validation/model.py
+    stats:
+      files_changed: 0
+      insertions: 10425
+      deletions: 585
+    inspected: true
+    inspected_paths:
+      - numeralform/__init__.py
+      - numeralform/model.py
+      - numeralform/locale.py
+      - numeralform/currency/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/regional.py
+      - docs/compatibility.md
+      - docs/morphology.md
+    observed_behavior:
+      The library adds currency and money rendering contracts, richer
+      morphology and locale features, ordinal and regional renderer support, numeric
+      ordinal forms, and expanded pinned num2words compatibility including fractions
+      and currency options.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: add more missing features"
+    target_entry_key: semantic-features
+    target_entry_id: entry-0003
+    notes:
+      The commit is grouped with the semantic feature entry because the behaviors
+      form one public contract expansion.
+  - sha: e3317bc647a0c6560516220b543797b6f4654d58
+    source_ref: git:e3317bc647a0c6560516220b543797b6f4654d58
+    short_sha: e3317bc
+    changed_paths:
+      - .codecrate.toml
+      - .github/workflows/ci.yml
+      - README.md
+      - docs/api.md
+      - docs/locales/README.md
+      - docs/locales/ru.md
+      - docs/releasing.md
+      - numeralform/__init__.py
+      - numeralform/_version.py
+      - numeralform/cli.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - pyproject.toml
+      - tests/test_api_contract.py
+      - tests/test_capabilities_contract.py
+      - tests/test_compat_num2words.py
+      - tests/test_external_validation.py
+      - tests/test_hardening.py
+      - tests/test_numeralform.py
+      - tools/validation/check.py
+    stats:
+      files_changed: 0
+      insertions: 760
+      deletions: 381
+    inspected: true
+    inspected_paths:
+      - numeralform/__init__.py
+      - numeralform/cli.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - docs/api.md
+      - .github/workflows/ci.yml
+      - pyproject.toml
+    observed_behavior:
+      The release preparation completes typed overloads and metadata-rich
+      results, adds locale discovery and CLI version reporting, publishes API documentation,
+      and defines CI checks for quality, tests, validation, coverage, and build artifacts.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: prepare first release"
+    target_entry_key: release-readiness
+    target_entry_id: entry-0005
+    notes:
+      Documentation and CI changes are included because they define the supported
+      release workflow.

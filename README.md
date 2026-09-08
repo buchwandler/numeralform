@@ -25,14 +25,14 @@ result = realize(42, locale="en-US")
 
 ## Why Numeralform
 
-| Capability | Numeralform | Legacy `num2words` style |
-| --- | --- | --- |
-| Leading zeros | Preserved by `DigitSequence` | Usually lost |
-| Decimal precision | Preserved by `DecimalNumber` | Coerced permissively |
-| Grammar | Typed `Morphology` and `Syntax` | Locale kwargs |
-| Capabilities | Exact reviewed profiles | Limited discovery |
-| Unsupported requests | Explicit errors | Varies |
-| Compatibility | Separate deterministic adapter | Single permissive API |
+| Capability           | Numeralform                     | Legacy `num2words` style |
+| -------------------- | ------------------------------- | ------------------------ |
+| Leading zeros        | Preserved by `DigitSequence`    | Usually lost             |
+| Decimal precision    | Preserved by `DecimalNumber`    | Coerced permissively     |
+| Grammar              | Typed `Morphology` and `Syntax` | Locale kwargs            |
+| Capabilities         | Exact reviewed profiles         | Limited discovery        |
+| Unsupported requests | Explicit errors                 | Varies                   |
+| Compatibility        | Separate deterministic adapter  | Single permissive API    |
 
 ## Supported locales
 
