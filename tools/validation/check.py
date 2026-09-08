@@ -50,14 +50,9 @@ def _compatibility_call(case: ValidationCase) -> tuple[str | None, Exception | N
         function, positional, kwargs = case.invocation.as_python()
     elif case.request is not None:
         request = case.request
-        if request.form == "currency":
-            function = "num2words"
-            positional = [request.value.as_python()]
-            kwargs = {"lang": request.locale, "to": request.form}
-        else:
-            function = "num2words"
-            positional = [request.value.as_python()]
-            kwargs = {"lang": request.locale, "to": request.form}
+        function = "num2words"
+        positional = [request.value.as_python()]
+        kwargs = {"lang": request.locale, "to": request.form}
     else:  # pragma: no cover - ValidationCase rejects this state.
         raise ValueError("compatibility case has no invocation")
     if function not in {"num2words", "numeralform.compat.num2words"}:
@@ -70,6 +65,29 @@ def _compatibility_call(case: ValidationCase) -> tuple[str | None, Exception | N
         return None, exc
 
 
+def _compat_dimensions(case: ValidationCase) -> tuple[str, str, object | None]:
+    if case.invocation is None:
+        request = case.request
+        if request is None:  # pragma: no cover - ValidationCase rejects this state.
+            raise ValueError("compatibility case has no invocation")
+        return request.locale, request.form, request.value.as_python()
+    _, positional, kwargs = case.invocation.as_python()
+    locale = str(kwargs.get("lang", "en"))
+    form = kwargs.get("to")
+    if kwargs.get("ordinal") is True:
+        form = "ordinal"
+    if form is None:
+        form = "cardinal"
+    value = positional[0] if positional else None
+    return locale, str(form), value
+
+
+def _exception_text(exc: Exception | None) -> tuple[str | None, str | None]:
+    if exc is None:
+        return None, None
+    return type(exc).__name__, str(exc)
+
+
 def check_cases(
     cases: list[ValidationCase], exceptions: dict[str, dict[str, object]] | None = None
 ) -> tuple[list[Mismatch], int, int]:
@@ -78,71 +96,84 @@ def check_cases(
     matches = 0
     exceptions_used = 0
     for case in cases:
-        if case.target == "compat:num2words-0.5.14":
+        if case.target.startswith("compat:num2words"):
             actual_result, actual_exception = _compatibility_call(case)
+            locale, form, value = _compat_dimensions(case)
             expected = case.expected
+            expected_kind = "exception" if case.expected_exception_type else "text"
+            actual_exception_type, actual_exception_message = _exception_text(
+                actual_exception
+            )
             if case.expected_exception_type is not None:
                 matched = actual_exception is not None and _exception_matches(
                     actual_exception,
                     case.expected_exception_type,
                     case.expected_exception_message_pattern,
                 )
-                actual = (
-                    f"<exception {type(actual_exception).__name__}: {actual_exception}>"
-                    if actual_exception is not None
-                    else str(actual_result)
-                )
             else:
-                actual = (
-                    f"<exception {type(actual_exception).__name__}: {actual_exception}>"
-                    if actual_exception is not None
-                    else actual_result
-                )
-                matched = actual_exception is None and actual == expected
-        else:
-            request = case.request
-            if request is None:
-                raise ValueError("canonical validation case requires a request")
-            try:
-                actual = render(
-                    request.value.as_python(),
-                    locale=request.locale,
-                    form=request.form,
-                    syntax=request.syntax,
-                    style=request.style,
-                    **request.morphology,
-                )
-            except Exception as exc:  # noqa: BLE001
-                actual = f"<render error: {exc}>"
-            if not is_nfc(actual):
-                actual = f"<non-NFC: {actual!r}>"
-            expected = (
-                str(exceptions[case.id]["expected_numeralform"])
-                if case.id in exceptions
-                else case.expected
+                matched = actual_exception is None and actual_result == expected
+            if matched:
+                matches += 1
+                continue
+            actual = (
+                f"<exception {actual_exception_type}: {actual_exception_message}>"
+                if actual_exception is not None
+                else str(actual_result)
             )
-            matched = actual == expected
-            exceptions_used += matched and case.id in exceptions
+            mismatches.append(
+                Mismatch(
+                    case.id,
+                    locale,
+                    case.mapping,
+                    form,
+                    {},
+                    value,
+                    expected,
+                    actual,
+                    expected_kind,
+                    None if expected_kind == "exception" else expected,
+                    None if actual_exception is not None else actual,
+                    case.expected_exception_type,
+                    case.expected_exception_message_pattern,
+                    actual_exception_type,
+                    actual_exception_message,
+                )
+            )
+            continue
+        request = case.request
+        if request is None:
+            raise ValueError("canonical validation case requires a request")
+        try:
+            actual = render(
+                request.value.as_python(),
+                locale=request.locale,
+                form=request.form,
+                syntax=request.syntax,
+                style=request.style,
+                **request.morphology,
+            )
+        except Exception as exc:  # noqa: BLE001
+            actual = f"<render error: {exc}>"
+        if not is_nfc(actual):
+            actual = f"<non-NFC: {actual!r}>"
+        expected = (
+            str(exceptions[case.id]["expected_numeralform"])
+            if case.id in exceptions
+            else case.expected
+        )
+        matched = actual == expected
+        exceptions_used += matched and case.id in exceptions
         if matched:
             matches += 1
             continue
-        request = case.request
-        locale = request.locale if request is not None else "<compat>"
-        form = request.form if request is not None else "compatibility"
-        morphology = request.morphology if request is not None else {}
-        value = (
-            str(request.value.to_json())
-            if request is not None
-            else str(case.invocation.to_json() if case.invocation else "")
-        )
         mismatches.append(
             Mismatch(
                 case.id,
-                locale,
+                request.locale,
                 case.mapping,
-                form,
-                morphology,
-                value,
+                request.form,
+                request.morphology,
+                request.value.as_python(),
                 expected,
                 actual,
             )

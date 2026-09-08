@@ -14,6 +14,12 @@ from .. import render
 from ..errors import InvalidRequestError, InvalidValueError, NumeralFormError
 from ..locale import canonicalize_locale
 from ..model import DecimalNumber, FractionNumber
+from ._num2words.registry import render_compat, resolve_compat_locale
+
+
+def _resolve_legacy_lang(lang: str):
+    return resolve_compat_locale(lang).resolution
+
 
 _FORM_MAP = {
     "cardinal": "cardinal",
@@ -36,7 +42,7 @@ def _decimal_number(value: Decimal) -> DecimalNumber:
 
 def _coerce_legacy_number(value: object):
     if isinstance(value, bool):
-        raise TypeError("number must be numeric")
+        return int(value)
     if isinstance(value, int):
         return value
     if isinstance(value, float):
@@ -270,14 +276,14 @@ def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
         return f"{sign}{whole} point {digits}"
 
 
-def num2words(
+def _num2words_impl(
     number: object,
     ordinal: bool = False,
     lang: str = "en",
     to: str = "cardinal",
     **kwargs,
 ) -> str:
-    """Render a legacy request using the pinned 0.5.14 compatibility profile."""
+    """Render a request using the pinned num2words Git compatibility profile."""
     if not isinstance(lang, str) or not lang.strip():
         raise TypeError("lang must be a non-empty locale identifier")
     if not isinstance(to, str) or to not in _FORM_MAP:
@@ -294,11 +300,13 @@ def num2words(
         key in options for key in ("currency", "cents", "separator", "adjective")
     ):
         raise InvalidRequestError("currency options require to='currency'")
-    locale = canonicalize_locale(lang)
+    compat_locale = resolve_compat_locale(lang)
+    locale = compat_locale.resolution.numeralform_locale
     value = _coerce_legacy_number(number)
     if "precision" in options:
         value = _apply_precision(value, options.pop("precision"))
-
+    if compat_locale.renderer is not None:
+        return render_compat(compat_locale, to, value, options)
     if to == "currency":
         from ..currency import render_currency
 
@@ -341,6 +349,24 @@ def num2words(
         if to == "cardinal" and isinstance(value, FractionNumber):
             form = "fraction"
         return render(value, locale=locale, form=form, **options)
+    except InvalidValueError as exc:
+        raise OverflowError(str(exc)) from exc
+    except NumeralFormError as exc:
+        raise NotImplementedError(str(exc)) from exc
+
+
+def num2words(
+    number: object,
+    ordinal: bool = False,
+    lang: str = "en",
+    to: str = "cardinal",
+    **kwargs,
+) -> str:
+    """Render a legacy request using the pinned compatibility profile."""
+    try:
+        return _num2words_impl(number, ordinal=ordinal, lang=lang, to=to, **kwargs)
+    except InvalidRequestError:
+        raise
     except InvalidValueError as exc:
         raise OverflowError(str(exc)) from exc
     except NumeralFormError as exc:

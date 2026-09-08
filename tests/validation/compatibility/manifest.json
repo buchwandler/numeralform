@@ -1,10 +1,10 @@
 {
   "config": "compatibility.toml",
-  "config_sha256": "e6ca23f5f05ff3d5cbae06a07bd525464b0f5eb25d17fc62c7002bdfaa14136a",
+  "config_sha256": "dd0db248be5583cd0021a4f2a5cb4d371748e4c12de0c9dae3c09caf64cbcc84",
   "files": {
-    "num2words-0.5.14.jsonl": {
+    "num2words-git-07814cb.jsonl": {
       "cases": 7119,
-      "sha256": "ae44cc13367cb340e4640c708e3cb0625e8c025663e084c794052bb2e39d6613"
+      "sha256": "89f2db8e45ab384cb65ae64b353adbd4bf708186450105734a667d847ac3fd55"
     }
   },
   "generated_by": "tools/validation/generate_num2words.py",
@@ -12,7 +12,13 @@
   "schema_version": 3,
   "source": {
     "commit": "07814cb114157f582c40a00119c2e9faba8dcee2",
-    "forms": ["cardinal", "ordinal", "ordinal_num", "year", "currency"],
+    "forms": [
+      "cardinal",
+      "ordinal",
+      "ordinal_num",
+      "year",
+      "currency"
+    ],
     "kind": "github-revision",
     "locales": [
       "am",
@@ -80,7 +86,15 @@
       "zh-TW"
     ],
     "package": "num2words",
-    "profiles": ["integer", "decimal", "string", "currency", "errors"],
+    "package_version_metadata": "0.5.14",
+    "profile": "num2words-git-07814cb",
+    "profiles": [
+      "integer",
+      "decimal",
+      "string",
+      "currency",
+      "errors"
+    ],
     "repository": "savoirfairelinux/num2words",
     "version": "0.5.14"
   }

@@ -78,7 +78,7 @@ class RegionalCompatibilityTests(unittest.TestCase):
     def test_indian_english_uses_lakh_and_crore(self):
         self.assertEqual(render(100_000, locale="en-IN"), "one lakh")
         self.assertEqual(render(10_000_000, locale="en-IN"), "one crore")
-        self.assertIn("lakh", num2words(100_000, lang="en-IN"))
+        self.assertNotIn("lakh", num2words(100_000, lang="en-IN"))
 
     def test_belgian_and_swiss_french_have_regional_tens(self):
         self.assertEqual(render(70, locale="fr-BE"), "septante")
@@ -126,6 +126,38 @@ class DecimalCompatibilityTests(unittest.TestCase):
         for locale in locales:
             with self.subTest(locale=locale):
                 self.assertTrue(num2words(12.5, lang=locale))
+
+
+class LegacyLocaleResolutionTests(unittest.TestCase):
+    def test_underscore_and_hyphen_are_not_collapsed(self):
+        from numeralform.compat._num2words.registry import resolve_compat_locale
+
+        self.assertEqual(
+            resolve_compat_locale("en_IN").resolution.upstream_key, "en_IN"
+        )
+        self.assertEqual(resolve_compat_locale("en-IN").resolution.upstream_key, "en")
+        self.assertEqual(
+            resolve_compat_locale("fr-CH").resolution.numeralform_locale, "fr"
+        )
+
+
+class CompatibilityBooleanTests(unittest.TestCase):
+    def test_true_uses_legacy_numeric_behavior(self):
+        self.assertEqual(num2words(True, lang="en"), num2words(1, lang="en"))
+
+
+class ChineseCompatibilityTests(unittest.TestCase):
+    def test_year_1000(self):
+        self.assertEqual(num2words(1000, lang="zh", to="year"), "一零零零年")
+
+    def test_year_2024(self):
+        self.assertEqual(num2words(2024, lang="zh", to="year"), "二零二四年")
+
+    def test_hyphenated_regional_tags_use_legacy_fallback(self):
+        self.assertEqual(
+            num2words(2024, lang="zh-CN", to="year"),
+            num2words(2024, lang="zh", to="year"),
+        )
 
 
 class SupersetCompatibilityTests(unittest.TestCase):

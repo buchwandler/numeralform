@@ -26,3 +26,13 @@ The configuration names every RBNF rule set explicitly and pins CLDR 48.2. The a
 When upgrading CLDR, regenerate into a temporary directory, inspect a mismatch report and corpus diff, classify upstream/variant/semantic changes, and update canonical output or reviewed exceptions explicitly. Never track CLDR `main` or overwrite expected output automatically.
 
 `generate_num2words.py` writes a separate compatibility corpus. Its output is evidence about `numeralform.compat.num2words`, never canonical CLDR evidence.
+
+## num2words compatibility generation
+
+The compatibility corpus targets Git revision `07814cb114157f582c40a00119c2e9faba8dcee2`, profile `num2words-git-07814cb`, with package metadata `0.5.14`. Generation requires the verified checkout and never accepts site-packages as a substitute:
+
+```bash
+python tools/validation/generate_num2words.py --config compatibility.toml --oracle-root .upstream-num2words --output tests/validation/compatibility/num2words-git-07814cb.jsonl --check
+```
+
+The offline checker is the blocking behavior gate. Generated data is behavioral evidence and does not copy LGPL upstream implementation code.

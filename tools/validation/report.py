@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from .normalize import codepoint_repr
 
@@ -15,35 +17,83 @@ class Mismatch:
     mapping: str | None
     form: str
     morphology: dict[str, str]
-    value: str
+    value: Any
     expected: str
     actual: str
+    expectation_kind: str = "text"
+    expected_text: str | None = None
+    actual_text: str | None = None
+    expected_exception_type: str | None = None
+    expected_exception_message_pattern: str | None = None
+    actual_exception_type: str | None = None
+    actual_exception_message: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.expectation_kind not in {"text", "exception"}:
+            raise ValueError(f"unknown expectation kind: {self.expectation_kind!r}")
+
+    @property
+    def _expected_text(self) -> str:
+        return self.expected if self.expected_text is None else self.expected_text
+
+    @property
+    def _actual_text(self) -> str:
+        return self.actual if self.actual_text is None else self.actual_text
 
     @property
     def shape(self) -> str:
-        if self.expected.replace("-", " ") == self.actual.replace("-", " "):
+        if self.expectation_kind == "exception":
+            if self.actual_exception_type is None:
+                return "expected exception but returned text"
+            if self.expected_exception_type != self.actual_exception_type:
+                return "exception type difference"
+            if self.expected_exception_message_pattern is not None:
+                return "exception message difference"
+            return "exception message difference"
+        if self.actual_exception_type is not None:
+            return "expected text but raised exception"
+        expected = self._expected_text
+        actual = self._actual_text
+        if expected.replace("-", " ") == actual.replace("-", " "):
             return "hyphenation only"
-        if self.expected.split() == self.actual.split():
+        if expected.split() == actual.split():
             return "whitespace only"
-        if self.expected.casefold() == self.actual.casefold():
+        if expected.casefold() == actual.casefold():
             return "diacritic/code-point difference"
-        if self.expected.startswith(self.actual) or self.actual.startswith(
-            self.expected
-        ):
+        if expected.startswith(actual) or actual.startswith(expected):
             return "prefix/suffix difference"
         if (
-            " y " in self.expected
-            or " y " in self.actual
-            or " and " in self.expected
-            or " and " in self.actual
+            " y " in expected
+            or " y " in actual
+            or " and " in expected
+            or " and " in actual
         ):
             return "conjunction difference"
         return "lexical difference"
 
     @property
     def value_range(self) -> str:
-        digits = "".join(char for char in self.value if char.isdigit())
-        magnitude = len(digits.lstrip("0")) or 1
+        numeric: Decimal | None = None
+        if isinstance(self.value, bool):
+            return "unknown"
+        if isinstance(self.value, int):
+            numeric = Decimal(self.value)
+        elif isinstance(self.value, (float, Decimal)):
+            try:
+                numeric = Decimal(str(self.value))
+            except InvalidOperation:
+                numeric = None
+        elif isinstance(self.value, str):
+            try:
+                numeric = Decimal(self.value)
+            except InvalidOperation:
+                numeric = None
+        if numeric is None or not numeric.is_finite():
+            return "unknown"
+        if numeric == 0:
+            magnitude = 1
+        else:
+            magnitude = numeric.copy_abs().adjusted() + 1
         return f"10^{magnitude - 1}..10^{magnitude}"
 
 
@@ -79,16 +129,32 @@ def format_mismatches(mismatches: list[Mismatch]) -> str:
                 f"mapping:   {item.mapping or '-'}",
                 f"form:      {item.form}",
                 f"morphology: {item.morphology}",
-                f"value:     {item.value}",
+                f"value:     {item.value!r}",
                 f"value range: {item.value_range}",
+                f"expectation: {item.expectation_kind}",
                 f"difference: {item.shape}",
-                f"expected:  {item.expected!r}",
-                f"actual:    {item.actual!r}",
-                f"expected code points: {codepoint_repr(item.expected)}",
-                f"actual code points:   {codepoint_repr(item.actual)}",
-                "",
             )
         )
+        if item.expectation_kind == "exception":
+            lines.extend(
+                (
+                    f"expected exception: {item.expected_exception_type or '<none>'}",
+                    "expected message pattern: "
+                    + (item.expected_exception_message_pattern or "<none>"),
+                    f"actual exception: {item.actual_exception_type or '<none>'}",
+                    f"actual message: {item.actual_exception_message or '<none>'}",
+                )
+            )
+        else:
+            lines.extend(
+                (
+                    f"expected:  {item._expected_text!r}",
+                    f"actual:    {item._actual_text!r}",
+                    f"expected code points: {codepoint_repr(item._expected_text)}",
+                    f"actual code points:   {codepoint_repr(item._actual_text)}",
+                )
+            )
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -118,12 +184,30 @@ def summarize(
             "difference shapes: "
             + ", ".join(f"{key}={value}" for key, value in sorted(shapes.items()))
         )
+        for label, values in (
+            (
+                "compatibility mismatches by locale",
+                Counter(item.locale for item in mismatches),
+            ),
+            (
+                "compatibility mismatches by form",
+                Counter(item.form for item in mismatches),
+            ),
+            (
+                "compatibility mismatches by expectation kind",
+                Counter(item.expectation_kind for item in mismatches),
+            ),
+        ):
+            lines.append(f"{label}:")
+            lines.extend(f"  {key}: {value}" for key, value in sorted(values.items()))
         lines.append("groups:")
         for key, group in sorted(
             group_mismatches(mismatches).items(), key=lambda item: repr(item[0])
         ):
             locale, mapping, form, morphology, value_range, shape = key
             lines.append(
-                f"  locale={locale} mapping={mapping or '-'} form={form} morphology={dict(morphology)} range={value_range} shape={shape}: {len(group)}"
+                f"  locale={locale} mapping={mapping or '-'} form={form} "
+                f"morphology={dict(morphology)} range={value_range} "
+                f"shape={shape}: {len(group)}"
             )
     return "\n".join(lines)

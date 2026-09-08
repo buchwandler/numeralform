@@ -132,6 +132,24 @@ class ValidationModelTests(unittest.TestCase):
         self.assertIn("10^1", key[4])
         self.assertEqual(key[5], "lexical difference")
 
+    def test_exception_mismatch_keeps_exception_metadata(self):
+        mismatch = Mismatch(
+            "case",
+            "zh",
+            "external-num2words",
+            "year",
+            {},
+            1000,
+            "",
+            "<exception UnsupportedLocaleError: unsupported>",
+            "exception",
+            expected_exception_type="NotImplementedError",
+            actual_exception_type="UnsupportedLocaleError",
+            actual_exception_message="unsupported",
+        )
+        self.assertEqual(mismatch.shape, "exception type difference")
+        self.assertEqual(mismatch.value_range, "10^3..10^4")
+
     def test_generation_is_seeded(self):
         self.assertEqual(
             deterministic_values(0, 9999, seed=20260907, per_magnitude=10),
@@ -183,6 +201,8 @@ class CorpusTests(unittest.TestCase):
         self.assertGreater(len(cases), 0)
         self.assertEqual(manifest["source"]["package"], "num2words")
         self.assertEqual(manifest["source"]["version"], "0.5.14")
+        self.assertEqual(manifest["source"]["package_version_metadata"], "0.5.14")
+        self.assertEqual(manifest["source"]["profile"], "num2words-git-07814cb")
 
     def test_compatibility_cases_dispatch_through_adapter(self):
         from tools.validation.check import check_cases

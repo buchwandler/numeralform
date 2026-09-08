@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import importlib.metadata
+import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unicodedata
@@ -32,6 +34,7 @@ else:
 
 CONFIG_PATH = Path("compatibility.toml")
 ORACLE_PACKAGE = "num2words"
+COMPATIBILITY_PROFILE = "num2words-git-07814cb"
 PINNED_ORACLE_VERSION = "0.5.14"
 PINNED_ORACLE_COMMIT = "07814cb114157f582c40a00119c2e9faba8dcee2"
 UPSTREAM_LOCALES = (
@@ -115,9 +118,10 @@ def _load_toml(path: Path) -> dict[str, Any]:
     if not isinstance(config, dict):
         raise ValueError("num2words compatibility config must be a table")  # noqa: TRY004
     required = {
+        "profile",
         "repository",
         "commit",
-        "version",
+        "package_version_metadata",
         "locales",
         "forms",
         "profiles",
@@ -127,8 +131,9 @@ def _load_toml(path: Path) -> dict[str, Any]:
     if missing:
         raise ValueError("compatibility config missing: " + ", ".join(sorted(missing)))
     if (
-        config["commit"] != PINNED_ORACLE_COMMIT
-        or config["version"] != PINNED_ORACLE_VERSION
+        config["profile"] != COMPATIBILITY_PROFILE
+        or config["commit"] != PINNED_ORACLE_COMMIT
+        or config["package_version_metadata"] != PINNED_ORACLE_VERSION
     ):
         raise ValueError("compatibility config does not identify the pinned oracle")
     if tuple(config["locales"]) != UPSTREAM_LOCALES:
@@ -138,8 +143,45 @@ def _load_toml(path: Path) -> dict[str, Any]:
     return config
 
 
-def _external_num2words():
-    """Load the external oracle, never the Numeralform compatibility adapter."""
+def _verify_oracle_checkout(
+    root: Path, expected_sha: str = PINNED_ORACLE_COMMIT
+) -> Path:
+    root = root.resolve()
+    if not root.is_dir():
+        raise RuntimeError(f"oracle checkout does not exist: {root}")
+    try:
+        actual = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            text=True,
+            stderr=subprocess.STDOUT,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError(f"oracle checkout is not a Git repository: {root}") from exc
+    if actual != expected_sha:
+        raise RuntimeError(
+            f"oracle checkout SHA mismatch: expected {expected_sha}, got {actual}"
+        )
+    return root
+
+
+def _external_num2words(oracle_root: Path | None = None):
+    """Load the external oracle from the requested checkout only."""
+    if oracle_root is not None:
+        root = _verify_oracle_checkout(oracle_root)
+        sys.path.insert(0, str(root))
+        for name in list(sys.modules):
+            if name == ORACLE_PACKAGE or name.startswith(f"{ORACLE_PACKAGE}."):
+                del sys.modules[name]
+    spec = importlib.util.find_spec(ORACLE_PACKAGE)
+    if spec is None or spec.origin is None:
+        raise RuntimeError(f"unable to locate oracle package {ORACLE_PACKAGE!r}")
+    module_path = Path(spec.origin).resolve()
+    if oracle_root is not None and not module_path.is_relative_to(
+        oracle_root.resolve()
+    ):
+        raise RuntimeError(
+            f"oracle module is outside checkout: {module_path} (root {oracle_root})"
+        )
     from num2words import (
         num2words as external_num2words,  # type: ignore[import-not-found]
     )
@@ -147,7 +189,22 @@ def _external_num2words():
     return external_num2words
 
 
-def _oracle_version() -> str:
+def _oracle_version(oracle_root: Path | None = None) -> str:
+    if oracle_root is not None:
+        for distribution in importlib.metadata.distributions(
+            path=[str(oracle_root.resolve())]
+        ):
+            name = distribution.metadata.get("Name", "").lower()
+            if name == ORACLE_PACKAGE:
+                return distribution.version
+        version_file = oracle_root.resolve() / "bin" / "num2words"
+        if version_file.is_file():
+            for line in version_file.read_text(encoding="utf-8").splitlines():
+                if line.startswith("__version__ = "):
+                    return line.split("=", 1)[1].strip().strip("'\"")
+        raise RuntimeError(
+            f"unable to determine {ORACLE_PACKAGE} package metadata from {oracle_root}"
+        )
     return importlib.metadata.version(ORACLE_PACKAGE)
 
 
@@ -240,18 +297,23 @@ def generate_cases(
     config_path: Path = CONFIG_PATH,
     locales: tuple[str, ...] | None = None,
     values: tuple[int, ...] | None = None,
+    oracle_root: Path | None = None,
 ) -> list[ValidationCase]:
     config = _load_toml(config_path)
     selected_locales = locales or tuple(config["locales"])
     selected_values = values or tuple(config["values"])
     forms = tuple(config["forms"])
     profiles = tuple(config["profiles"])
-    version = _oracle_version()
-    if version != PINNED_ORACLE_VERSION:
+    if oracle_root is None:
+        raise RuntimeError("a verified oracle checkout is required; pass --oracle-root")
+    external_num2words = _external_num2words(oracle_root)
+    version = _oracle_version(oracle_root)
+    expected_version = str(config["package_version_metadata"])
+    if version != expected_version:
         raise RuntimeError(
-            f"unsupported oracle version {version!r}; expected {PINNED_ORACLE_VERSION!r}"
+            f"unsupported oracle version {version!r}; expected {expected_version!r}"
         )
-    external_num2words = _external_num2words()
+    target = f"compat:{config['profile']}"
     cases: list[ValidationCase] = []
     for locale, form, invocation in _invocations(
         selected_locales, selected_values, forms, profiles
@@ -272,9 +334,10 @@ def generate_cases(
                         "package": ORACLE_PACKAGE,
                         "version": version,
                         "commit": PINNED_ORACLE_COMMIT,
+                        "profile": config["profile"],
                     },
                     source="external-num2words",
-                    target="compat:num2words-0.5.14",
+                    target=target,
                     invocation=invocation,
                     expected_exception_type=type(exc).__name__,
                 )
@@ -290,9 +353,10 @@ def generate_cases(
                         "package": ORACLE_PACKAGE,
                         "version": version,
                         "commit": PINNED_ORACLE_COMMIT,
+                        "profile": config["profile"],
                     },
                     source="external-num2words",
-                    target="compat:num2words-0.5.14",
+                    target=target,
                     invocation=invocation,
                 )
             )
@@ -309,10 +373,12 @@ def _manifest(
         "schema_version": 3,
         "source": {
             "kind": "github-revision",
+            "profile": config["profile"],
             "repository": config["repository"],
             "commit": config["commit"],
             "package": ORACLE_PACKAGE,
-            "version": config["version"],
+            "package_version_metadata": config["package_version_metadata"],
+            "version": config["package_version_metadata"],
             "locales": list(config["locales"]),
             "forms": list(config["forms"]),
             "profiles": list(config["profiles"]),
@@ -326,10 +392,14 @@ def _manifest(
 
 
 def generate(
-    output: Path, *, config_path: Path = CONFIG_PATH, check: bool = False
+    output: Path,
+    *,
+    config_path: Path = CONFIG_PATH,
+    check: bool = False,
+    oracle_root: Path | None = None,
 ) -> Path:
     config = _load_toml(config_path)
-    cases = generate_cases(config_path=config_path)
+    cases = generate_cases(config_path=config_path, oracle_root=oracle_root)
     if check:
         with tempfile.TemporaryDirectory() as directory:
             temporary_output = Path(directory) / output.name
@@ -360,10 +430,11 @@ def generate(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
+    parser.add_argument("--oracle-root", type=Path)
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("tests/validation/compatibility/num2words-0.5.14.jsonl"),
+        default=Path("tests/validation/compatibility/num2words-git-07814cb.jsonl"),
     )
     parser.add_argument(
         "--check",
@@ -371,7 +442,12 @@ def main(argv: list[str] | None = None) -> int:
         help="verify committed corpus and manifest without writing",
     )
     args = parser.parse_args(argv)
-    manifest = generate(args.output, config_path=args.config, check=args.check)
+    manifest = generate(
+        args.output,
+        config_path=args.config,
+        check=args.check,
+        oracle_root=args.oracle_root,
+    )
     print(
         f"{'checked' if args.check else 'wrote'} external compatibility corpus and manifest: {args.output}, {manifest}"
     )

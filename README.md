@@ -54,7 +54,7 @@ from numeralform.compat import num2words
 num2words(42, lang="en")
 ```
 
-The runtime adapter is deterministic and does not import upstream `num2words`. The pinned upstream package is used only by corpus-generation tooling.
+The runtime adapter is deterministic and does not import upstream `num2words`. The compatibility profile is pinned to Git revision `07814cb114157f582c40a00119c2e9faba8dcee2` with package metadata `0.5.14`; the oracle is used only by generation tooling.
 
 ## Errors
 

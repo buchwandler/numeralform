@@ -278,7 +278,11 @@ class ValidationCase:
             raise ValueError(
                 "validation case cannot contain both request and invocation"
             )
-        if self.target not in {"canonical", "compat:num2words-0.5.14"}:
+        if self.target not in {
+            "canonical",
+            "compat:num2words-0.5.14",
+            "compat:num2words-git-07814cb",
+        }:
             raise ValueError(f"unknown validation target: {self.target!r}")
         if self.expected_exception_type and self.target == "canonical":
             raise ValueError("canonical cases cannot declare compatibility exceptions")

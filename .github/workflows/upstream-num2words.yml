@@ -5,8 +5,6 @@ on:
 
 jobs:
   upstream-suite:
-    # Advisory while the generated corpus is the blocking offline gate.
-    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,6 +16,11 @@ jobs:
           repository: savoirfairelinux/num2words
           ref: 07814cb114157f582c40a00119c2e9faba8dcee2
           path: .upstream-num2words
+      - name: Verify oracle revision and corpus
+        run: |
+          test "$(git -C .upstream-num2words rev-parse HEAD)" = "07814cb114157f582c40a00119c2e9faba8dcee2"
+          python tools/validation/generate_num2words.py --config compatibility.toml --oracle-root .upstream-num2words --output tests/validation/compatibility/num2words-git-07814cb.jsonl --check
+          python tools/validation/check.py --corpus tests/validation
       - name: Create isolated compatibility shim
         run: |
           mkdir -p .num2words-shim/num2words
