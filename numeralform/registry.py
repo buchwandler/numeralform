@@ -31,6 +31,7 @@ def _ensure_builtins() -> None:
         CzechRenderer,
         GermanRenderer,
         EnglishRenderer,
+        FinnishRenderer,
         SpanishRenderer,
         FrenchRenderer,
         ItalianRenderer,
@@ -41,17 +42,19 @@ def _ensure_builtins() -> None:
         SwedishRenderer,
         ThaiRenderer,
         VietnameseRenderer,
+        UnsupportedLocaleRenderer,
     )
-
     for locale, renderer in (
         ("cs", CzechRenderer),
         ("de", GermanRenderer),
         ("en", EnglishRenderer),
+        ("fi", FinnishRenderer),
         ("es", SpanishRenderer),
         ("fr", FrenchRenderer),
         ("it", ItalianRenderer),
         ("ja", JapaneseRenderer),
         ("ko", KoreanRenderer),
+        ("pt", PortugueseRenderer("pt-PT")),
         ("pt-BR", PortugueseRenderer),
         ("pt-PT", PortugueseRenderer("pt-PT")),
         ("ru", RussianRenderer),
@@ -60,6 +63,28 @@ def _ensure_builtins() -> None:
         ("vi", VietnameseRenderer),
     ):
         if locale not in _RENDERERS:
+            register_locale(locale, renderer)
+    regional = {
+        "en-IN": EnglishRenderer,
+        "en-NG": EnglishRenderer,
+        "es-CO": SpanishRenderer,
+        "es-CR": SpanishRenderer,
+        "es-GT": SpanishRenderer,
+        "es-NI": SpanishRenderer,
+        "es-VE": SpanishRenderer,
+        "fr-BE": FrenchRenderer,
+        "fr-CH": FrenchRenderer,
+        "fr-DZ": FrenchRenderer,
+    }
+    for locale in (
+        "am", "ar", "az", "be", "bn", "ca", "ce", "cy", "da", "en-IN", "en-NG",
+        "eo", "es-CO", "es-CR", "es-GT", "es-NI", "es-VE", "fa", "fr-BE",
+        "fr-CH", "fr-DZ", "he", "hi", "hu", "hy", "id", "is", "kn", "kz", "lt",
+        "lv", "mn", "nl", "no", "pl", "ro", "sk", "sl", "sr", "te", "tet",
+        "tg", "tr", "uk", "zh", "zh-CN", "zh-HK", "zh-TW",
+    ):
+        if locale not in _RENDERERS:
+            renderer = regional.get(locale, UnsupportedLocaleRenderer(locale))
             register_locale(locale, renderer)
 
 

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "savoirfairelinux/num2words",
+    "commit": "07814cb114157f582c40a00119c2e9faba8dcee2",
+    "reported_version": "0.5.14"
+  },
+  "forms": ["cardinal", "ordinal", "ordinal_num", "year", "currency"],
+  "locales": {
+    "am": {"implemented": false}, "ar": {"implemented": false}, "az": {"implemented": false}, "be": {"implemented": false}, "bn": {"implemented": false}, "ca": {"implemented": false}, "ce": {"implemented": false}, "cs": {"implemented": true}, "cy": {"implemented": false}, "da": {"implemented": false}, "de": {"implemented": true}, "en": {"implemented": true}, "en-IN": {"implemented": true, "alias_of": "en"}, "en-NG": {"implemented": true, "alias_of": "en"}, "eo": {"implemented": false}, "es": {"implemented": true}, "es-CO": {"implemented": true, "alias_of": "es"}, "es-CR": {"implemented": true, "alias_of": "es"}, "es-GT": {"implemented": true, "alias_of": "es"}, "es-NI": {"implemented": true, "alias_of": "es"}, "es-VE": {"implemented": true, "alias_of": "es"}, "fa": {"implemented": false}, "fi": {"implemented": true}, "fr": {"implemented": true}, "fr-BE": {"implemented": true, "alias_of": "fr"}, "fr-CH": {"implemented": true, "alias_of": "fr"}, "fr-DZ": {"implemented": true, "alias_of": "fr"}, "he": {"implemented": false}, "hi": {"implemented": false}, "hu": {"implemented": false}, "hy": {"implemented": false}, "id": {"implemented": false}, "is": {"implemented": false}, "it": {"implemented": true}, "ja": {"implemented": true}, "kn": {"implemented": false}, "ko": {"implemented": true}, "kz": {"implemented": false}, "lt": {"implemented": false}, "lv": {"implemented": false}, "mn": {"implemented": false}, "nl": {"implemented": false}, "no": {"implemented": false}, "pl": {"implemented": false}, "pt": {"implemented": true, "alias_of": "pt-PT"}, "pt-BR": {"implemented": true}, "pt-PT": {"implemented": true}, "ro": {"implemented": false}, "ru": {"implemented": true}, "sk": {"implemented": false}, "sl": {"implemented": false}, "sr": {"implemented": false}, "sv": {"implemented": true}, "te": {"implemented": false}, "tet": {"implemented": false}, "tg": {"implemented": false}, "th": {"implemented": true}, "tr": {"implemented": false}, "uk": {"implemented": false}, "vi": {"implemented": true}, "zh": {"implemented": false}, "zh-CN": {"implemented": false}, "zh-HK": {"implemented": false}, "zh-TW": {"implemented": false}
+  }
+}

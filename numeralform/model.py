@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
-from typing import TypeAlias
+from types import MappingProxyType
+from typing import Mapping, TypeAlias
 
 from .errors import InvalidRequestError, InvalidValueError
 
@@ -18,7 +19,7 @@ class _ValueEnum(str, Enum):
             return value
         try:
             return cls(value)
-        except ValueError as exc:
+        except (TypeError, ValueError) as exc:
             choices = ", ".join(item.value for item in cls)
             raise InvalidRequestError(
                 f"invalid {cls.__name__} {value!r}; expected one of {choices}"
@@ -59,6 +60,7 @@ class Syntax(_ValueEnum):
 class NumeralForm(_ValueEnum):
     CARDINAL = "cardinal"
     ORDINAL = "ordinal"
+    ORDINAL_NUMERIC = "ordinal_num"
     DIGITS = "digits"
     DECIMAL = "decimal"
     FRACTION = "fraction"
@@ -108,7 +110,7 @@ class DecimalNumber:
             raise InvalidValueError("negative must be a boolean")
 
     @classmethod
-    def from_decimal(cls, value: Decimal) -> DecimalNumber:
+    def from_decimal(cls, value: Decimal) -> "DecimalNumber":
         if not isinstance(value, Decimal) or not value.is_finite():
             raise InvalidValueError("value must be a finite Decimal")
         text = format(abs(value), "f")
@@ -135,6 +137,40 @@ class FractionNumber:
 
 
 NumericValue: TypeAlias = int | DigitSequence | DecimalNumber | FractionNumber
+FeatureScalar: TypeAlias = str | bool | tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class LocaleFeatures:
+    """Immutable escape hatch for locale-specific rendering features.
+
+    Universal agreement belongs in :class:`Morphology`; orthographic and
+    locale-specific switches belong here and are validated by capabilities.
+    """
+
+    values: Mapping[str, FeatureScalar] = ()
+
+    def __post_init__(self) -> None:
+        values = dict(self.values) if not isinstance(self.values, tuple) else {}
+        for key, value in values.items():
+            if not isinstance(key, str) or not key.strip():
+                raise InvalidRequestError("locale feature names must be non-empty strings")
+            if not isinstance(value, (str, bool, tuple)):
+                raise InvalidRequestError(
+                    f"locale feature {key!r} must be a string, boolean, or tuple"
+                )
+            if isinstance(value, tuple) and not all(isinstance(item, str) for item in value):
+                raise InvalidRequestError(f"locale feature {key!r} tuple values must be strings")
+        object.__setattr__(self, "values", MappingProxyType(values))
+
+    def __getitem__(self, key: str) -> FeatureScalar:
+        return self.values[key]
+
+    def get(self, key: str, default=None):
+        return self.values.get(key, default)
+
+    def items(self):
+        return self.values.items()
 
 
 def coerce_value(value: object) -> NumericValue:
@@ -153,25 +189,47 @@ def coerce_value(value: object) -> NumericValue:
     )
 
 
+def _coerce_open_feature(enum_type, value, field: str):
+    if isinstance(value, enum_type):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        raise InvalidRequestError(f"{field} must be a non-empty string")
+    normalized = value.strip().lower()
+    try:
+        return enum_type(normalized)
+    except ValueError:
+        # Case, animacy, and future feature inventories are locale-extensible.
+        return normalized
+
+
 @dataclass(frozen=True, slots=True)
 class Morphology:
     gender: Gender | None = None
-    case: Case | None = None
-    animacy: Animacy | None = None
+    case: Case | str | None = None
+    animacy: Animacy | str | None = None
     grammatical_number: str | None = None
     noun_class: str | None = None
+    definiteness: str | None = None
+    state: str | None = None
 
     def __post_init__(self) -> None:
-        for field in ("gender", "case", "animacy"):
+        if self.gender is not None:
+            object.__setattr__(self, "gender", Gender.coerce(self.gender))
+        for field, enum_type in (("case", Case), ("animacy", Animacy)):
             value = getattr(self, field)
             if value is not None:
-                object.__setattr__(
-                    self, field, globals()[field.capitalize()].coerce(value)
-                )
-        for field in ("grammatical_number", "noun_class"):
+                object.__setattr__(self, field, _coerce_open_feature(enum_type, value, field))
+        for field in (
+            "grammatical_number",
+            "noun_class",
+            "definiteness",
+            "state",
+        ):
             value = getattr(self, field)
-            if value is not None and (not isinstance(value, str) or not value):
+            if value is not None and (not isinstance(value, str) or not value.strip()):
                 raise InvalidRequestError(f"{field} must be a non-empty string")
+            if isinstance(value, str):
+                object.__setattr__(self, field, value.strip().lower())
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,6 +240,7 @@ class NumeralRequest:
     syntax: Syntax = Syntax.STANDALONE
     morphology: Morphology = Morphology()
     style: str | None = None
+    features: LocaleFeatures = LocaleFeatures()
 
     def __post_init__(self) -> None:
         value = coerce_value(self.value)
@@ -199,10 +258,14 @@ class NumeralRequest:
         object.__setattr__(self, "syntax", Syntax.coerce(self.syntax))
         if not isinstance(self.morphology, Morphology):
             raise InvalidRequestError("morphology must be a Morphology instance")
+        if not isinstance(self.features, LocaleFeatures):
+            object.__setattr__(self, "features", LocaleFeatures(self.features))
         if self.style is not None and (
-            not isinstance(self.style, str) or not self.style
+            not isinstance(self.style, str) or not self.style.strip()
         ):
             raise InvalidRequestError("style must be a non-empty string")
+        if isinstance(self.style, str):
+            object.__setattr__(self, "style", self.style.strip())
 
 
 @dataclass(frozen=True, slots=True)

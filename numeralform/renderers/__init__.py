@@ -12,12 +12,15 @@ from .pt import PortugueseRenderer
 from .ru import RussianRenderer
 from .sv import SwedishRenderer
 from .th import ThaiRenderer
+from .fi import FinnishRenderer
 from .vi import VietnameseRenderer
+from .unsupported import UnsupportedLocaleRenderer
 
 __all__ = [
     "CzechRenderer",
     "GermanRenderer",
     "EnglishRenderer",
+    "FinnishRenderer",
     "SpanishRenderer",
     "FrenchRenderer",
     "ItalianRenderer",
@@ -28,4 +31,5 @@ __all__ = [
     "SwedishRenderer",
     "ThaiRenderer",
     "VietnameseRenderer",
+    "UnsupportedLocaleRenderer",
 ]

@@ -42,9 +42,8 @@ class InvalidRequestRegressionTests(unittest.TestCase):
         with self.assertRaises(NumeralFormError):
             render(30, locale="es", form="ordinal")
 
-    def test_russian_ordinal_outside_reviewed_range_is_package_error(self):
-        with self.assertRaises(NumeralFormError):
-            render(30, locale="ru", form="ordinal")
+    def test_russian_ordinal_expands_beyond_initial_review_range(self):
+        self.assertEqual(render(30, locale="ru", form="ordinal"), "тридцатый")
 
     def test_english_scale_overflow_is_rejected(self):
         with self.assertRaises(InvalidValueError):
@@ -116,7 +115,7 @@ class RegistryInitializationRegressionTests(unittest.TestCase):
                     return NumeralResult("custom", request.locale, request.form, request.style, request.morphology)
 
             register_locale("xx", CustomRenderer)
-            assert locales() == ("cs", "de", "en", "es", "fr", "it", "ja", "ko", "pt-BR", "pt-PT", "ru", "sv", "th", "vi", "xx"), locales()
+            assert locales() == ("am", "ar", "az", "be", "bn", "ca", "ce", "cs", "cy", "da", "de", "en", "en-IN", "en-NG", "eo", "es", "es-CO", "es-CR", "es-GT", "es-NI", "es-VE", "fa", "fi", "fr", "fr-BE", "fr-CH", "fr-DZ", "he", "hi", "hu", "hy", "id", "is", "it", "ja", "kn", "ko", "kz", "lt", "lv", "mn", "nl", "no", "pl", "pt", "pt-BR", "pt-PT", "ro", "ru", "sk", "sl", "sr", "sv", "te", "tet", "tg", "th", "tr", "uk", "vi", "xx", "zh", "zh-CN", "zh-HK", "zh-TW"), locales()
             assert render(1, locale="xx") == "custom"
             """
         )

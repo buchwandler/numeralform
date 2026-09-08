@@ -7,6 +7,7 @@ The generated corpus is safe to check offline after generation.
 
 from __future__ import annotations
 
+import argparse
 import importlib.metadata
 import json
 import sys
@@ -26,10 +27,18 @@ else:
 
 ORACLE_PACKAGE = "num2words"
 PINNED_ORACLE_VERSION = "0.5.14"
-DEFAULT_LOCALES = ("en", "es", "ru")
+PINNED_ORACLE_COMMIT = "07814cb114157f582c40a00119c2e9faba8dcee2"
+UPSTREAM_LOCALES = (
+    "am", "ar", "az", "be", "bn", "ca", "ce", "cs", "cy", "da", "de", "en",
+    "en-IN", "en-NG", "eo", "es", "es-CO", "es-CR", "es-GT", "es-NI", "es-VE",
+    "fa", "fi", "fr", "fr-BE", "fr-CH", "fr-DZ", "he", "hi", "hu", "hy", "id",
+    "is", "it", "ja", "kn", "ko", "kz", "lt", "lv", "mn", "nl", "no", "pl",
+    "pt", "pt-BR", "ro", "ru", "sk", "sl", "sr", "sv", "te", "tet", "tg",
+    "th", "tr", "uk", "vi", "zh", "zh-CN", "zh-HK", "zh-TW",
+ )
+DEFAULT_LOCALES = UPSTREAM_LOCALES
 DEFAULT_VALUES = (0, 1, 2, 3, 10, 11, 19, 20, 21, 42, 99, 100, 101, 999, 1000, 2024)
-FORMS = ("cardinal", "ordinal", "year")
-
+FORMS = ("cardinal", "ordinal", "ordinal_num", "year", "currency")
 
 def _external_num2words():
     """Load the external oracle with an intentionally obvious import."""
@@ -70,7 +79,11 @@ def generate_cases(
                         request,
                         text,
                         mapping="external-num2words",
-                        oracle={"package": ORACLE_PACKAGE, "version": version},
+                        oracle={
+                            "package": ORACLE_PACKAGE,
+                            "version": version,
+                            "commit": PINNED_ORACLE_COMMIT,
+                        },
                         source="external-num2words",
                     )
                 )
@@ -83,7 +96,9 @@ def _manifest(
     return {
         "schema_version": 1,
         "source": {
-            "kind": "external-package",
+            "kind": "github-revision",
+            "repository": "savoirfairelinux/num2words",
+            "commit": PINNED_ORACLE_COMMIT,
             "package": ORACLE_PACKAGE,
             "version": PINNED_ORACLE_VERSION,
             "locales": sorted({case.request.locale for case in cases}),

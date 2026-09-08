@@ -52,27 +52,77 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(
             locales(),
             (
+                "am",
+                "ar",
+                "az",
+                "be",
+                "bn",
+                "ca",
+                "ce",
                 "cs",
+                "cy",
+                "da",
                 "de",
                 "en",
+                "en-IN",
+                "en-NG",
+                "eo",
                 "es",
+                "es-CO",
+                "es-CR",
+                "es-GT",
+                "es-NI",
+                "es-VE",
+                "fa",
+                "fi",
                 "fr",
+                "fr-BE",
+                "fr-CH",
+                "fr-DZ",
+                "he",
+                "hi",
+                "hu",
+                "hy",
+                "id",
+                "is",
                 "it",
                 "ja",
+                "kn",
                 "ko",
+                "kz",
+                "lt",
+                "lv",
+                "mn",
+                "nl",
+                "no",
+                "pl",
+                "pt",
                 "pt-BR",
                 "pt-PT",
+                "ro",
                 "ru",
+                "sk",
+                "sl",
+                "sr",
                 "sv",
+                "te",
+                "tet",
+                "tg",
                 "th",
+                "tr",
+                "uk",
                 "vi",
+                "zh",
+                "zh-CN",
+                "zh-HK",
+                "zh-TW",
             ),
         )
 
     def test_capabilities_are_truthful(self):
         self.assertIn(NumeralForm.ORDINAL, capabilities("ru").forms)
         self.assertIn(Gender.FEMININE, capabilities("ru").genders)
-        self.assertNotIn(Case.GENITIVE, capabilities("ru").cases)
+        self.assertIn(Case.GENITIVE, capabilities("ru").cases)
 
 
 class ContractTests(unittest.TestCase):
@@ -161,8 +211,7 @@ class ContractTests(unittest.TestCase):
     def test_unsupported_morphology_is_strict(self):
         with self.assertRaises(UnsupportedMorphologyError):
             render(2, locale="en", case="genitive")
-        with self.assertRaises(UnsupportedMorphologyError):
-            render(2, locale="ru", case="genitive")
+        self.assertEqual(render(2, locale="ru", case="genitive"), "двух")
         with self.assertRaises(UnsupportedMorphologyError):
             render(2, locale="es", gender="neuter")
 
@@ -196,7 +245,7 @@ class CliTests(unittest.TestCase):
     def test_discovery_commands(self):
         self.assertEqual(
             self.run_cli("--list-locales"),
-            "cs\nde\nen\nes\nfr\nit\nja\nko\npt-BR\npt-PT\nru\nsv\nth\nvi",
+            "am\nar\naz\nbe\nbn\nca\nce\ncs\ncy\nda\nde\nen\nen-IN\nen-NG\neo\nes\nes-CO\nes-CR\nes-GT\nes-NI\nes-VE\nfa\nfi\nfr\nfr-BE\nfr-CH\nfr-DZ\nhe\nhi\nhu\nhy\nid\nis\nit\nja\nkn\nko\nkz\nlt\nlv\nmn\nnl\nno\npl\npt\npt-BR\npt-PT\nro\nru\nsk\nsl\nsr\nsv\nte\ntet\ntg\nth\ntr\nuk\nvi\nzh\nzh-CN\nzh-HK\nzh-TW",
         )
         self.assertIn('"feminine"', self.run_cli("--capabilities", "ru"))
 
