@@ -1,0 +1,234 @@
+[
+  {
+    "case_id": "num2words-0.5.14:en:cardinal:101",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "one hundred one",
+    "oracle_output": "one hundred and one",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:cardinal:2024",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "two thousand twenty-four",
+    "oracle_output": "two thousand and twenty-four",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:cardinal:999",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "nine hundred ninety-nine",
+    "oracle_output": "nine hundred and ninety-nine",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:ordinal:100",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "hundredth",
+    "oracle_output": "one hundredth",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:ordinal:1000",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "thousandth",
+    "oracle_output": "one thousandth",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:ordinal:101",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "one hundred first",
+    "oracle_output": "one hundred and first",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:ordinal:2024",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "two thousand twenty-fourth",
+    "oracle_output": "two thousand and twenty-fourth",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:ordinal:999",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "nine hundred ninety-ninth",
+    "oracle_output": "nine hundred and ninety-ninth",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:year:1000",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "ten hundred",
+    "oracle_output": "one thousand",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:year:101",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "one hundred one",
+    "oracle_output": "one oh-one",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:en:year:999",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "nine hundred ninety-nine",
+    "oracle_output": "nine ninety-nine",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:0",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "cero",
+    "oracle_output": "",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:100",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "centésimo",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:1000",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "milésimo",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:101",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "centésimo primero",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:11",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "undécimo",
+    "oracle_output": "décimoprimero",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:19",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "decimonoveno",
+    "oracle_output": "décimo noveno",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:2024",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "dosmilésimo vigésimo cuarto",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:21",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "vigésimo primero",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:42",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "quadragésimo segundo",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:99",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "nonagésimo noveno",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:es:ordinal:999",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Spanish ordinal is supported only for values 0 through 20>",
+    "oracle_output": "noningentésimo nonagésimo noveno",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:100",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "сотый",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:1000",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "тысячный",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:101",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "сто первый",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:2024",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "две тысячи двадцать четвёртый",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:42",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "сорок второй",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:99",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "девяносто девятый",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  },
+  {
+    "case_id": "num2words-0.5.14:ru:ordinal:999",
+    "category": "canonical-style-or-reviewed-range",
+    "expected_numeralform": "<render error: Russian ordinal is supported only for values 0 through 29>",
+    "oracle_output": "девятьсот девяносто девятый",
+    "rationale": "Canonical Numeralform behavior is intentionally retained; external output is frozen for compatibility review.",
+    "reviewed": true
+  }
+]

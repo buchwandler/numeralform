@@ -116,7 +116,7 @@ class RegistryInitializationRegressionTests(unittest.TestCase):
                     return NumeralResult("custom", request.locale, request.form, request.style, request.morphology)
 
             register_locale("xx", CustomRenderer)
-            assert locales() == ("en", "es", "ru", "xx"), locales()
+            assert locales() == ("cs", "de", "en", "es", "fr", "it", "ja", "ko", "pt-BR", "pt-PT", "ru", "sv", "th", "vi", "xx"), locales()
             assert render(1, locale="xx") == "custom"
             """
         )

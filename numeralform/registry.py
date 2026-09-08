@@ -27,12 +27,37 @@ def _ensure_builtins() -> None:
     # Set the guard before importing/registering so a custom pre-registration
     # cannot suppress built-in initialization and re-entrant lookups are safe.
     _BUILTINS_INITIALIZED = True
-    from .renderers import EnglishRenderer, RussianRenderer, SpanishRenderer
+    from .renderers import (
+        CzechRenderer,
+        GermanRenderer,
+        EnglishRenderer,
+        SpanishRenderer,
+        FrenchRenderer,
+        ItalianRenderer,
+        JapaneseRenderer,
+        KoreanRenderer,
+        PortugueseRenderer,
+        RussianRenderer,
+        SwedishRenderer,
+        ThaiRenderer,
+        VietnameseRenderer,
+    )
 
     for locale, renderer in (
+        ("cs", CzechRenderer),
+        ("de", GermanRenderer),
         ("en", EnglishRenderer),
         ("es", SpanishRenderer),
+        ("fr", FrenchRenderer),
+        ("it", ItalianRenderer),
+        ("ja", JapaneseRenderer),
+        ("ko", KoreanRenderer),
+        ("pt-BR", PortugueseRenderer),
+        ("pt-PT", PortugueseRenderer("pt-PT")),
         ("ru", RussianRenderer),
+        ("sv", SwedishRenderer),
+        ("th", ThaiRenderer),
+        ("vi", VietnameseRenderer),
     ):
         if locale not in _RENDERERS:
             register_locale(locale, renderer)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import ast
 import json
 import subprocess
 import sys
@@ -142,6 +143,20 @@ class CorpusTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         self.assertIn("mismatches: 0", completed.stdout)
+
+    def test_external_compatibility_corpus_is_independent(self):
+        generator = ROOT / "tools" / "validation" / "generate_num2words.py"
+        tree = ast.parse(generator.read_text(encoding="utf-8"))
+        imports = [
+            node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+        ]
+        self.assertNotIn("numeralform.compat", imports)
+        cases, manifest = verify_manifest(
+            ROOT / "tests" / "validation" / "compatibility"
+        )
+        self.assertGreater(len(cases), 0)
+        self.assertEqual(manifest["source"]["package"], "num2words")
+        self.assertEqual(manifest["source"]["version"], "0.5.14")
 
     def test_runtime_does_not_import_icu(self):
         completed = subprocess.run(

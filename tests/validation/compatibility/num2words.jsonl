@@ -1,3 +1,0 @@
-{"expected":"forty-two","id":"num2words:en:cardinal:42","request":{"form":"cardinal","locale":"en","morphology":{},"style":null,"syntax":"standalone","value":{"kind":"int","value":"42"}},"source":"num2words"}
-{"expected":"forty-second","id":"num2words:en:ordinal:42","request":{"form":"ordinal","locale":"en","morphology":{},"style":null,"syntax":"standalone","value":{"kind":"int","value":"42"}},"source":"num2words"}
-{"expected":"twenty twenty-four","id":"num2words:en:year:2024","request":{"form":"year","locale":"en","morphology":{},"style":null,"syntax":"standalone","value":{"kind":"int","value":"2024"}},"source":"num2words"}

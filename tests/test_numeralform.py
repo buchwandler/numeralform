@@ -49,7 +49,25 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(canonicalize_locale("cn"), "zh-CN")
         self.assertEqual(fallback_chain("en-US"), ("en-US", "en"))
         self.assertEqual(resolve_locale("en-US"), "en")
-        self.assertEqual(locales(), ("en", "es", "ru"))
+        self.assertEqual(
+            locales(),
+            (
+                "cs",
+                "de",
+                "en",
+                "es",
+                "fr",
+                "it",
+                "ja",
+                "ko",
+                "pt-BR",
+                "pt-PT",
+                "ru",
+                "sv",
+                "th",
+                "vi",
+            ),
+        )
 
     def test_capabilities_are_truthful(self):
         self.assertIn(NumeralForm.ORDINAL, capabilities("ru").forms)
@@ -176,7 +194,10 @@ class CliTests(unittest.TestCase):
         )
 
     def test_discovery_commands(self):
-        self.assertEqual(self.run_cli("--list-locales"), "en\nes\nru")
+        self.assertEqual(
+            self.run_cli("--list-locales"),
+            "cs\nde\nen\nes\nfr\nit\nja\nko\npt-BR\npt-PT\nru\nsv\nth\nvi",
+        )
         self.assertIn('"feminine"', self.run_cli("--capabilities", "ru"))
 
 

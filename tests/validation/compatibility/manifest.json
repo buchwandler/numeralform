@@ -1,0 +1,18 @@
+{
+  "files": {
+    "num2words-0.5.14.jsonl": {
+      "cases": 144,
+      "sha256": "9238c14cf88c00c994ba26e195227eaa8d66625dfb0bc0a0e45c3d4c0ef2f4c6"
+    }
+  },
+  "generated_by": "tools/validation/generate_num2words.py",
+  "normalization": "NFC",
+  "schema_version": 1,
+  "source": {
+    "forms": ["cardinal", "ordinal", "year"],
+    "kind": "external-package",
+    "locales": ["en", "es", "ru"],
+    "package": "num2words",
+    "version": "0.5.14"
+  }
+}
