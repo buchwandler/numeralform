@@ -155,23 +155,156 @@ class ValidationRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class SerializedCompatValue:
+    """Lossless JSON representation of a permissive legacy API value."""
+
+    kind: str
+    value: Any = None
+
+    def to_json(self) -> dict[str, Any]:
+        return {"kind": self.kind, "value": self.value}
+
+    @classmethod
+    def from_python(cls, value: object) -> SerializedCompatValue:
+        from decimal import Decimal
+
+        if isinstance(value, bool):
+            return cls("bool", value)
+        if isinstance(value, int):
+            return cls("int", str(value))
+        if isinstance(value, float):
+            return cls("float", repr(value))
+        if isinstance(value, Decimal):
+            return cls("decimal", str(value))
+        if isinstance(value, str):
+            return cls("str", value)
+        if isinstance(value, tuple):
+            return cls("tuple", [cls.from_python(item).to_json() for item in value])
+        raise ValueError(f"unsupported compatibility value: {type(value).__name__}")
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> SerializedCompatValue:
+        if not isinstance(data, dict) or not isinstance(data.get("kind"), str):
+            raise ValueError("compatibility value requires a string kind")  # noqa: TRY004
+        value = cls(data["kind"], data.get("value"))
+        value.as_python()
+        return value
+
+    def as_python(self) -> object:
+        from decimal import Decimal
+
+        if self.kind == "bool":
+            if not isinstance(self.value, bool):
+                raise ValueError("bool compatibility value must be boolean")
+            return self.value
+        if self.kind == "int":
+            return int(str(self.value))
+        if self.kind == "float":
+            return float(str(self.value))
+        if self.kind == "decimal":
+            return Decimal(str(self.value))
+        if self.kind == "str":
+            if not isinstance(self.value, str):
+                raise ValueError("str compatibility value must be a string")
+            return self.value
+        if self.kind == "tuple":
+            if not isinstance(self.value, list):
+                raise ValueError("tuple compatibility value must be a list")
+            return tuple(
+                SerializedCompatValue.from_json(item).as_python() for item in self.value
+            )
+        raise ValueError(f"unknown compatibility value kind: {self.kind!r}")
+
+
+@dataclass(frozen=True, slots=True)
+class CompatInvocation:
+    """Serialized invocation of a legacy compatibility function."""
+
+    function: str
+    positional: tuple[SerializedCompatValue, ...] = ()
+    kwargs: dict[str, SerializedCompatValue] = field(default_factory=dict)
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "function": self.function,
+            "positional": [value.to_json() for value in self.positional],
+            "kwargs": {
+                key: value.to_json() for key, value in sorted(self.kwargs.items())
+            },
+        }
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> CompatInvocation:
+        if not isinstance(data, dict) or not isinstance(data.get("function"), str):
+            raise ValueError("compatibility invocation requires a function")  # noqa: TRY004
+        positional = tuple(
+            SerializedCompatValue.from_json(item) for item in data.get("positional", [])
+        )
+        kwargs_data = data.get("kwargs", {})
+        if not isinstance(kwargs_data, dict):
+            raise ValueError("compatibility invocation kwargs must be an object")  # noqa: TRY004
+        kwargs = {
+            key: SerializedCompatValue.from_json(value)
+            for key, value in kwargs_data.items()
+        }
+        return cls(data["function"], positional, kwargs)
+
+    def as_python(self) -> tuple[str, list[object], dict[str, object]]:
+        return (
+            self.function,
+            [value.as_python() for value in self.positional],
+            {key: value.as_python() for key, value in self.kwargs.items()},
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ValidationCase:
     id: str
-    request: ValidationRequest
+    request: ValidationRequest | None
     expected: str
     mapping: str | None = None
     oracle: dict[str, str] | None = None
     source: str | None = None
     note: str | None = None
+    target: str = "canonical"
+    invocation: CompatInvocation | None = None
+    expected_exception_type: str | None = None
+    expected_exception_message_pattern: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.request is None and self.invocation is None:
+            raise ValueError("validation case requires request or invocation")
+        if self.request is not None and self.invocation is not None:
+            raise ValueError(
+                "validation case cannot contain both request and invocation"
+            )
+        if self.target not in {"canonical", "compat:num2words-0.5.14"}:
+            raise ValueError(f"unknown validation target: {self.target!r}")
+        if self.expected_exception_type and self.target == "canonical":
+            raise ValueError("canonical cases cannot declare compatibility exceptions")
 
     def to_json(self) -> dict[str, Any]:
         result: dict[str, Any] = {"id": self.id}
         if self.mapping is not None:
             result["mapping"] = self.mapping
-        result["request"] = self.request.to_json()
+        if self.request is not None:
+            result["request"] = self.request.to_json()
+        if self.invocation is not None:
+            result["invocation"] = self.invocation.to_json()
+        if self.target != "canonical":
+            result["target"] = self.target
         if self.oracle is not None:
             result["oracle"] = dict(self.oracle)
-        result["expected"] = self.expected
+        if self.expected_exception_type is None:
+            result["expected"] = self.expected
+        else:
+            result["expectation"] = {
+                "exception_type": self.expected_exception_type,
+            }
+            if self.expected_exception_message_pattern is not None:
+                result["expectation"]["message_pattern"] = (
+                    self.expected_exception_message_pattern
+                )
         if self.source is not None:
             result["source"] = self.source
         if self.note is not None:
@@ -180,18 +313,43 @@ class ValidationCase:
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> ValidationCase:
-        if (
-            not isinstance(data, dict)
-            or not isinstance(data.get("id"), str)
-            or not isinstance(data.get("expected"), str)
-        ):
-            raise ValueError("case requires string id and expected")  # noqa: TRY004
+        if not isinstance(data, dict) or not isinstance(data.get("id"), str):
+            raise ValueError("case requires a string id")  # noqa: TRY004
+        request = (
+            ValidationRequest.from_json(data["request"]) if "request" in data else None
+        )
+        invocation = (
+            CompatInvocation.from_json(data["invocation"])
+            if "invocation" in data
+            else None
+        )
+        if request is None and invocation is None:
+            raise ValueError("case requires request or invocation")
+        expectation = data.get("expectation", {})
+        if not isinstance(expectation, dict):
+            raise ValueError("expectation must be an object")  # noqa: TRY004
+        expected = data.get("expected", "")
+        if not isinstance(expected, str):
+            raise ValueError("expected must be a string")  # noqa: TRY004
+        exception_type = expectation.get("exception_type")
+        message_pattern = expectation.get("message_pattern")
+        if exception_type is not None and not isinstance(exception_type, str):
+            raise ValueError("expectation exception_type must be a string")
+        if message_pattern is not None and not isinstance(message_pattern, str):
+            raise ValueError("expectation message_pattern must be a string")
+        target = data.get("target", "canonical")
+        if not isinstance(target, str):
+            raise ValueError("target must be a string")  # noqa: TRY004
         return cls(
             data["id"],
-            ValidationRequest.from_json(data["request"]),
-            data["expected"],
+            request,
+            expected,
             data.get("mapping"),
             data.get("oracle"),
             data.get("source"),
             data.get("note"),
+            target,
+            invocation,
+            exception_type,
+            message_pattern,
         )

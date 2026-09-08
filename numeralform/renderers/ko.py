@@ -8,7 +8,6 @@ from ..model import (
     NumeralForm,
     NumeralRequest,
     NumeralResult,
-    Syntax,
 )
 from .base import validate_request
 

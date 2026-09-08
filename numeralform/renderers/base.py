@@ -41,7 +41,9 @@ def validate_request(request: NumeralRequest, capabilities: LocaleCapabilities) 
     """Validate generic semantic and exact capability constraints."""
     _validate_value_for_form(request.form, request.value)
 
-    profiles = [profile for profile in capabilities.profiles if profile.form is request.form]
+    profiles = [
+        profile for profile in capabilities.profiles if profile.form is request.form
+    ]
     if not profiles:
         raise UnsupportedFormError(
             f"locale {request.locale!r} does not support {request.form.value} form"
@@ -99,7 +101,10 @@ def _profile_accepts_request(profile, request: NumeralRequest) -> bool:
     return (
         (morphology.gender is None or morphology.gender in profile.genders)
         and (morphology.case is None or _accepts(profile.cases, morphology.case))
-        and (morphology.animacy is None or _accepts(profile.animacies, _feature_label(morphology.animacy)))
+        and (
+            morphology.animacy is None
+            or _accepts(profile.animacies, _feature_label(morphology.animacy))
+        )
         and (
             morphology.grammatical_number is None
             or _accepts(profile.grammatical_numbers, morphology.grammatical_number)
@@ -161,17 +166,25 @@ def _validate_domain(request: NumeralRequest, profile) -> None:
 
 def _validate_value_for_form(form: NumeralForm, value: object) -> None:
     if form in (NumeralForm.CARDINAL, NumeralForm.YEAR):
-        if not isinstance(value, int) or isinstance(value, bool) or (form is NumeralForm.YEAR and value < 0):
+        if (
+            not isinstance(value, int)
+            or isinstance(value, bool)
+            or (form is NumeralForm.YEAR and value < 0)
+        ):
             raise InvalidValueError(f"{form.value} form requires an integer")
     elif form in (NumeralForm.ORDINAL, NumeralForm.ORDINAL_NUMERIC):
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise InvalidValueError(f"{form.value} form requires a non-negative integer")
+            raise InvalidValueError(
+                f"{form.value} form requires a non-negative integer"
+            )
     elif form is NumeralForm.DIGITS:
-        if not (isinstance(value, DigitSequence) or (isinstance(value, int) and not isinstance(value, bool))):
+        if not (
+            isinstance(value, DigitSequence)
+            or (isinstance(value, int) and not isinstance(value, bool))
+        ):
             raise InvalidValueError("digits form requires an integer or DigitSequence")
     elif form is NumeralForm.DECIMAL:
         if not isinstance(value, DecimalNumber):
             raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
-    elif form is NumeralForm.FRACTION:
-        if not isinstance(value, FractionNumber):
-            raise InvalidValueError("fraction form requires FractionNumber or Fraction")
+    elif form is NumeralForm.FRACTION and not isinstance(value, FractionNumber):
+        raise InvalidValueError("fraction form requires FractionNumber or Fraction")

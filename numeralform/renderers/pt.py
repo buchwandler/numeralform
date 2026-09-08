@@ -9,19 +9,71 @@ from .base import validate_request
 
 # Brazilian and European Portuguese differences for teens
 _UNDER_20_BR = (
-    "zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove",
-    "dez", "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete",
-    "dezoito", "dezenove",
+    "zero",
+    "um",
+    "dois",
+    "três",
+    "quatro",
+    "cinco",
+    "seis",
+    "sete",
+    "oito",
+    "nove",
+    "dez",
+    "onze",
+    "doze",
+    "treze",
+    "catorze",
+    "quinze",
+    "dezesseis",
+    "dezessete",
+    "dezoito",
+    "dezenove",
 )
 _UNDER_20_PT = (
-    "zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove",
-    "dez", "onze", "doze", "treze", "catorze", "quinze", "dezasseis", "dezassete",
-    "dezoito", "dezanove",
+    "zero",
+    "um",
+    "dois",
+    "três",
+    "quatro",
+    "cinco",
+    "seis",
+    "sete",
+    "oito",
+    "nove",
+    "dez",
+    "onze",
+    "doze",
+    "treze",
+    "catorze",
+    "quinze",
+    "dezasseis",
+    "dezassete",
+    "dezoito",
+    "dezanove",
 )
-_TENS = ("", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "oitenta", "noventa")
+_TENS = (
+    "",
+    "",
+    "vinte",
+    "trinta",
+    "quarenta",
+    "cinquenta",
+    "sessenta",
+    "oitenta",
+    "noventa",
+)
 _ORDINALS_BR = {
-    1: "primeiro", 2: "segundo", 3: "terceiro", 4: "quarto", 5: "quinto",
-    6: "sexto", 7: "sétimo", 8: "oitavo", 9: "nono", 10: "décimo",
+    1: "primeiro",
+    2: "segundo",
+    3: "terceiro",
+    4: "quarto",
+    5: "quinto",
+    6: "sexto",
+    7: "sétimo",
+    8: "oitavo",
+    9: "nono",
+    10: "décimo",
 }
 _SCALES = [(1_000_000_000_000, "bilhão"), (1_000_000, "milhão"), (1_000, "mil")]
 _MAX_CARDINAL = 999_999_999_999
@@ -42,7 +94,10 @@ class PortugueseRenderer:
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(NumeralForm.CARDINAL),
-                CapabilityProfile(NumeralForm.ORDINAL, syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL})),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
@@ -60,13 +115,17 @@ class PortugueseRenderer:
             text = self._cardinal(value)
         else:
             text = self._cardinal(value)
-        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
+        return NumeralResult(
+            text, request.locale, request.form, request.style, request.morphology
+        )
 
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
-            raise InvalidValueError("Portuguese cardinal supports integers up to 999999999999")
+            raise InvalidValueError(
+                "Portuguese cardinal supports integers up to 999999999999"
+            )
         if value < 0:
             return "menos " + self._cardinal(-value)
         if value < 20:
@@ -93,7 +152,9 @@ class PortugueseRenderer:
                     else:
                         prefix = f"{self._cardinal(quotient)} {name}"
                 return prefix + (" e " + self._cardinal(remainder) if remainder else "")
-        raise InvalidValueError("Portuguese cardinal value is outside the supported range")
+        raise InvalidValueError(
+            "Portuguese cardinal value is outside the supported range"
+        )
 
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
@@ -104,6 +165,7 @@ class PortugueseRenderer:
 
     def _digits(self, value) -> str:
         from ..model import DigitSequence
+
         if isinstance(value, DigitSequence):
             digits = value.digits
         elif isinstance(value, int) and not isinstance(value, bool):

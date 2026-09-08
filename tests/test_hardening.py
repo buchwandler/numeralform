@@ -72,6 +72,30 @@ class RendererRegressionTests(unittest.TestCase):
                     text,
                 )
 
+    def test_locale_owned_numeric_ordinals_match_capabilities(self):
+        from numeralform import capabilities, supports
+        from numeralform.model import NumeralForm
+
+        self.assertIn(NumeralForm.ORDINAL_NUMERIC, capabilities("en").forms)
+        self.assertTrue(supports("es", form="ordinal_num", value=5))
+        self.assertEqual(render(5, locale="en", form="ordinal_num"), "5th")
+        self.assertEqual(render(1, locale="fr", form="ordinal_num"), "1er")
+        self.assertEqual(render(5, locale="fr", form="ordinal_num"), "5me")
+        self.assertEqual(
+            render(5, locale="es", form="ordinal_num", gender="feminine"), "5ª"
+        )
+
+    def test_finnish_capabilities_match_reviewed_domain(self):
+        self.assertEqual(render(1, locale="fi"), "yksi")
+        self.assertEqual(render(12, locale="fi"), "kaksitoista")
+        self.assertEqual(render(42, locale="fi"), "neljäkymmentä kaksi")
+        self.assertEqual(render(100, locale="fi"), "sata")
+        self.assertEqual(render(1000, locale="fi"), "tuhat")
+        with self.assertRaises(UnsupportedMorphologyError):
+            render(1, locale="fi", case="genitive")
+        with self.assertRaises(InvalidValueError):
+            render(10_000, locale="fi")
+
     def test_russian_scale_plural_categories(self):
         expected = {
             1_000: "одна тысяча",
@@ -126,6 +150,16 @@ class RegistryInitializationRegressionTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(completed.stdout, "")
+
+    def test_registration_and_executable_support_are_distinct(self):
+        from numeralform import is_registered, supports
+        from numeralform.model import NumeralForm
+
+        self.assertTrue(is_registered("ar"))
+        self.assertTrue(supports("ar"))
+        self.assertTrue(supports("en"))
+        self.assertTrue(supports("en", form=NumeralForm.CARDINAL, value=42))
+        self.assertTrue(supports("en", form=NumeralForm.ORDINAL_NUMERIC))
 
 
 class CapabilityCliTests(unittest.TestCase):

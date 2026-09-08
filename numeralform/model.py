@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
 from types import MappingProxyType
-from typing import Mapping, TypeAlias
+from typing import TypeAlias
 
 from .errors import InvalidRequestError, InvalidValueError
 
@@ -110,7 +111,7 @@ class DecimalNumber:
             raise InvalidValueError("negative must be a boolean")
 
     @classmethod
-    def from_decimal(cls, value: Decimal) -> "DecimalNumber":
+    def from_decimal(cls, value: Decimal) -> DecimalNumber:
         if not isinstance(value, Decimal) or not value.is_finite():
             raise InvalidValueError("value must be a finite Decimal")
         text = format(abs(value), "f")
@@ -154,13 +155,19 @@ class LocaleFeatures:
         values = dict(self.values) if not isinstance(self.values, tuple) else {}
         for key, value in values.items():
             if not isinstance(key, str) or not key.strip():
-                raise InvalidRequestError("locale feature names must be non-empty strings")
+                raise InvalidRequestError(
+                    "locale feature names must be non-empty strings"
+                )
             if not isinstance(value, (str, bool, tuple)):
                 raise InvalidRequestError(
                     f"locale feature {key!r} must be a string, boolean, or tuple"
                 )
-            if isinstance(value, tuple) and not all(isinstance(item, str) for item in value):
-                raise InvalidRequestError(f"locale feature {key!r} tuple values must be strings")
+            if isinstance(value, tuple) and not all(
+                isinstance(item, str) for item in value
+            ):
+                raise InvalidRequestError(
+                    f"locale feature {key!r} tuple values must be strings"
+                )
         object.__setattr__(self, "values", MappingProxyType(values))
 
     def __getitem__(self, key: str) -> FeatureScalar:
@@ -218,7 +225,9 @@ class Morphology:
         for field, enum_type in (("case", Case), ("animacy", Animacy)):
             value = getattr(self, field)
             if value is not None:
-                object.__setattr__(self, field, _coerce_open_feature(enum_type, value, field))
+                object.__setattr__(
+                    self, field, _coerce_open_feature(enum_type, value, field)
+                )
         for field in (
             "grammatical_number",
             "noun_class",

@@ -15,7 +15,11 @@ class UnsupportedLocaleRenderer:
 
     @staticmethod
     def capabilities() -> LocaleCapabilities:
-        return LocaleCapabilities(notes=("Upstream locale is registered but its successful surfaces remain incomplete.",))
+        return LocaleCapabilities(
+            notes=(
+                "Upstream locale is registered but its successful surfaces remain incomplete.",
+            )
+        )
 
     def render(self, request: NumeralRequest):
         raise UnsupportedFormError(

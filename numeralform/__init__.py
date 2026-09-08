@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from importlib.metadata import PackageNotFoundError, version
 
+from .currency import CurrencyRequest, MoneyAmount, realize_currency, render_currency
 from .errors import (
     InvalidRequestError,
     InvalidValueError,
@@ -41,13 +42,13 @@ from .model import (
 )
 from .registry import (
     capabilities,
+    is_registered,
     locales,
     register_locale,
     resolve,
     resolve_locale,
     supports,
 )
-from .currency import CurrencyRequest, MoneyAmount, realize_currency, render_currency
 
 try:
     from ._version import __version__
@@ -97,7 +98,9 @@ def realize(
             or form != NumeralForm.CARDINAL
             or syntax != Syntax.STANDALONE
         ):
-            raise InvalidRequestError("request objects cannot be combined with rendering keyword options")
+            raise InvalidRequestError(
+                "request objects cannot be combined with rendering keyword options"
+            )
         normalized = replace(request, locale=canonicalize_locale(request.locale))
     else:
         if locale is None:
@@ -134,20 +137,6 @@ def realize(
             LocaleFeatures(features or {}),
         )
     renderer = resolve(normalized.locale)
-    if normalized.form is NumeralForm.ORDINAL_NUMERIC:
-        ordinal_result = renderer.render(replace(normalized, form=NumeralForm.ORDINAL))
-        number = normalized.value
-        language = normalized.locale.split("-", 1)[0]
-        if language == "en":
-            suffix = "th" if 10 <= number % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
-            text = f"{number}{suffix}"
-        elif language == "fr":
-            text = f"{number}{'er' if number == 1 else 'e'}"
-        elif language in {"ja", "zh"}:
-            text = f"第{number}"
-        else:
-            text = f"{number}."
-        return NumeralResult(text, ordinal_result.locale, NumeralForm.ORDINAL_NUMERIC, normalized.style, normalized.morphology)
     return renderer.render(normalized)
 
 
@@ -165,18 +154,18 @@ __all__ = [
     "Animacy",
     "CapabilityProfile",
     "Case",
+    "CurrencyRequest",
     "DecimalNumber",
     "DigitSequence",
     "FeatureSpec",
-    "CurrencyRequest",
     "FractionNumber",
     "Gender",
-    "MoneyAmount",
     "InvalidRequestError",
     "InvalidValueError",
     "Locale",
     "LocaleCapabilities",
     "LocaleFeatures",
+    "MoneyAmount",
     "Morphology",
     "NumeralForm",
     "NumeralFormError",
@@ -193,14 +182,15 @@ __all__ = [
     "canonicalize_locale",
     "capabilities",
     "fallback_chain",
+    "is_registered",
     "locales",
     "parse_locale",
     "realize",
+    "realize_currency",
     "register_locale",
     "render",
-    "render_request",
-    "realize_currency",
     "render_currency",
+    "render_request",
     "resolve",
     "resolve_locale",
     "supports",

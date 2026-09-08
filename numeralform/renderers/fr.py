@@ -8,14 +8,39 @@ from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
 from .base import validate_request
 
 _UNDER_20 = (
-    "zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf",
-    "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept",
-    "dix-huit", "dix-neuf",
+    "zéro",
+    "un",
+    "deux",
+    "trois",
+    "quatre",
+    "cinq",
+    "six",
+    "sept",
+    "huit",
+    "neuf",
+    "dix",
+    "onze",
+    "douze",
+    "treize",
+    "quatorze",
+    "quinze",
+    "seize",
+    "dix-sept",
+    "dix-huit",
+    "dix-neuf",
 )
 _TENS = ("", "", "vingt", "trente", "quarante", "cinquante", "soixante")
 _ORDINALS = {
-    1: "premier", 2: "deuxième", 3: "troisième", 4: "quatrième", 5: "cinquième",
-    6: "sixième", 7: "septième", 8: "huitième", 9: "neuvième", 10: "dixième",
+    1: "premier",
+    2: "deuxième",
+    3: "troisième",
+    4: "quatrième",
+    5: "cinquième",
+    6: "sixième",
+    7: "septième",
+    8: "huitième",
+    9: "neuvième",
+    10: "dixième",
 }
 _SCALES = [(1_000_000_000, "milliard"), (1_000_000, "million"), (1_000, "mille")]
 _MAX_CARDINAL = 999_999_999_999
@@ -29,11 +54,16 @@ class FrenchRenderer:
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(NumeralForm.CARDINAL),
-                CapabilityProfile(NumeralForm.ORDINAL, syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL})),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
-            notes=("French uses 70/80/90 system (soixante-dix, quatre-vingts, quatre-vingt-dix).",),
+            notes=(
+                "French uses 70/80/90 system (soixante-dix, quatre-vingts, quatre-vingt-dix).",
+            ),
         )
 
     def render(self, request: NumeralRequest) -> NumeralResult:
@@ -47,13 +77,17 @@ class FrenchRenderer:
             text = self._cardinal(value)
         else:
             text = self._cardinal(value)
-        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
+        return NumeralResult(
+            text, request.locale, request.form, request.style, request.morphology
+        )
 
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
-            raise InvalidValueError("French cardinal supports integers up to 999999999999")
+            raise InvalidValueError(
+                "French cardinal supports integers up to 999999999999"
+            )
         if value < 0:
             return "moins " + self._cardinal(-value)
         if value < 20:
@@ -110,6 +144,7 @@ class FrenchRenderer:
 
     def _digits(self, value) -> str:
         from ..model import DigitSequence
+
         if isinstance(value, DigitSequence):
             digits = value.digits
         elif isinstance(value, int) and not isinstance(value, bool):

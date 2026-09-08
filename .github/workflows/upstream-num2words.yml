@@ -1,0 +1,31 @@
+name: upstream num2words compatibility
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upstream-suite:
+    # Advisory while the generated corpus is the blocking offline gate.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Numeralform
+        run: python -m pip install -e . pytest
+      - name: Checkout pinned upstream tests
+        uses: actions/checkout@v4
+        with:
+          repository: savoirfairelinux/num2words
+          ref: 07814cb114157f582c40a00119c2e9faba8dcee2
+          path: .upstream-num2words
+      - name: Create isolated compatibility shim
+        run: |
+          mkdir -p .num2words-shim/num2words
+          cat > .num2words-shim/num2words/__init__.py <<'PY'
+          from numeralform.compat import num2words
+          __all__ = ["num2words"]
+          PY
+      - name: Run upstream tests through the adapter
+        env:
+          PYTHONPATH: .num2words-shim:.
+        run: python -m pytest -q .upstream-num2words/tests

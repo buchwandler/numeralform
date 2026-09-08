@@ -162,7 +162,11 @@ class SwedishRenderer:
             thousands, remainder = divmod(value, 1_000)
             if remainder == 0:
                 return self._render_cardinal(thousands) + "tusende"
-            return self._render_cardinal(thousands) + "tusen" + self._render_ordinal(remainder)
+            return (
+                self._render_cardinal(thousands)
+                + "tusen"
+                + self._render_ordinal(remainder)
+            )
         raise InvalidValueError("Swedish ordinal is outside the supported range")
 
     def _render_digits(self, value) -> str:

@@ -23,7 +23,9 @@ def _normalize_open_values(values) -> frozenset[str | Case]:
             except ValueError:
                 normalized.add(value.strip().lower())
         else:
-            raise InvalidRequestError("capability feature values must be non-empty strings")
+            raise InvalidRequestError(
+                "capability feature values must be non-empty strings"
+            )
     return frozenset(normalized)
 
 
@@ -31,7 +33,9 @@ def _normalize_string_values(values) -> frozenset[str]:
     normalized = set()
     for value in values:
         if not isinstance(value, str) or not value.strip():
-            raise InvalidRequestError("capability feature values must be non-empty strings")
+            raise InvalidRequestError(
+                "capability feature values must be non-empty strings"
+            )
         normalized.add(value.strip().lower())
     return frozenset(normalized)
 
@@ -48,17 +52,27 @@ class NumericDomain:
         if self.minimum is not None and (
             isinstance(self.minimum, bool) or not isinstance(self.minimum, int)
         ):
-            raise InvalidRequestError("numeric domain minimum must be an integer or None")
+            raise InvalidRequestError(
+                "numeric domain minimum must be an integer or None"
+            )
         if self.maximum is not None and (
             isinstance(self.maximum, bool) or not isinstance(self.maximum, int)
         ):
-            raise InvalidRequestError("numeric domain maximum must be an integer or None")
-        if self.minimum is not None and self.maximum is not None and self.minimum > self.maximum:
+            raise InvalidRequestError(
+                "numeric domain maximum must be an integer or None"
+            )
+        if (
+            self.minimum is not None
+            and self.maximum is not None
+            and self.minimum > self.maximum
+        ):
             raise InvalidRequestError("numeric domain minimum cannot exceed maximum")
         if not isinstance(self.allow_negative, bool):
             raise InvalidRequestError("numeric domain allow_negative must be a boolean")
         if not isinstance(self.decimals, bool) or not isinstance(self.fractions, bool):
-            raise InvalidRequestError("numeric domain decimal/fraction flags must be booleans")
+            raise InvalidRequestError(
+                "numeric domain decimal/fraction flags must be booleans"
+            )
 
     def accepts_integer(self, value: int) -> bool:
         return (
@@ -82,7 +96,9 @@ class FeatureSpec:
         if not isinstance(self.boolean, bool):
             raise InvalidRequestError("feature specification boolean must be a boolean")
         if self.boolean and self.values:
-            raise InvalidRequestError("boolean feature specifications cannot enumerate values")
+            raise InvalidRequestError(
+                "boolean feature specifications cannot enumerate values"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,8 +188,12 @@ class CapabilityProfile:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "form", NumeralForm.coerce(self.form))
-        object.__setattr__(self, "syntaxes", frozenset(Syntax.coerce(item) for item in self.syntaxes))
-        object.__setattr__(self, "genders", frozenset(Gender.coerce(item) for item in self.genders))
+        object.__setattr__(
+            self, "syntaxes", frozenset(Syntax.coerce(item) for item in self.syntaxes)
+        )
+        object.__setattr__(
+            self, "genders", frozenset(Gender.coerce(item) for item in self.genders)
+        )
         object.__setattr__(self, "cases", _normalize_open_values(self.cases))
         animacies = _normalize_string_values(self.animacies)
         numbers = _normalize_string_values(self.grammatical_numbers)
@@ -198,7 +218,10 @@ class CapabilityProfile:
         object.__setattr__(
             self,
             "features",
-            tuple(item if isinstance(item, FeatureSpec) else FeatureSpec(**item) for item in self.features),
+            tuple(
+                item if isinstance(item, FeatureSpec) else FeatureSpec(**item)
+                for item in self.features
+            ),
         )
         if not isinstance(self.domain, NumericDomain):
             object.__setattr__(self, "domain", NumericDomain(**self.domain))
@@ -227,21 +250,49 @@ class LocaleCapabilities:
 
     def __post_init__(self) -> None:
         profiles = tuple(
-            profile if isinstance(profile, CapabilityProfile) else CapabilityProfile(**profile)
+            profile
+            if isinstance(profile, CapabilityProfile)
+            else CapabilityProfile(**profile)
             for profile in self.profiles
         )
         if profiles:
             object.__setattr__(self, "profiles", profiles)
-            object.__setattr__(self, "forms", frozenset(profile.form for profile in profiles))
-            object.__setattr__(self, "syntaxes", frozenset(s for p in profiles for s in p.syntaxes))
-            object.__setattr__(self, "genders", frozenset(g for p in profiles for g in p.genders))
-            object.__setattr__(self, "cases", frozenset(c for p in profiles for c in p.cases))
-            object.__setattr__(self, "animacies", frozenset(a for p in profiles for a in p.animacies))
-            object.__setattr__(self, "grammatical_numbers", frozenset(n for p in profiles for n in p.grammatical_numbers))
-            object.__setattr__(self, "noun_classes", frozenset(n for p in profiles for n in p.noun_classes))
-            object.__setattr__(self, "definitenesses", frozenset(d for p in profiles for d in p.definitenesses))
-            object.__setattr__(self, "states", frozenset(s for p in profiles for s in p.states))
-            object.__setattr__(self, "styles", frozenset(s for p in profiles for s in p.styles))
+            object.__setattr__(
+                self, "forms", frozenset(profile.form for profile in profiles)
+            )
+            object.__setattr__(
+                self, "syntaxes", frozenset(s for p in profiles for s in p.syntaxes)
+            )
+            object.__setattr__(
+                self, "genders", frozenset(g for p in profiles for g in p.genders)
+            )
+            object.__setattr__(
+                self, "cases", frozenset(c for p in profiles for c in p.cases)
+            )
+            object.__setattr__(
+                self, "animacies", frozenset(a for p in profiles for a in p.animacies)
+            )
+            object.__setattr__(
+                self,
+                "grammatical_numbers",
+                frozenset(n for p in profiles for n in p.grammatical_numbers),
+            )
+            object.__setattr__(
+                self,
+                "noun_classes",
+                frozenset(n for p in profiles for n in p.noun_classes),
+            )
+            object.__setattr__(
+                self,
+                "definitenesses",
+                frozenset(d for p in profiles for d in p.definitenesses),
+            )
+            object.__setattr__(
+                self, "states", frozenset(s for p in profiles for s in p.states)
+            )
+            object.__setattr__(
+                self, "styles", frozenset(s for p in profiles for s in p.styles)
+            )
         else:
             forms = frozenset(NumeralForm.coerce(item) for item in self.forms)
             syntaxes = frozenset(Syntax.coerce(item) for item in self.syntaxes)
@@ -279,7 +330,9 @@ class LocaleCapabilities:
             object.__setattr__(self, "animacies", animacies)
             object.__setattr__(self, "grammatical_numbers", numbers)
             object.__setattr__(self, "noun_classes", noun_classes)
-            object.__setattr__(self, "definitenesses", _normalize_string_values(self.definitenesses))
+            object.__setattr__(
+                self, "definitenesses", _normalize_string_values(self.definitenesses)
+            )
             object.__setattr__(self, "states", _normalize_string_values(self.states))
             object.__setattr__(self, "styles", _normalize_string_values(self.styles))
         object.__setattr__(self, "animacy", bool(self.animacies))

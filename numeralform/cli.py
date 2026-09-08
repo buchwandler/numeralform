@@ -88,8 +88,21 @@ def _print_capabilities(locale: str) -> None:
             "noun_classes": sorted(profile.noun_classes),
             "definitenesses": sorted(profile.definitenesses),
             "states": sorted(profile.states),
-            "features": [{"name": feature.name, "values": sorted(feature.values), "boolean": feature.boolean} for feature in profile.features],
-            "domain": {"minimum": profile.domain.minimum, "maximum": profile.domain.maximum, "allow_negative": profile.domain.allow_negative, "decimals": profile.domain.decimals, "fractions": profile.domain.fractions},
+            "features": [
+                {
+                    "name": feature.name,
+                    "values": sorted(feature.values),
+                    "boolean": feature.boolean,
+                }
+                for feature in profile.features
+            ],
+            "domain": {
+                "minimum": profile.domain.minimum,
+                "maximum": profile.domain.maximum,
+                "allow_negative": profile.domain.allow_negative,
+                "decimals": profile.domain.decimals,
+                "fractions": profile.domain.fractions,
+            },
             "styles": sorted(profile.styles),
         }
         for profile in profiles

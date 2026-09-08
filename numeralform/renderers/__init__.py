@@ -4,32 +4,36 @@ from .cs import CzechRenderer
 from .de import GermanRenderer
 from .en import EnglishRenderer
 from .es import SpanishRenderer
+from .fi import FinnishRenderer
 from .fr import FrenchRenderer
 from .it import ItalianRenderer
 from .ja import JapaneseRenderer
 from .ko import KoreanRenderer
 from .pt import PortugueseRenderer
+from .regional import EnglishIndiaRenderer, FrenchBelgiumRenderer, FrenchSwissRenderer
 from .ru import RussianRenderer
 from .sv import SwedishRenderer
 from .th import ThaiRenderer
-from .fi import FinnishRenderer
-from .vi import VietnameseRenderer
 from .unsupported import UnsupportedLocaleRenderer
+from .vi import VietnameseRenderer
 
 __all__ = [
     "CzechRenderer",
-    "GermanRenderer",
+    "EnglishIndiaRenderer",
     "EnglishRenderer",
     "FinnishRenderer",
-    "SpanishRenderer",
+    "FrenchBelgiumRenderer",
     "FrenchRenderer",
+    "FrenchSwissRenderer",
+    "GermanRenderer",
     "ItalianRenderer",
     "JapaneseRenderer",
     "KoreanRenderer",
     "PortugueseRenderer",
     "RussianRenderer",
+    "SpanishRenderer",
     "SwedishRenderer",
     "ThaiRenderer",
-    "VietnameseRenderer",
     "UnsupportedLocaleRenderer",
+    "VietnameseRenderer",
 ]

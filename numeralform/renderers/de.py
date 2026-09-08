@@ -7,12 +7,54 @@ from ..locale import CapabilityProfile, LocaleCapabilities
 from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
 from .base import validate_request
 
-_UNITS = ("null", "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun")
-_TEENS = ("zehn", "elf", "zwölf", "dreizehn", "vierzehn", "fünfzehn", "sechzehn", "siebzehn", "achtzehn", "neunzehn")
-_TENS = ("", "", "zwanzig", "dreißig", "vierzig", "fünfzig", "sechzig", "siebzig", "achtzig", "neunzig")
+_UNITS = (
+    "null",
+    "ein",
+    "zwei",
+    "drei",
+    "vier",
+    "fünf",
+    "sechs",
+    "sieben",
+    "acht",
+    "neun",
+)
+_TEENS = (
+    "zehn",
+    "elf",
+    "zwölf",
+    "dreizehn",
+    "vierzehn",
+    "fünfzehn",
+    "sechzehn",
+    "siebzehn",
+    "achtzehn",
+    "neunzehn",
+)
+_TENS = (
+    "",
+    "",
+    "zwanzig",
+    "dreißig",
+    "vierzig",
+    "fünfzig",
+    "sechzig",
+    "siebzig",
+    "achtzig",
+    "neunzig",
+)
 _ORDINALS = {
-    0: "nullte", 1: "erste", 2: "zweite", 3: "dritte", 4: "vierte", 5: "fünfte",
-    6: "sechste", 7: "siebte", 8: "achte", 9: "neunte", 10: "zehnte",
+    0: "nullte",
+    1: "erste",
+    2: "zweite",
+    3: "dritte",
+    4: "vierte",
+    5: "fünfte",
+    6: "sechste",
+    7: "siebte",
+    8: "achte",
+    9: "neunte",
+    10: "zehnte",
 }
 _SCALES = [
     (1_000_000_000_000, "Billion"),
@@ -32,7 +74,10 @@ class GermanRenderer:
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(NumeralForm.CARDINAL),
-                CapabilityProfile(NumeralForm.ORDINAL, syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL})),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
@@ -53,13 +98,17 @@ class GermanRenderer:
             text = self._cardinal(value)
         else:
             text = self._cardinal(value)
-        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
+        return NumeralResult(
+            text, request.locale, request.form, request.style, request.morphology
+        )
 
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
-            raise InvalidValueError("German cardinal supports integers up to 999999999999")
+            raise InvalidValueError(
+                "German cardinal supports integers up to 999999999999"
+            )
         if value < 0:
             return "minus " + self._cardinal(-value)
         if value == 0:
@@ -89,7 +138,9 @@ class GermanRenderer:
                     if scale == 1_000_000_000 and quotient > 1:
                         prefix += "n"
                 elif scale == 1_000:
-                    prefix = ("ein" if quotient == 1 else self._cardinal(quotient)) + name
+                    prefix = (
+                        "ein" if quotient == 1 else self._cardinal(quotient)
+                    ) + name
                 else:
                     prefix = ("ein" if quotient == 1 else _UNITS[quotient]) + name
                 return prefix + (self._cardinal(remainder) if remainder else "")
@@ -108,13 +159,25 @@ class GermanRenderer:
 
     def _digits(self, value) -> str:
         from ..model import DigitSequence
+
         if isinstance(value, DigitSequence):
             digits = value.digits
         elif isinstance(value, int) and not isinstance(value, bool):
             digits = str(abs(value))
         else:
             raise InvalidValueError("digits form requires an integer or DigitSequence")
-        digit_words = ("null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun")
+        digit_words = (
+            "null",
+            "eins",
+            "zwei",
+            "drei",
+            "vier",
+            "fünf",
+            "sechs",
+            "sieben",
+            "acht",
+            "neun",
+        )
         return " ".join(digit_words[int(d)] for d in digits)
 
 

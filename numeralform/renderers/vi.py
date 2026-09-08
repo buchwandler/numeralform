@@ -8,7 +8,6 @@ from ..model import (
     NumeralForm,
     NumeralRequest,
     NumeralResult,
-    Syntax,
 )
 from .base import validate_request
 
@@ -24,7 +23,18 @@ _UNDER_10 = (
     "tám",
     "chín",
 )
-_TENS = ("", "mười", "hai mươi", "ba mươi", "bốn mươi", "năm mươi", "sáu mươi", "bảy mươi", "tám mươi", "chín mươi")
+_TENS = (
+    "",
+    "mười",
+    "hai mươi",
+    "ba mươi",
+    "bốn mươi",
+    "năm mươi",
+    "sáu mươi",
+    "bảy mươi",
+    "tám mươi",
+    "chín mươi",
+)
 _SCALES = [
     (1_000_000_000, "tỷ"),
     (1_000_000, "triệu"),
@@ -112,7 +122,9 @@ class VietnameseRenderer:
                 if scale == 1_000 and remainder < 10:
                     return f"{base} lẻ {_UNDER_10[remainder]}"
                 return f"{base} {self._render_cardinal(remainder)}"
-        raise InvalidValueError("Vietnamese cardinal value is outside the supported range")
+        raise InvalidValueError(
+            "Vietnamese cardinal value is outside the supported range"
+        )
 
     def _render_digits(self, value) -> str:
         from ..model import DigitSequence

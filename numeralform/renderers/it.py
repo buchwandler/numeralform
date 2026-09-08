@@ -8,14 +8,50 @@ from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
 from .base import validate_request
 
 _UNDER_20 = (
-    "zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette", "otto", "nove",
-    "dieci", "undici", "dodici", "tredici", "quattordici", "quindici", "sedici",
-    "diciassette", "diciotto", "diciannove",
+    "zero",
+    "uno",
+    "due",
+    "tre",
+    "quattro",
+    "cinque",
+    "sei",
+    "sette",
+    "otto",
+    "nove",
+    "dieci",
+    "undici",
+    "dodici",
+    "tredici",
+    "quattordici",
+    "quindici",
+    "sedici",
+    "diciassette",
+    "diciotto",
+    "diciannove",
 )
-_TENS = ("", "", "venti", "trenta", "quaranta", "cinquanta", "sessanta", "settanta", "ottanta", "novanta")
+_TENS = (
+    "",
+    "",
+    "venti",
+    "trenta",
+    "quaranta",
+    "cinquanta",
+    "sessanta",
+    "settanta",
+    "ottanta",
+    "novanta",
+)
 _ORDINALS = {
-    1: "primo", 2: "secondo", 3: "terzo", 4: "quarto", 5: "quinto",
-    6: "sesto", 7: "settimo", 8: "ottavo", 9: "nono", 10: "decimo",
+    1: "primo",
+    2: "secondo",
+    3: "terzo",
+    4: "quarto",
+    5: "quinto",
+    6: "sesto",
+    7: "settimo",
+    8: "ottavo",
+    9: "nono",
+    10: "decimo",
 }
 _SCALES = [(1_000_000_000, "miliardo"), (1_000_000, "milione"), (1_000, "mille")]
 _MAX_CARDINAL = 999_999_999_999
@@ -29,7 +65,10 @@ class ItalianRenderer:
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(NumeralForm.CARDINAL),
-                CapabilityProfile(NumeralForm.ORDINAL, syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL})),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
@@ -47,13 +86,17 @@ class ItalianRenderer:
             text = self._cardinal(value)
         else:
             text = self._cardinal(value)
-        return NumeralResult(text, request.locale, request.form, request.style, request.morphology)
+        return NumeralResult(
+            text, request.locale, request.form, request.style, request.morphology
+        )
 
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
-            raise InvalidValueError("Italian cardinal supports integers up to 999999999999")
+            raise InvalidValueError(
+                "Italian cardinal supports integers up to 999999999999"
+            )
         if value < 0:
             return "meno " + self._cardinal(-value)
         if value < 20:
@@ -97,6 +140,7 @@ class ItalianRenderer:
 
     def _digits(self, value) -> str:
         from ..model import DigitSequence
+
         if isinstance(value, DigitSequence):
             digits = value.digits
         elif isinstance(value, int) and not isinstance(value, bool):

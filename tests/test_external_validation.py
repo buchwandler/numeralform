@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import hashlib
 import ast
+import hashlib
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 from tools.validation.cases import deterministic_values
@@ -18,7 +19,13 @@ from tools.validation.corpus import (
     verify_manifest,
     write_jsonl,
 )
-from tools.validation.model import SerializedValue, ValidationCase, ValidationRequest
+from tools.validation.model import (
+    CompatInvocation,
+    SerializedCompatValue,
+    SerializedValue,
+    ValidationCase,
+    ValidationRequest,
+)
 from tools.validation.normalize import codepoint_repr, is_nfc
 from tools.validation.report import Mismatch, group_mismatches
 
@@ -35,6 +42,21 @@ class ValidationModelTests(unittest.TestCase):
         ):
             decoded = SerializedValue.from_json(value.to_json())
             self.assertEqual(decoded.to_json(), value.to_json())
+
+    def test_compatibility_invocation_round_trips_legacy_types(self):
+        invocation = CompatInvocation(
+            "num2words",
+            (
+                SerializedCompatValue.from_python(Decimal("1.20")),
+                SerializedCompatValue.from_python("en"),
+            ),
+            {"to": SerializedCompatValue.from_python("cardinal")},
+        )
+        decoded = CompatInvocation.from_json(invocation.to_json())
+        function, positional, kwargs = decoded.as_python()
+        self.assertEqual(function, "num2words")
+        self.assertEqual(positional, [Decimal("1.20"), "en"])
+        self.assertEqual(kwargs, {"to": "cardinal"})
 
     def test_case_jsonl_is_sorted_and_hashed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -157,6 +179,27 @@ class CorpusTests(unittest.TestCase):
         self.assertGreater(len(cases), 0)
         self.assertEqual(manifest["source"]["package"], "num2words")
         self.assertEqual(manifest["source"]["version"], "0.5.14")
+
+    def test_compatibility_cases_dispatch_through_adapter(self):
+        from tools.validation.check import check_cases
+
+        case = ValidationCase(
+            "compat:en:cardinal:42",
+            None,
+            "forty-two",
+            target="compat:num2words-0.5.14",
+            invocation=CompatInvocation(
+                "num2words",
+                (SerializedCompatValue.from_python(42),),
+                {
+                    "lang": SerializedCompatValue.from_python("en"),
+                    "to": SerializedCompatValue.from_python("cardinal"),
+                },
+            ),
+        )
+        mismatches, matches, _ = check_cases([case])
+        self.assertEqual(mismatches, [])
+        self.assertEqual(matches, 1)
 
     def test_runtime_does_not_import_icu(self):
         completed = subprocess.run(
