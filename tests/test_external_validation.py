@@ -144,6 +144,10 @@ class ValidationModelTests(unittest.TestCase):
         self.assertIn("U+0308", codepoint_repr("ё"))
 
 
+@unittest.skipUnless(
+    (ROOT / "tests" / "validation" / "cldr").is_dir(),
+    "validation corpora are not present in this reconstructed checkout",
+)
 class CorpusTests(unittest.TestCase):
     def test_committed_cldr_manifest_and_hashes(self):
         cases, manifest = verify_manifest(ROOT / "tests" / "validation" / "cldr")

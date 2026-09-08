@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
-from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
+from ..model import DigitSequence, NumeralForm, NumeralRequest, NumeralResult, Syntax
 from .base import validate_request
 
 _UNDER_20 = (
@@ -169,8 +169,13 @@ class FinnishRenderer:
         elif request.form is NumeralForm.ORDINAL_NUMERIC:
             text = f"{request.value}."
         elif request.form is NumeralForm.DIGITS:
+            digits = (
+                request.value.digits
+                if isinstance(request.value, DigitSequence)
+                else str(request.value)
+            )
             text = " ".join(
-                _UNDER_20[int(d)] if int(d) < 20 else str(d) for d in str(request.value)
+                _UNDER_20[int(d)] if int(d) < 20 else str(d) for d in digits
             )
         elif request.form is NumeralForm.YEAR:
             text = self._cardinal(request.value, request.morphology)

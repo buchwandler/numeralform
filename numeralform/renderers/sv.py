@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..errors import InvalidValueError
-from ..locale import CapabilityProfile, LocaleCapabilities
+from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import (
     NumeralForm,
     NumeralRequest,
@@ -78,7 +78,10 @@ class SwedishRenderer:
     def capabilities() -> LocaleCapabilities:
         return LocaleCapabilities(
             profiles=(
-                CapabilityProfile(NumeralForm.CARDINAL),
+                CapabilityProfile(
+                    NumeralForm.CARDINAL,
+                    domain=NumericDomain(maximum=_MAX_CARDINAL),
+                ),
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),

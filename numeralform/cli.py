@@ -10,6 +10,7 @@ from . import (
     DecimalNumber,
     DigitSequence,
     FractionNumber,
+    __version__,
     capabilities,
     locales,
     render,
@@ -20,6 +21,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Render an already-interpreted numeric value."
     )
+    parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument(
         "value",
         nargs="?",
@@ -28,7 +30,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--locale", help="BCP-47 locale identifier")
     parser.add_argument(
         "--form",
-        choices=("cardinal", "ordinal", "digits", "decimal", "fraction", "year"),
+        choices=(
+            "cardinal",
+            "ordinal",
+            "ordinal_num",
+            "digits",
+            "decimal",
+            "fraction",
+            "year",
+        ),
         default="cardinal",
     )
     parser.add_argument("--syntax", default="standalone")
@@ -36,13 +46,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--case", dest="case_")
     parser.add_argument("--animacy")
     parser.add_argument("--style")
-    parser.add_argument(
+    value_modes = parser.add_mutually_exclusive_group()
+    value_modes.add_argument(
         "--digits", action="store_true", help="treat value as a digit sequence"
     )
-    parser.add_argument(
+    value_modes.add_argument(
         "--decimal", action="store_true", help="preserve the decimal surface digits"
     )
-    parser.add_argument(
+    value_modes.add_argument(
         "--fraction", action="store_true", help="treat value as numerator/denominator"
     )
     parser.add_argument("--list-locales", action="store_true")
@@ -142,11 +153,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.locale is None:
             parser.error("--locale is required when rendering")
         value = _parse_value(args)
+        form = args.form
+        if args.digits:
+            form = "digits"
+        elif args.decimal:
+            form = "decimal"
+        elif args.fraction:
+            form = "fraction"
         print(
             render(
                 value,
                 locale=args.locale,
-                form=args.form,
+                form=form,
                 syntax=args.syntax,
                 gender=args.gender,
                 case=args.case_,

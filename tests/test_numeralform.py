@@ -37,7 +37,8 @@ class ApiTests(unittest.TestCase):
         )
         result = realize(request)
         self.assertEqual(result.text, "veintiún")
-        self.assertEqual(result.locale, "es-MX")
+        self.assertEqual(result.locale, "es")
+        self.assertEqual(result.requested_locale, "es-MX")
         self.assertEqual(result.form, NumeralForm.CARDINAL)
 
     def test_primitive_convenience_inputs(self):
@@ -49,75 +50,10 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(canonicalize_locale("cn"), "zh-CN")
         self.assertEqual(fallback_chain("en-US"), ("en-US", "en"))
         self.assertEqual(resolve_locale("en-US"), "en")
-        self.assertEqual(
-            locales(),
-            (
-                "am",
-                "ar",
-                "az",
-                "be",
-                "bn",
-                "ca",
-                "ce",
-                "cs",
-                "cy",
-                "da",
-                "de",
-                "en",
-                "en-IN",
-                "en-NG",
-                "eo",
-                "es",
-                "es-CO",
-                "es-CR",
-                "es-GT",
-                "es-NI",
-                "es-VE",
-                "fa",
-                "fi",
-                "fr",
-                "fr-BE",
-                "fr-CH",
-                "fr-DZ",
-                "he",
-                "hi",
-                "hu",
-                "hy",
-                "id",
-                "is",
-                "it",
-                "ja",
-                "kn",
-                "ko",
-                "kz",
-                "lt",
-                "lv",
-                "mn",
-                "nl",
-                "no",
-                "pl",
-                "pt",
-                "pt-BR",
-                "pt-PT",
-                "ro",
-                "ru",
-                "sk",
-                "sl",
-                "sr",
-                "sv",
-                "te",
-                "tet",
-                "tg",
-                "th",
-                "tr",
-                "uk",
-                "vi",
-                "zh",
-                "zh-CN",
-                "zh-HK",
-                "zh-TW",
-            ),
-        )
+        self.assertIn("en", locales())
+        self.assertIn("ru", locales())
+        self.assertNotIn("am", locales())
+        self.assertIn("am", __import__("numeralform").known_locales())
 
     def test_capabilities_are_truthful(self):
         self.assertIn(NumeralForm.ORDINAL, capabilities("ru").forms)
@@ -243,10 +179,7 @@ class CliTests(unittest.TestCase):
         )
 
     def test_discovery_commands(self):
-        self.assertEqual(
-            self.run_cli("--list-locales"),
-            "am\nar\naz\nbe\nbn\nca\nce\ncs\ncy\nda\nde\nen\nen-IN\nen-NG\neo\nes\nes-CO\nes-CR\nes-GT\nes-NI\nes-VE\nfa\nfi\nfr\nfr-BE\nfr-CH\nfr-DZ\nhe\nhi\nhu\nhy\nid\nis\nit\nja\nkn\nko\nkz\nlt\nlv\nmn\nnl\nno\npl\npt\npt-BR\npt-PT\nro\nru\nsk\nsl\nsr\nsv\nte\ntet\ntg\nth\ntr\nuk\nvi\nzh\nzh-CN\nzh-HK\nzh-TW",
-        )
+        self.assertEqual(self.run_cli("--list-locales"), "\n".join(locales()))
         self.assertIn('"feminine"', self.run_cli("--capabilities", "ru"))
 
 

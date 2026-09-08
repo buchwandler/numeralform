@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..errors import InvalidValueError
-from ..locale import CapabilityProfile, LocaleCapabilities
+from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import (
     DecimalNumber,
     DigitSequence,
@@ -109,6 +109,7 @@ class EnglishRenderer:
             profiles=(
                 CapabilityProfile(
                     NumeralForm.CARDINAL,
+                    domain=NumericDomain(maximum=_MAX_CARDINAL),
                     syntaxes=frozenset(
                         {
                             Syntax.STANDALONE,

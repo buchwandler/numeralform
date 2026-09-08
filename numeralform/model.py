@@ -138,6 +138,7 @@ class FractionNumber:
 
 
 NumericValue: TypeAlias = int | DigitSequence | DecimalNumber | FractionNumber
+NumericInput: TypeAlias = NumericValue | Decimal | Fraction
 FeatureScalar: TypeAlias = str | bool | tuple[str, ...]
 
 
@@ -243,10 +244,10 @@ class Morphology:
 
 @dataclass(frozen=True, slots=True)
 class NumeralRequest:
-    value: NumericValue | int
+    value: NumericValue | Decimal | Fraction
     locale: str
-    form: NumeralForm = NumeralForm.CARDINAL
-    syntax: Syntax = Syntax.STANDALONE
+    form: NumeralForm | str | None = None
+    syntax: Syntax | str = Syntax.STANDALONE
     morphology: Morphology = Morphology()
     style: str | None = None
     features: LocaleFeatures = LocaleFeatures()
@@ -256,9 +257,12 @@ class NumeralRequest:
         object.__setattr__(self, "value", value)
         if not isinstance(self.locale, str) or not self.locale.strip():
             raise InvalidRequestError("locale must be a non-empty string")
-        normalized_form = NumeralForm.coerce(self.form)
-        if normalized_form is NumeralForm.CARDINAL and not isinstance(value, int):
+        normalized_form = (
+            NumeralForm.coerce(self.form) if self.form is not None else None
+        )
+        if normalized_form is None:
             normalized_form = {
+                int: NumeralForm.CARDINAL,
                 DigitSequence: NumeralForm.DIGITS,
                 DecimalNumber: NumeralForm.DECIMAL,
                 FractionNumber: NumeralForm.FRACTION,
@@ -284,3 +288,6 @@ class NumeralResult:
     form: NumeralForm
     style: str | None
     morphology: Morphology
+    requested_locale: str | None = None
+    syntax: Syntax = Syntax.STANDALONE
+    features: LocaleFeatures = LocaleFeatures()

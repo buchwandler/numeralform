@@ -1,27 +1,28 @@
 # Locale capability inventory
 
-The pinned compatibility scope contains 63 upstream locale codes plus the
-Numeralform-only `pt-PT` registration. Capability truth is generated from the
-registry and compatibility corpus rather than maintained as a hand-edited
-boolean. Regional renderers are independent strategies, not aliases:
-`en-IN`, `fr-BE`, and `fr-CH` have distinct number composition.
+The canonical inventory is generated from runtime capabilities. `locales()` lists only independently reviewed renderers. `known_locales()` also includes compatibility registrations that intentionally expose no canonical forms.
 
-## Executable base renderers
+## Reviewed canonical locales
 
-`cs`, `de`, `en`, `es`, `fi`, `fr`, `it`, `ja`, `ko`, `pt`, `ru`, `sv`, `th`,
-and `vi` have locale-owned renderers. `en-IN`, `fr-BE`, and `fr-CH` use
-regional subclasses. Other regional registrations use their base renderer only
-where the review found no composition difference.
+The current executable renderers cover:
 
-## Executable baseline registrations
+- Czech: `cs`
+- English and regional English: `en`, `en-IN`, `en-NG`
+- Finnish: `fi`
+- French and regional French: `fr`, `fr-BE`, `fr-CH`, `fr-DZ`
+- German: `de`
+- Italian: `it`
+- Japanese: `ja`
+- Korean: `ko`
+- Portuguese: `pt`, `pt-BR`, `pt-PT`
+- Russian: `ru`
+- Spanish regional variants: `es`, `es-CO`, `es-CR`, `es-GT`, `es-NI`, `es-VE`
+- Swedish: `sv`
+- Thai: `th`
+- Vietnamese: `vi`
 
-The remaining upstream codes are registered with a strict typed baseline
-renderer so discovery and request handling are truthful rather than pretending
-that a placeholder is a supported renderer. Their lexical and grammar output
-is intentionally marked for locale-specific review in `capabilities()` and in
-the generated compatibility status report. A locale may only widen morphology
-or claim byte-for-byte compatibility after native-reviewed fixtures and oracle
-cases are added.
+Capability profiles define the supported forms, syntaxes, morphology, styles, and numeric domains. They are the source of truth for `supports()` and the CLI capability report.
 
-The canonical forms and compatibility forms are independent contracts; an
-upstream string does not define canonical linguistic truth.
+## Compatibility-only registrations
+
+Other upstream locale identifiers remain discoverable through `known_locales()` for compatibility reporting. They have empty canonical capabilities and raise an explicit unsupported error when passed to `render()`.

@@ -28,51 +28,6 @@ _INT_RE = re.compile(r"^[+-]?\d+$")
 _FRACTION_RE = re.compile(r"^[+-]?\d+/\d+$")
 
 
-_MISSING_UPSTREAM = object()
-
-
-def _compatibility_spellings(text: str, lang: str) -> str:
-    """Apply spellings from the pinned source snapshot.
-
-    The pinned source predates the Unicode spelling updates used by some
-    installed wheels.  These are byte-level compatibility corrections, not
-    canonical normalization (the validation corpus intentionally preserves
-    them).
-    """
-    language = lang.split("-", 1)[0]
-    if language == "bn":
-        return text.replace("ীয়", "ীয়")
-    if language == "kn":
-        return text.replace("ೊ", "ೊ")
-    if language == "te":
-        return text.replace("ై", "ై")
-    return text
-
-
-def _call_pinned_upstream(
-    number: object, ordinal: bool, lang: str, to: str, kwargs: dict
-):
-    """Use the pinned oracle when available, without importing it at module load.
-
-    The compatibility profile is self-contained for installations that do not
-    carry the oracle.  In the pinned validation environment, delegating the
-    legacy surface avoids silently changing one of num2words' many locale
-    specific exception and formatting contracts.
-    """
-    if isinstance(number, str) and _FRACTION_RE.fullmatch(number.strip()):
-        return _MISSING_UPSTREAM
-    if "precision" in kwargs:
-        return _MISSING_UPSTREAM
-    if kwargs.get("currency") in {"JPY", "KWD"}:
-        return _MISSING_UPSTREAM
-    try:
-        upstream_num2words = __import__("num2words", fromlist=["num2words"]).num2words
-    except ImportError:
-        return _MISSING_UPSTREAM
-    result = upstream_num2words(number, ordinal=ordinal, lang=lang, to=to, **kwargs)
-    return _compatibility_spellings(str(result), lang)
-
-
 def _decimal_number(value: Decimal) -> DecimalNumber:
     if not value.is_finite():
         raise TypeError("number must be finite")
@@ -339,9 +294,6 @@ def num2words(
         key in options for key in ("currency", "cents", "separator", "adjective")
     ):
         raise InvalidRequestError("currency options require to='currency'")
-    upstream = _call_pinned_upstream(number, ordinal, lang, to, kwargs)
-    if upstream is not _MISSING_UPSTREAM:
-        return str(upstream)
     locale = canonicalize_locale(lang)
     value = _coerce_legacy_number(number)
     if "precision" in options:
@@ -351,13 +303,13 @@ def num2words(
         from ..currency import render_currency
 
         currency = options.pop("currency", "EUR")
+        options.pop("adjective", False)
         return render_currency(
             value,
             locale=locale,
             currency=currency,
             cents=options.pop("cents", True),
             separator=options.pop("separator", ","),
-            adjective=options.pop("adjective", False),
             compatibility="num2words-0.5.14",
             **options,
         )
@@ -385,7 +337,10 @@ def num2words(
     if isinstance(value, DecimalNumber) and to == "cardinal":
         return _render_decimal(value, locale, options)
     try:
-        return render(value, locale=locale, form=_FORM_MAP[to], **options)
+        form = _FORM_MAP[to]
+        if to == "cardinal" and isinstance(value, FractionNumber):
+            form = "fraction"
+        return render(value, locale=locale, form=form, **options)
     except InvalidValueError as exc:
         raise OverflowError(str(exc)) from exc
     except NumeralFormError as exc:

@@ -18,6 +18,10 @@ class OrdinalNotationRenderer:
 
     def capabilities(self) -> LocaleCapabilities:
         base = self._delegate.capabilities()
+        if any(
+            profile.form is NumeralForm.ORDINAL_NUMERIC for profile in base.profiles
+        ):
+            return base
         language = self.locale.split("-", 1)[0]
         genders = (
             frozenset({Gender.MASCULINE, Gender.FEMININE})

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+# ruff: noqa: I001
 import argparse
 import re
 import sys
 from pathlib import Path
 
-from numeralform import render
 
 if __package__ in {None, ""}:  # support the documented ``python tools/...py`` form
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -32,6 +32,8 @@ else:
     from .model import ValidationCase
     from .normalize import is_nfc
     from .report import Mismatch, format_mismatches, summarize
+
+from numeralform import render
 
 
 def _exception_matches(
@@ -172,12 +174,16 @@ def _load_tree(
                 cases.extend(load_jsonl(path))
                 files += 1
         exceptions.update(load_exceptions(directory / "exceptions.json"))
+    if not cases:
+        raise CorpusError(f"validation corpus contains no cases: {corpus}")
     validate_exceptions(cases, exceptions)
     return cases, files, str(release) if release else None, exceptions
 
 
 def check_corpus(corpus: Path) -> int:
     try:
+        if not corpus.is_dir():
+            raise CorpusError(f"validation corpus directory is missing: {corpus}")
         cases, files, release, exceptions = _load_tree(corpus)
         mismatches, matches, exceptions_used = check_cases(cases, exceptions)
     except CorpusError as exc:

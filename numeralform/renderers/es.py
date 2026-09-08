@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..errors import InvalidValueError
-from ..locale import CapabilityProfile, LocaleCapabilities
+from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import (
     DecimalNumber,
     DigitSequence,
@@ -117,11 +117,14 @@ class SpanishRenderer:
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(
-                    NumeralForm.CARDINAL, syntaxes=frozenset({Syntax.STANDALONE})
+                    NumeralForm.CARDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE}),
+                    domain=NumericDomain(maximum=_MAX_CARDINAL),
                 ),
                 CapabilityProfile(
                     NumeralForm.CARDINAL,
                     syntaxes=frozenset({Syntax.ATTRIBUTIVE}),
+                    domain=NumericDomain(maximum=_MAX_CARDINAL),
                     genders=frozenset({Gender.MASCULINE, Gender.FEMININE}),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
@@ -130,10 +133,16 @@ class SpanishRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.ATTRIBUTIVE}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                     genders=frozenset({Gender.MASCULINE, Gender.FEMININE}),
                 ),
                 CapabilityProfile(NumeralForm.YEAR),

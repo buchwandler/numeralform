@@ -4,8 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "numeralform"
-dynamic = ["version"]
-description = "Locale-aware numeral morphology and spoken-number rendering"
+version = "0.1.0"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -14,7 +13,19 @@ classifiers = [
     "Natural Language :: English",
     "Topic :: Text Processing :: Linguistic",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 3 - Alpha",
 ]
+
+[project.urls]
+Homepage = "https://github.com/nahrstaedt/numeralform"
+Repository = "https://github.com/nahrstaedt/numeralform"
+Issues = "https://github.com/nahrstaedt/numeralform/issues"
+Documentation = "https://github.com/nahrstaedt/numeralform#readme"
 
 [project.scripts]
 numeralform = "numeralform.cli:main"
@@ -22,8 +33,6 @@ numeralform = "numeralform.cli:main"
 [tool.setuptools]
 [tool.setuptools.packages.find]
 include = ["numeralform*"]
-[tool.setuptools.dynamic]
-version = { attr = "numeralform._version.__version__" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

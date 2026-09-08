@@ -44,7 +44,13 @@ class CurrencyRequest:
     locale: str
     cents: bool = True
     separator: str = ","
-    adjective: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class CurrencyResult:
+    text: str
+    request: CurrencyRequest
+    locale: str
 
 
 # The lexicon is deliberately data-driven.  Names not translated for a locale
@@ -170,16 +176,14 @@ def render_currency(
     currency: str = "EUR",
     cents: bool = True,
     separator: str = ",",
-    adjective: bool = False,
     compatibility: str | None = None,
-    **kwargs,
 ) -> str:
     """Render a currency amount with explicit canonical/legacy semantics."""
-    from ..locale import canonicalize_locale
+    from ..registry import resolve_locale
 
+    locale = resolve_locale(locale)
     if not isinstance(separator, str):
         raise TypeError("separator must be a string")
-    locale = canonicalize_locale(locale)
     code = currency.upper() if isinstance(currency, str) else currency
     if not isinstance(code, str) or len(code) != 3:
         raise InvalidRequestError("currency must be a three-letter code")
@@ -212,6 +216,36 @@ def render_currency(
     return text
 
 
-realize_currency = render_currency
+def realize_currency(
+    request_or_value: CurrencyRequest | MoneyAmount | object,
+    *,
+    locale: str = "en",
+    currency: str = "EUR",
+    cents: bool = True,
+    separator: str = ",",
+) -> CurrencyResult:
+    """Realize a currency request and return structured metadata."""
+    if isinstance(request_or_value, CurrencyRequest):
+        request = request_or_value
+    else:
+        amount = _parse_amount(request_or_value, currency)
+        request = CurrencyRequest(amount, locale, cents, separator)
+    text = render_currency(
+        request.amount,
+        locale=request.locale,
+        currency=request.amount.currency,
+        cents=request.cents,
+        separator=request.separator,
+    )
+    from ..registry import resolve_locale
 
-__all__ = ["CurrencyRequest", "MoneyAmount", "realize_currency", "render_currency"]
+    return CurrencyResult(text, request, resolve_locale(request.locale))
+
+
+__all__ = [
+    "CurrencyRequest",
+    "CurrencyResult",
+    "MoneyAmount",
+    "realize_currency",
+    "render_currency",
+]

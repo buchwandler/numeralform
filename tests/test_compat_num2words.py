@@ -1,10 +1,53 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from decimal import Decimal
 
 from numeralform import render, render_currency
 from numeralform.compat import num2words
+
+
+class CompatibilityEnvironmentTests(unittest.TestCase):
+    def _run(self, extra_path=None):
+        script = (
+            "from numeralform.compat import num2words; print(num2words(42, lang='en'))"
+        )
+        env = os.environ.copy()
+        if extra_path:
+            env["PYTHONPATH"] = extra_path + os.pathsep + env.get("PYTHONPATH", "")
+        return subprocess.run(
+            [sys.executable, "-c", script],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        ).stdout.strip()
+
+    def test_fake_upstream_cannot_change_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            package = os.path.join(directory, "num2words")
+            os.mkdir(package)
+            with open(
+                os.path.join(package, "__init__.py"), "w", encoding="utf-8"
+            ) as handle:
+                handle.write("def num2words(*args, **kwargs): return 'BROKEN ORACLE'\n")
+            self.assertEqual(self._run(directory), "forty-two")
+
+    def test_upstream_unavailable_does_not_break_adapter(self):
+        script = textwrap.dedent(
+            """
+            import sys
+            sys.modules['num2words'] = None
+            from numeralform.compat import num2words
+            assert num2words(42, lang='en') == 'forty-two'
+            """
+        )
+        subprocess.run([sys.executable, "-c", script], check=True)
 
 
 class CompatibilityCurrencyTests(unittest.TestCase):

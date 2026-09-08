@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
-from .errors import UnsupportedLocaleError
+from .errors import (
+    InvalidRequestError,
+    InvalidValueError,
+    UnsupportedFormError,
+    UnsupportedLocaleError,
+    UnsupportedMorphologyError,
+    UnsupportedStyleError,
+)
 from .locale import LocaleCapabilities, canonicalize_locale, fallback_chain
 from .model import Morphology, NumeralForm, NumeralRequest, Syntax
 from .renderers.base import LocaleRenderer
-from .renderers.generic import GenericLocaleRenderer
 from .renderers.ordinal import OrdinalNotationRenderer
+from .renderers.unsupported import UnsupportedLocaleRenderer
 
 _RENDERERS: dict[str, LocaleRenderer] = {}
 _BUILTINS_INITIALIZED = False
@@ -85,7 +92,10 @@ def register_locale(
     """Register or replace a process-local stateless locale renderer."""
     tag = canonicalize_locale(locale)
     instance = renderer() if isinstance(renderer, type) else renderer
-    if tag.split("-", 1)[0] in _ORDINAL_NUMERIC_LANGUAGES:
+    if (
+        tag.split("-", 1)[0] in _ORDINAL_NUMERIC_LANGUAGES
+        and instance.capabilities().forms
+    ):
         instance = OrdinalNotationRenderer(tag, instance)
     _RENDERERS[tag] = instance
 
@@ -201,20 +211,36 @@ def _ensure_builtins() -> None:
         "zh-TW",
     ):
         if locale not in _RENDERERS:
-            renderer = regional.get(locale, GenericLocaleRenderer(locale))
+            renderer = regional.get(locale, UnsupportedLocaleRenderer(locale))
             register_locale(locale, renderer)
 
 
-def locales() -> tuple[str, ...]:
+def registered_locales() -> tuple[str, ...]:
     _ensure_builtins()
     return tuple(sorted(_RENDERERS))
+
+
+def known_locales() -> tuple[str, ...]:
+    """Return all built-in and registered locale identifiers."""
+    return registered_locales()
+
+
+def locales() -> tuple[str, ...]:
+    """Return locales with at least one reviewed canonical form."""
+    _ensure_builtins()
+    return tuple(
+        sorted(
+            tag for tag, renderer in _RENDERERS.items() if renderer.capabilities().forms
+        )
+    )
 
 
 def resolve_locale(locale: str) -> str:
     _ensure_builtins()
     requested = canonicalize_locale(locale)
     for candidate in fallback_chain(requested):
-        if candidate in _RENDERERS:
+        renderer = _RENDERERS.get(candidate)
+        if renderer is not None and renderer.capabilities().forms:
             return candidate
     raise UnsupportedLocaleError(
         f"unsupported locale {locale!r}; available locales: {', '.join(locales())}"
@@ -223,7 +249,12 @@ def resolve_locale(locale: str) -> str:
 
 def resolve(locale: str) -> LocaleRenderer:
     _ensure_builtins()
-    return _RENDERERS[resolve_locale(locale)]
+    requested = canonicalize_locale(locale)
+    for candidate in fallback_chain(requested):
+        renderer = _RENDERERS.get(candidate)
+        if renderer is not None:
+            return renderer
+    raise UnsupportedLocaleError(f"unsupported locale {locale!r}")
 
 
 def is_registered(locale: str) -> bool:
@@ -238,23 +269,18 @@ def is_registered(locale: str) -> bool:
 def supports(
     locale: str,
     *,
-    form: NumeralForm | str | None = None,
-    syntax: Syntax | str | None = None,
+    form: NumeralForm | str = NumeralForm.CARDINAL,
+    syntax: Syntax | str = Syntax.STANDALONE,
     morphology: Morphology | dict | None = None,
     style: str | None = None,
     value: object | None = None,
 ) -> bool:
-    """Return whether a locale can execute the requested capability surface."""
+    """Return whether a locale can execute the complete requested surface."""
     try:
         renderer = resolve(locale)
+        locale_tag = canonicalize_locale(locale)
         capabilities = renderer.capabilities()
-        if form is None:
-            return bool(capabilities.forms) and style in (None, *capabilities.styles)
         normalized_form = NumeralForm.coerce(form)
-        if not any(
-            profile.form is normalized_form for profile in capabilities.profiles
-        ):
-            return False
         from .model import DecimalNumber, DigitSequence, FractionNumber
         from .renderers.base import validate_request
 
@@ -267,9 +293,9 @@ def supports(
             }.get(normalized_form, 0)
         request = NumeralRequest(
             sample,
-            resolve_locale(locale),
+            locale_tag,
             normalized_form,
-            syntax or Syntax.STANDALONE,
+            syntax,
             Morphology(**morphology)
             if isinstance(morphology, dict)
             else morphology or Morphology(),
@@ -279,7 +305,14 @@ def supports(
         if value is not None:
             renderer.render(request)
         return True
-    except Exception:  # noqa: BLE001
+    except (
+        InvalidRequestError,
+        InvalidValueError,
+        UnsupportedLocaleError,
+        UnsupportedFormError,
+        UnsupportedMorphologyError,
+        UnsupportedStyleError,
+    ):
         return False
 
 
