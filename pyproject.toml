@@ -30,9 +30,31 @@ Documentation = "https://github.com/nahrstaedt/numeralform#readme"
 [project.scripts]
 numeralform = "numeralform.cli:main"
 
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "coverage>=7",
+]
 [tool.setuptools]
 [tool.setuptools.packages.find]
 include = ["numeralform*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["tests"]
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["numeralform"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.ruff]
+exclude = ["benchmarks/data"]

@@ -8,6 +8,12 @@ Numeralform is a typed, locale-aware number-to-words engine for Python. It prese
 python -m pip install numeralform
 ```
 
+For development:
+
+```bash
+python -m pip install -e ".[test]"
+```
+
 ## Quick start
 
 ```python
@@ -34,18 +40,6 @@ result = realize(42, locale="en-US")
 | Unsupported requests | Explicit errors                 | Varies                   |
 | Compatibility        | Separate deterministic adapter  | Single permissive API    |
 
-## Supported locales
-
-`locales()` returns only locales with reviewed canonical renderers. `known_locales()` includes registered compatibility placeholders. Placeholder locales have empty canonical capabilities and reject rendering instead of returning raw numeric notation.
-
-```python
-from numeralform import capabilities, locales, supports
-
-print(locales())
-print(capabilities("ru"))
-supports("ru", form="cardinal", syntax="attributive", value=21)
-```
-
 ## Compatibility
 
 ```python
@@ -54,11 +48,31 @@ from numeralform.compat import num2words
 num2words(42, lang="en")
 ```
 
-The runtime adapter is deterministic and does not import upstream `num2words`. The compatibility profile is pinned to Git revision `07814cb114157f582c40a00119c2e9faba8dcee2` with package metadata `0.5.14`; the oracle is used only by generation tooling.
+The runtime adapter is deterministic and does not import upstream `num2words`. The compatibility profile is pinned to Git revision `07814cb114157f582c40a00119c2e9faba8dcee2` with package metadata `0.5.14`.
 
-## Errors
+## Development tests
 
-Invalid values and requests raise `NumeralFormError` subclasses. Unsupported locales, forms, morphology, styles, and feature combinations are rejected explicitly.
+The default suite contains only small Numeralform tests. It needs no benchmark data, network access, ICU, or external `num2words` package:
+
+```bash
+python -m pytest
+```
+
+Coverage, lint, formatting, and build checks are described in [the release procedure](docs/releasing.md).
+
+## Explicit benchmarks
+
+Oracle, corpus, differential, and upstream compatibility work is separate from unit tests:
+
+```bash
+python -m benchmarks.download num2words
+python -m benchmarks.run num2words
+python -m benchmarks.run cldr
+python -m benchmarks.run all
+python -m pytest benchmarks/tests
+```
+
+Benchmark data and reports are generated locally under `benchmarks/data/` and are not required for normal tests.
 
 ## CLI
 
@@ -70,10 +84,4 @@ numeralform --list-locales
 numeralform --capabilities ru
 ```
 
-## Development
-
-See [the API reference](docs/api.md), [locale inventory](docs/locales/README.md), and [release procedure](docs/releasing.md). Run the test suite with:
-
-```bash
-python -m unittest discover -s tests -v
-```
+See [the API reference](docs/api.md), [locale inventory](docs/locales/README.md), [compatibility contract](docs/compatibility.md), and [release procedure](docs/releasing.md).

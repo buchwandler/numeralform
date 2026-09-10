@@ -1,6 +1,6 @@
 # num2words compatibility contract
 
-Numeralform provides a separate, deterministic `num2words` compatibility namespace. The declared profile targets the upstream Git revision `07814cb114157f582c40a00119c2e9faba8dcee2`, identified as `num2words-git-07814cb`. Upstream package metadata at that revision is `0.5.14`. This is not the published `v0.5.14` tag, which is a separate compatibility product.
+Numeralform provides a separate, deterministic `num2words` compatibility namespace. The declared profile targets upstream Git revision `07814cb114157f582c40a00119c2e9faba8dcee2`, identified as `num2words-git-07814cb`. Upstream package metadata at that revision is `0.5.14`. This is not the published `v0.5.14` tag, which is a separate compatibility product.
 
 ## Contract boundaries
 
@@ -9,25 +9,30 @@ Numeralform provides a separate, deterministic `num2words` compatibility namespa
 - Compatibility-only renderers do not change `locales()`, `known_locales()`, or `supports()` for the canonical API.
 - The runtime adapter never imports or delegates to an installed upstream package.
 - The upstream package is used only as an external oracle while generating behavioral data and running the optional upstream test shim.
-- Generated outputs are behavioral test data. LGPL implementation source is not copied into this Apache-2.0 project.
+- Generated outputs are benchmark artifacts under ignored `benchmarks/data/`. LGPL implementation source is not copied into this Apache-2.0 project.
 
-## Reproducible generation
+## Reproducible benchmark
 
-`compatibility.toml` records the profile, repository, exact revision, package metadata, locale scope, forms, and generation profiles. Generation must use a checkout whose `git rev-parse HEAD` equals the configured revision:
+`benchmarks/config/num2words.toml` records the profile, repository, exact revision, package metadata, locale scope, forms, and generation profiles. Acquire the verified checkout and run the benchmark explicitly:
 
 ```bash
-python tools/validation/generate_num2words.py \
-  --config compatibility.toml \
-  --oracle-root .upstream-num2words \
-  --output tests/validation/compatibility/num2words-git-07814cb.jsonl
-python tools/validation/generate_num2words.py \
-  --config compatibility.toml \
-  --oracle-root .upstream-num2words \
-  --output tests/validation/compatibility/num2words-git-07814cb.jsonl \
-  --check
+python -m benchmarks.download num2words
+python -m benchmarks.run num2words
 ```
 
-The manifest stores both the source revision and package version metadata. Site-packages is not accepted when `--oracle-root` is supplied. The corpus checker is offline and validates JSONL ordering, NFC output, file hashes, case counts, exception records, and compatibility mismatch dimensions.
+The checkout is stored at `benchmarks/data/oracles/num2words/`. The generated corpus and report are stored below `benchmarks/data/corpora/num2words/` and `benchmarks/data/results/`. The downloader verifies `git rev-parse HEAD`, the repository module path, and never falls back to site-packages.
+
+The corpus checker remains an offline integrity tool. It validates JSONL ordering, NFC output, file hashes, case counts, exception records, and compatibility mismatch dimensions when a local corpus exists.
+
+## CLDR benchmark
+
+CLDR generation uses the pinned ICU/PyICU maintainer environment and writes only to ignored benchmark data:
+
+```bash
+python -m benchmarks.run cldr
+```
+
+The configuration is `benchmarks/config/cldr.toml`, which pins CLDR 48.2. The generator rejects missing rule sets and oracle version drift. Do not weaken the version check to run in an environment without the pinned ICU oracle.
 
 ## Legacy language selection
 

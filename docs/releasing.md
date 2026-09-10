@@ -1,44 +1,44 @@
 # Releasing Numeralform
 
-1. Run the full unit suite.
+## Core gate
 
-   ```bash
-   python -m unittest discover -s tests -v
-   ```
+Run the hermetic product checks:
 
-2. Run offline validation with the committed corpora.
+```bash
+python -m pip install -e ".[test]"
+python -m pytest
+python -m coverage run -m pytest
+python -m coverage report
+ruff check .
+ruff format --check .
+python -m build --no-isolation
+```
 
-   ```bash
-   python tools/validation/check.py --corpus tests/validation
-   ```
+The default suite does not acquire or read benchmark data and does not require network access, ICU, or an external `num2words` installation.
 
-3. Measure branch coverage and enforce the configured threshold.
+## Compatibility and reference benchmark gate
 
-   ```bash
-   python -m coverage run --branch -m unittest discover -s tests -v
-   python -m coverage report --fail-under=90
-   ```
+When compatibility claims require reference evidence, run the separate benchmark workflow or execute:
 
-4. Check quality and build artifacts.
+```bash
+python -m benchmarks.download num2words
+python -m benchmarks.run all
+python -m pytest benchmarks/tests
+```
 
-   ```bash
-   ruff check .
-   ruff format --check .
-   python -m build --no-isolation
-   ```
+The num2words checkout is pinned and verified. CLDR requires the documented pinned ICU/PyICU maintainer environment. Benchmark corpora, oracle checkouts, and reports remain local under ignored `benchmarks/data/`.
 
-5. Inspect both artifacts. Their metadata and filenames must report `0.1.0`.
+## Artifacts
 
-6. Install the wheel and sdist in clean environments. Verify:
+Inspect wheel and sdist metadata. Their package metadata and filenames must report `0.1.0`. Install the wheel and sdist in clean environments and verify:
 
-   ```python
-   import numeralform
-   assert numeralform.__version__ == "0.1.0"
-   assert numeralform.render(42, locale="en") == "forty-two"
-   ```
+```python
+import numeralform
 
-   Also run `numeralform --version`, the rendering command, and verify `numeralform/py.typed`.
+assert numeralform.__version__ == "0.1.0"
+assert numeralform.render(42, locale="en") == "forty-two"
+```
 
-7. Create the `v0.1.0` tag only after required CI jobs pass. Publish the wheel and sdist using the project publishing policy.
+Also run `numeralform --version`, the rendering command, and verify `numeralform/py.typed` is present in the wheel.
 
-8. After publishing, install from the published artifacts and repeat the version and rendering smoke tests.
+Create the `v0.1.0` tag only after required core and benchmark gates pass. Publish using the project publishing policy, then repeat the version and rendering smoke tests from the published artifacts.

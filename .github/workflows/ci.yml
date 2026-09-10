@@ -12,9 +12,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: python -m pip install ruff
+      - run: python -m pip install -e ".[test]" ruff
       - run: ruff check .
       - run: ruff format --check .
+      - run: test ! -d tools/validation
+      - run: test -z "$(find tests -type f ! -name '*.py' ! -name '__init__.py' -print -quit)"
+      - run: '! rg -n "(^|[[:space:]])(from|import)[[:space:]]+(benchmarks|tools\.validation|num2words|icu)" tests'
 
   unit:
     runs-on: ubuntu-latest
@@ -26,16 +29,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m unittest discover -s tests -v
-
-  validation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - run: python tools/validation/check.py --corpus tests/validation
+      - run: python -m pip install -e ".[test]"
+      - run: python -m pytest
       - run: python -c "import sys; import numeralform; assert 'num2words' not in sys.modules; assert 'icu' not in sys.modules"
 
   coverage:
@@ -45,9 +40,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: python -m pip install coverage
-      - run: python -m coverage run --branch -m unittest discover -s tests -v
-      - run: python -m coverage report --fail-under=90
+      - run: python -m pip install -e ".[test]"
+      - run: python -m coverage run -m pytest
+      - run: python -m coverage report
 
   build:
     runs-on: ubuntu-latest

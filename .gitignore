@@ -217,3 +217,13 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 context_numeralform*.*
+
+# Numeralform benchmark data: downloaded/generated locally, never committed.
+benchmarks/data/corpora/cldr/*
+!benchmarks/data/corpora/cldr/.gitkeep
+benchmarks/data/corpora/num2words/*
+!benchmarks/data/corpora/num2words/.gitkeep
+benchmarks/data/oracles/num2words/*
+!benchmarks/data/oracles/num2words/.gitkeep
+benchmarks/data/results/*
+!benchmarks/data/results/.gitkeep
