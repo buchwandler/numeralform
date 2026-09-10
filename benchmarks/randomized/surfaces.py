@@ -34,6 +34,8 @@ def surface_for(
         return str(value), ()
     if kind == "decimal":
         return _decimal_text(value, locale), ("decimal-transport=Decimal",)
+    if kind == "ordinal_num":
+        return str(value), ("ordinal-num",)
     if kind == "ordinal":
         suffix = {
             "de": ".",

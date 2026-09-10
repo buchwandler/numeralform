@@ -1,79 +1,133 @@
 [randomized]
-schema_version = 2
-generator_version = 2
+schema_version = 3
+generator_version = 3
 default_seed = 20260910
 default_profile = "shared"
 
 [randomized.weights]
-cardinal = 40
-decimal = 20
-ordinal = 15
-year = 10
-currency = 15
+cardinal = 32
+decimal = 16
+ordinal = 12
+ordinal_num = 10
+year = 12
+currency = 18
 
 [randomized.shared]
-edge_probability = 0.25
+edge_probability = 0.30
+negative_probability = 0.10
 cardinal_min = 0
 cardinal_max = 999999999
-ordinal_min = 1
-ordinal_max = 99
-year_min = 1000
-year_max = 2099
+ordinal_min = 0
+ordinal_max = 9999
+year_min = 0
+year_max = 9999
 decimal_integer_max = 999999
 decimal_fraction_digits = [1, 2, 3, 4]
+decimal_negative_probability = 0.10
 currency_min = "0.00"
 currency_max = "9999.99"
-currencies = ["EUR", "USD", "GBP", "JPY"]
-currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0 }
-max_attempt_multiplier = 20
+currency_edge_probability = 0.35
+currency_negative_probability = 0.05
+currencies = ["EUR", "USD", "GBP", "AUD", "CAD", "RUB", "SEK", "NOK", "PLN", "INR", "HUF", "SAR", "JPY", "KRW"]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, AUD = 2, CAD = 2, RUB = 2, SEK = 2, NOK = 2, PLN = 2, INR = 2, HUF = 2, SAR = 2, JPY = 0, KRW = 0 }
+max_attempt_multiplier = 30
 
 [randomized.numeralform]
-edge_probability = 0.25
+edge_probability = 0.30
+negative_probability = 0.10
 cardinal_min = 0
 cardinal_max = 999999999
-ordinal_min = 1
-ordinal_max = 99
-year_min = 1000
-year_max = 2099
+ordinal_min = 0
+ordinal_max = 9999
+year_min = 0
+year_max = 9999
 decimal_integer_max = 999999
 decimal_fraction_digits = [1, 2, 3, 4]
+decimal_negative_probability = 0.10
 currency_min = "0.00"
 currency_max = "9999.99"
-currencies = ["EUR", "USD", "GBP", "JPY"]
-currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0 }
-max_attempt_multiplier = 20
+currency_edge_probability = 0.35
+currency_negative_probability = 0.05
+currencies = ["EUR", "USD", "GBP", "AUD", "CAD", "RUB", "SEK", "NOK", "PLN", "INR", "HUF", "SAR", "JPY", "KRW"]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, AUD = 2, CAD = 2, RUB = 2, SEK = 2, NOK = 2, PLN = 2, INR = 2, HUF = 2, SAR = 2, JPY = 0, KRW = 0 }
+max_attempt_multiplier = 30
 
 [randomized.common]
-edge_probability = 0.25
+edge_probability = 0.30
+negative_probability = 0.10
 cardinal_min = 0
 cardinal_max = 999999999
-ordinal_min = 1
-ordinal_max = 99
-year_min = 1000
-year_max = 2099
+ordinal_min = 0
+ordinal_max = 9999
+year_min = 0
+year_max = 9999
 decimal_integer_max = 999999
 decimal_fraction_digits = [1, 2, 3, 4]
+decimal_negative_probability = 0.10
 currency_min = "0.00"
 currency_max = "9999.99"
-currencies = ["EUR", "USD", "GBP", "JPY"]
-currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0 }
-max_attempt_multiplier = 20
+currency_edge_probability = 0.35
+currency_negative_probability = 0.05
+currencies = ["EUR", "USD", "GBP", "AUD", "CAD", "RUB", "SEK", "NOK", "PLN", "INR", "HUF", "SAR", "JPY", "KRW"]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, AUD = 2, CAD = 2, RUB = 2, SEK = 2, NOK = 2, PLN = 2, INR = 2, HUF = 2, SAR = 2, JPY = 0, KRW = 0 }
+max_attempt_multiplier = 30
 
 [randomized.stress]
+edge_probability = 0.20
+negative_probability = 0.10
 cardinal_min = -999999999999999999
 cardinal_max = 999999999999999999
 cardinal_max_digits = 18
-ordinal_min = 1
+ordinal_min = 0
 ordinal_max = 1000000
 year_min = 0
 year_max = 9999
 decimal_integer_max = 999999999999
 decimal_fraction_digits = [1, 2, 3, 4, 5, 6]
+decimal_negative_probability = 0.10
 currency_min = "0.000"
 currency_max = "999999999.999"
-currencies = [
-  "EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD",
-  "RUB", "CNY", "KRW", "BRL", "INR",
-]
+currency_edge_probability = 0.20
+currency_negative_probability = 0.05
+currencies = ["EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD", "RUB", "CNY", "KRW", "BRL", "INR"]
 currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0, CHF = 2, CAD = 2, AUD = 2, RUB = 2, CNY = 2, KRW = 0, BRL = 2, INR = 2 }
-max_attempt_multiplier = 20
+max_attempt_multiplier = 30
+
+[[randomized.currency_variants]]
+id = "default"
+
+[[randomized.currency_variants]]
+id = "terse-minor"
+cents = false
+
+[[randomized.currency_variants]]
+id = "literal-and"
+separator = " and"
+
+[[randomized.currency_variants]]
+id = "terse-literal-and"
+cents = false
+separator = " and"
+
+[[randomized.compat_variants]]
+id = "ordinal-bool"
+kind = "ordinal"
+call_variant = "ordinal-bool"
+
+[[randomized.compat_variants]]
+id = "year-bce"
+kind = "year"
+suffix = "BCE"
+
+[[randomized.compat_variants]]
+id = "currency-adjective"
+kind = "currency"
+adjective = true
+
+[[randomized.compat_variants]]
+id = "string-transport"
+transport = "string"
+
+[[randomized.compat_variants]]
+id = "float-transport"
+transport = "float"

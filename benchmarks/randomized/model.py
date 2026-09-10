@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
 from numeralform import DecimalNumber
 
-CASE_KINDS = ("cardinal", "decimal", "ordinal", "year", "currency")
+CASE_KINDS = (
+    "cardinal",
+    "decimal",
+    "ordinal",
+    "ordinal_num",
+    "year",
+    "currency",
+)
 EXECUTION_OUTCOMES = ("text", "exception")
 DIFFERENTIAL_STATUSES = (
     "match",
@@ -19,6 +26,17 @@ DIFFERENTIAL_STATUSES = (
     "numeralform-error",
     "both-error",
 )
+_OPTION_KEYS_BY_KIND = {
+    "cardinal": frozenset({"gender", "case", "plural", "animate", "grammatical_number", "animacy"}),
+    "decimal": frozenset(),
+    "ordinal": frozenset({"gender", "case", "plural", "animate", "grammatical_number", "animacy"}),
+    "ordinal_num": frozenset({"gender"}),
+    "year": frozenset({"suffix"}),
+    "currency": frozenset({"cents", "separator", "adjective"}),
+}
+RandomOptionValue = str | int | bool
+_ALLOWED_OPTION_TYPES = (str, int, bool)
+_ALLOWED_TRANSPORTS = frozenset({"native", "string", "float"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,8 +75,8 @@ class SerializedRandomValue:
         if isinstance(value, Decimal):
             if not value.is_finite():
                 raise ValueError("decimal value must be finite")
-            text = format(value, "f")
-            return cls("decimal", text)
+            return cls("decimal", format(value, "f"))
+        raise TypeError("random values must be int or Decimal")
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> SerializedRandomValue:
@@ -96,6 +114,10 @@ class RandomCase:
     currency: str | None = None
     tags: tuple[str, ...] = ()
     oracle_locale: str | None = None
+    options: dict[str, str | int | bool] = field(default_factory=dict)
+    variant_id: str | None = None
+    call_variant: str | None = None
+    transport: str = "native"
 
     def __post_init__(self) -> None:
         if self.kind not in CASE_KINDS:
@@ -112,20 +134,56 @@ class RandomCase:
             raise ValueError("currency cases require an ISO currency code")
         if self.kind != "currency" and self.currency is not None:
             raise ValueError("only currency cases may specify a currency")
+        if not isinstance(self.options, dict):
+            options = dict(self.options)
+        else:
+            options = dict(self.options)
+        allowed = _OPTION_KEYS_BY_KIND[self.kind]
+        for key, value in options.items():
+            if not isinstance(key, str) or key not in allowed:
+                raise ValueError(f"option {key!r} does not apply to {self.kind}")
+            if not isinstance(value, _ALLOWED_OPTION_TYPES):
+                raise TypeError(f"option {key!r} must be a string, integer, or boolean")
+        object.__setattr__(self, "options", options)
         object.__setattr__(self, "tags", tuple(self.tags))
         if self.oracle_locale is None:
             object.__setattr__(self, "oracle_locale", self.locale)
         elif not self.oracle_locale:
             raise ValueError("oracle locale is required")
+        if self.transport not in _ALLOWED_TRANSPORTS:
+            raise ValueError(f"unknown transport: {self.transport!r}")
+        if self.call_variant is not None and not isinstance(self.call_variant, str):
+            raise TypeError("call_variant must be a string")
 
     def python_value(self) -> int | Decimal:
         return self.value.python_value()
+
+    def transport_value(self) -> int | Decimal | float | str:
+        value = self.python_value()
+        if self.transport == "string":
+            return self.value.value
+        if self.transport == "float":
+            return float(value)
+        return value
 
     def as_decimal_number(self) -> DecimalNumber:
         return self.value.decimal_number()
 
     def decimal_number(self) -> DecimalNumber:
         return self.value.decimal_number()
+
+    @property
+    def identity(self) -> tuple[str, str, str, str | None, str, str, str | None, str]:
+        return (
+            self.locale,
+            self.kind,
+            self.value.value,
+            self.currency,
+            json_dumps(dict(sorted(self.options.items()))),
+            self.transport,
+            self.call_variant,
+            self.variant_id or "",
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -141,6 +199,10 @@ class RandomCase:
             "value": self.value.to_dict(),
             "currency": self.currency,
             "tags": list(self.tags),
+            "options": dict(sorted(self.options.items())),
+            "variant_id": self.variant_id,
+            "call_variant": self.call_variant,
+            "transport": self.transport,
         }
 
     @classmethod
@@ -158,6 +220,10 @@ class RandomCase:
             value=SerializedRandomValue.from_dict(payload["value"]),
             currency=payload.get("currency"),
             tags=tuple(payload.get("tags", ())),
+            options=dict(payload.get("options", {})),
+            variant_id=payload.get("variant_id"),
+            call_variant=payload.get("call_variant"),
+            transport=str(payload.get("transport", "native")),
         )
 
 
@@ -182,11 +248,7 @@ class ExecutionResult:
 
     @classmethod
     def exception_result(cls, exc: Exception) -> ExecutionResult:
-        return cls(
-            "exception",
-            exception_type=type(exc).__name__,
-            exception_message=str(exc),
-        )
+        return cls("exception", exception_type=type(exc).__name__, exception_message=str(exc))
 
     def to_dict(self) -> dict[str, str | None]:
         return {
@@ -218,9 +280,7 @@ class DifferentialResult:
     def __post_init__(self) -> None:
         if self.status not in DIFFERENTIAL_STATUSES:
             raise ValueError(f"unknown differential status: {self.status!r}")
-        if self.status == "match" and (
-            self.difference_shape is not None or self.equivalence_rule is not None
-        ):
+        if self.status == "match" and (self.difference_shape is not None or self.equivalence_rule is not None):
             raise ValueError("matches cannot have difference metadata")
         if self.status == "variant" and not self.equivalence_rule:
             raise ValueError("variants require an equivalence rule")
@@ -261,6 +321,7 @@ __all__ = [
     "DifferentialResult",
     "ExecutionResult",
     "RandomCase",
+    "RandomOptionValue",
     "SerializedRandomValue",
     "json_dumps",
 ]

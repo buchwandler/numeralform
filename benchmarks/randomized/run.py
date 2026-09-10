@@ -42,23 +42,15 @@ DEFAULT_ORACLE_ROOT = BENCHMARK_ROOT / "data" / "oracles" / "num2words"
 DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
 
 
-def _oracle_supports(external_num2words, locale, kind, value, currency):
+def _oracle_supports(external_num2words, locale, kind, value, currency, options=None):
     try:
-        external_num2words(
-            value,
-            **num2words_call_kwargs(locale, kind, currency),
-        )
+        external_num2words(value, **num2words_call_kwargs(locale, kind, currency, options))
     except Exception:  # noqa: BLE001
         return False
     return True
 
 
-def execute_case(
-    case: RandomCase,
-    external_num2words,
-    *,
-    target: str = "canonical",
-) -> DifferentialResult:
+def execute_case(case: RandomCase, external_num2words, *, target: str = "canonical") -> DifferentialResult:
     if target == "canonical":
         numeralform_result = run_numeralform_canonical(case)
     elif target == "compat":
@@ -75,12 +67,10 @@ def execute_case(
 
 def _load_replay(path: Path, case_id: str) -> RandomCase:
     for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        payload = json.loads(line)
-        case = RandomCase.from_dict(payload["case"])
-        if case.case_id == case_id:
-            return case
+        if line.strip():
+            case = RandomCase.from_dict(json.loads(line)["case"])
+            if case.case_id == case_id:
+                return case
     raise ValueError(f"case ID not found in replay file: {case_id}")
 
 
@@ -90,17 +80,11 @@ def _seed(value: str) -> int:
     return int(value)
 
 
-def _metadata(
-    seed: int,
-    profile: str,
-    requested_cases: int,
-    config,
-    version: str,
-    target: str,
-) -> dict:
+def _metadata(seed: int, profile: str, requested_cases: int, config, version: str, target: str) -> dict:
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "generator_version": GENERATOR_VERSION,
+        "case_option_schema": 1,
         "target": target,
         "seed": seed,
         "profile": profile,
@@ -130,6 +114,8 @@ def run_benchmark(
     locales: Iterable[str] = (),
     kinds: Iterable[str] = (),
     currencies: Iterable[str] = (),
+    variant: str | None = None,
+    transport: str | None = None,
     record_all: bool = False,
     fail_on_diff: bool = False,
     fail_on_unaccepted: bool = False,
@@ -137,11 +123,8 @@ def run_benchmark(
     external_num2words = load_num2words(oracle_root)
     version = oracle_version(oracle_root)
     if version != NUM2WORDS_VERSION:
-        raise RuntimeError(
-            f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}"
-        )
+        raise RuntimeError(f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}")
     config = load_config(CONFIG_PATH, profile)
-    external_locales = oracle_locales(oracle_root)
     generated, generation_stats, _ = generate_cases(
         seed=seed,
         count=cases,
@@ -149,31 +132,24 @@ def run_benchmark(
         locales=locales or None,
         kinds=kinds or None,
         currencies=currencies or None,
-        external_locales=external_locales,
+        external_locales=oracle_locales(oracle_root),
         config_path=CONFIG_PATH,
-        oracle_supports=lambda locale, kind, value, currency: _oracle_supports(
-            external_num2words, locale, kind, value, currency
+        target=target,
+        variant=variant,
+        transport=transport,
+        oracle_supports=lambda locale, kind, value, currency, options=None: _oracle_supports(
+            external_num2words, locale, kind, value, currency, options
         ),
     )
-    results = tuple(
-        execute_case(case, external_num2words, target=target) for case in generated
-    )
+    results = tuple(execute_case(case, external_num2words, target=target) for case in generated)
     metadata = _metadata(seed, profile, cases, config, version, target)
-    paths = write_reports(
-        results,
-        output_dir,
-        metadata=metadata,
-        generation_stats=generation_stats,
-        record_all=record_all,
-    )
-    counts = {
-        status: sum(result.status == status for result in results)
-        for status in DIFFERENTIAL_STATUSES
-    }
+    paths = write_reports(results, output_dir, metadata=metadata, generation_stats=generation_stats, record_all=record_all)
+    counts = {status: sum(result.status == status for result in results) for status in DIFFERENTIAL_STATUSES}
     print("num2words-random benchmark")
     print(f"oracle: {NUM2WORDS_COMMIT}")
     print(f"seed: {seed}")
     print(f"profile: {profile}")
+    print(f"target: {target}")
     print(f"cases: {len(results)}")
     for status, value in counts.items():
         print(f"{status + ':':20}{value}")
@@ -181,9 +157,7 @@ def run_benchmark(
     print(f"differences: {paths['differences']}")
     if fail_on_diff and any(result.status != "match" for result in results):
         return 1
-    if fail_on_unaccepted and any(
-        result.status not in {"match", "variant"} for result in results
-    ):
+    if fail_on_unaccepted and any(result.status not in {"match", "variant"} for result in results):
         return 1
     return 0
 
@@ -193,20 +167,13 @@ def _replay_target(path: Path, target: str | None) -> str:
         return target
     summary_path = path.with_name("summary.json")
     if summary_path.exists():
-        metadata = json.loads(summary_path.read_text(encoding="utf-8"))
-        return str(metadata.get("target", "canonical"))
+        return str(json.loads(summary_path.read_text(encoding="utf-8")).get("target", "canonical"))
     return "canonical"
 
 
-def run_replay(
-    path: Path,
-    case_id: str,
-    oracle_root: Path,
-    target: str | None = None,
-) -> int:
+def run_replay(path: Path, case_id: str, oracle_root: Path, target: str | None = None) -> int:
     case = _load_replay(path, case_id)
-    selected_target = _replay_target(path, target)
-    result = execute_case(case, load_num2words(oracle_root), target=selected_target)
+    result = execute_case(case, load_num2words(oracle_root), target=_replay_target(path, target))
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
     return 1 if result.status != "match" else 0
 
@@ -215,15 +182,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=int, default=10000)
     parser.add_argument("--seed", default="20260910", type=_seed)
-    parser.add_argument(
-        "--profile",
-        choices=("shared", "numeralform", "common", "stress"),
-        default="shared",
-    )
+    parser.add_argument("--profile", choices=("shared", "numeralform", "common", "stress"), default="shared")
     parser.add_argument("--target", choices=("canonical", "compat"), default=None)
     parser.add_argument("--locale", action="append", dest="locales", default=[])
     parser.add_argument("--kind", action="append", dest="kinds", default=[])
     parser.add_argument("--currency", action="append", dest="currencies", default=[])
+    parser.add_argument("--variant")
+    parser.add_argument("--transport", choices=("native", "string", "float"))
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--oracle-root", type=Path, default=DEFAULT_ORACLE_ROOT)
     parser.add_argument("--record-all", action="store_true")
@@ -252,6 +217,8 @@ def main(argv: list[str] | None = None) -> int:
         locales=args.locales,
         kinds=args.kinds,
         currencies=args.currencies,
+        variant=args.variant,
+        transport=args.transport,
         record_all=args.record_all,
         fail_on_diff=args.fail_on_diff,
         fail_on_unaccepted=args.fail_on_unaccepted,
