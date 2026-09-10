@@ -14,7 +14,7 @@ from ..model import (
     NumeralResult,
     Syntax,
 )
-from .base import validate_request
+from .base import require_int, validate_request
 
 _UNDER_20 = (
     "cero",
@@ -164,11 +164,11 @@ class SpanishRenderer:
         elif request.form is NumeralForm.FRACTION:
             text = self._fraction(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._ordinal(value, request)
+            text = self._ordinal(require_int(value), request)
         elif request.form is NumeralForm.YEAR:
-            text = self._cardinal(value, request)
+            text = self._cardinal(require_int(value), request)
         else:
-            text = self._cardinal(value, request)
+            text = self._cardinal(require_int(value), request)
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )
@@ -181,7 +181,10 @@ class SpanishRenderer:
         if value < 0:
             return "menos " + self._cardinal(-value, request)
         gender = (
-            request.morphology.gender if request.syntax is Syntax.ATTRIBUTIVE else None
+            Gender.coerce(request.morphology.gender)
+            if request.syntax is Syntax.ATTRIBUTIVE
+            and request.morphology.gender is not None
+            else None
         )
         return self._cardinal_plain(value, gender=gender, scale_context=False)
 

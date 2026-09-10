@@ -1,7 +1,6 @@
 [randomized]
-schema_version = 1
-generator_version = 1
-default_cases = 10000
+schema_version = 2
+generator_version = 2
 default_seed = 20260910
 default_profile = "shared"
 
@@ -25,6 +24,7 @@ decimal_fraction_digits = [1, 2, 3, 4]
 currency_min = "0.00"
 currency_max = "9999.99"
 currencies = ["EUR", "USD", "GBP", "JPY"]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0 }
 max_attempt_multiplier = 20
 
 [randomized.numeralform]
@@ -40,6 +40,7 @@ decimal_fraction_digits = [1, 2, 3, 4]
 currency_min = "0.00"
 currency_max = "9999.99"
 currencies = ["EUR", "USD", "GBP", "JPY"]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0 }
 max_attempt_multiplier = 20
 
 [randomized.common]
@@ -55,6 +56,7 @@ decimal_fraction_digits = [1, 2, 3, 4]
 currency_min = "0.00"
 currency_max = "9999.99"
 currencies = ["EUR", "USD", "GBP", "JPY"]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0 }
 max_attempt_multiplier = 20
 
 [randomized.stress]
@@ -73,4 +75,5 @@ currencies = [
   "EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD",
   "RUB", "CNY", "KRW", "BRL", "INR",
 ]
+currency_minor_units = { EUR = 2, USD = 2, GBP = 2, JPY = 0, CHF = 2, CAD = 2, AUD = 2, RUB = 2, CNY = 2, KRW = 0, BRL = 2, INR = 2 }
 max_attempt_multiplier = 20

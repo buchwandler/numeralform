@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
-from .base import validate_request
+from .base import require_int, validate_request
 
 # Brazilian and European Portuguese differences for teens
 _UNDER_20_BR = (
@@ -109,7 +109,7 @@ _ORDINAL_TENS_PT = {
     8: "octogésimo",
     9: "nonagésimo",
 }
-_HUNDREDS = {
+_HUNDREDS: dict[int, str | tuple[str, str]] = {
     100: ("cem", "cento"),
     200: "duzentos",
     300: "trezentos",
@@ -157,11 +157,11 @@ class PortugueseRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._digits(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._ordinal(value)
+            text = self._ordinal(require_int(value))
         elif request.form is NumeralForm.YEAR:
-            text = self._cardinal(value)
+            text = self._cardinal(require_int(value))
         else:
-            text = self._cardinal(value)
+            text = self._cardinal(require_int(value))
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )
@@ -183,13 +183,10 @@ class PortugueseRenderer:
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
             entry = _HUNDREDS[hundreds * 100]
-            prefix = (
-                entry[0]
-                if hundreds == 1 and remainder == 0
-                else entry[-1]
-                if hundreds == 1
-                else entry
-            )
+            if isinstance(entry, tuple):
+                prefix = entry[0] if remainder == 0 else entry[1]
+            else:
+                prefix = entry
             return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
         scale_words = (
             (1_000_000_000, "bilhão" if self._variant == "pt-BR" else "bilião"),

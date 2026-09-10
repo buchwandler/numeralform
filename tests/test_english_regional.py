@@ -74,3 +74,13 @@ def test_existing_english_regional_currency_behavior_is_not_changed():
     assert (
         render_currency(Decimal("531.84"), locale="en-NG", currency="USD") == expected
     )
+
+
+def test_english_year_regional_policy():
+    for locale in ("en", "en-US", "en-GB"):
+        assert render(1000, locale=locale, form="year") == "one thousand"
+    assert render(2001, locale="en-US", form="year") == "two thousand one"
+    assert render(2009, locale="en-US", form="year") == "two thousand nine"
+    assert render(2001, locale="en-GB", form="year") == "two thousand and one"
+    assert render(2009, locale="en-GB", form="year") == "two thousand and nine"
+    assert render(1001, locale="en-GB", form="year") == "ten oh one"

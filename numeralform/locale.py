@@ -13,7 +13,7 @@ _ALIASES = {"jp": "ja", "cn": "zh-CN"}
 
 
 def _normalize_open_values(values) -> frozenset[str | Case]:
-    normalized = set()
+    normalized: set[str | Case] = set()
     for value in values:
         if isinstance(value, Case):
             normalized.add(value)

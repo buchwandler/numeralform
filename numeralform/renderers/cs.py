@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import NumeralForm, NumeralRequest, NumeralResult
-from .base import validate_request
+from .base import require_int, validate_request
 
 _UNDER_20 = (
     "nula",
@@ -82,7 +82,7 @@ class CzechRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._digits(value)
         else:
-            text = self._cardinal(value)
+            text = self._cardinal(require_int(value))
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )

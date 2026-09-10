@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
-from .base import validate_request
+from .base import require_int, validate_request
 
 _UNDER_20 = (
     "zero",
@@ -88,11 +88,11 @@ class ItalianRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._digits(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._ordinal(value)
+            text = self._ordinal(require_int(value))
         elif request.form is NumeralForm.YEAR:
-            text = self._cardinal(value)
+            text = self._cardinal(require_int(value))
         else:
-            text = self._cardinal(value)
+            text = self._cardinal(require_int(value))
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )

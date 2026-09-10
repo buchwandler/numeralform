@@ -15,7 +15,7 @@ from ..model import (
     NumeralResult,
     Syntax,
 )
-from .base import validate_request
+from .base import require_int, validate_request
 
 _UNDER_20 = (
     "ноль",
@@ -309,19 +309,20 @@ class RussianRenderer:
                 "locative",
             }
         )
-        common = {
-            "cases": cases,
-            "animacies": frozenset({"animate", "inanimate"}),
-            "grammatical_numbers": frozenset({"singular", "plural"}),
-            "genders": frozenset({Gender.MASCULINE, Gender.FEMININE, Gender.NEUTER}),
-        }
+        common_cases = cases
+        common_animacies = frozenset({"animate", "inanimate"})
+        common_numbers = frozenset({"singular", "plural"})
+        common_genders = frozenset({Gender.MASCULINE, Gender.FEMININE, Gender.NEUTER})
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(
                     NumeralForm.CARDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ATTRIBUTIVE}),
                     domain=NumericDomain(maximum=10**18 - 1),
-                    **common,
+                    cases=common_cases,
+                    animacies=common_animacies,
+                    grammatical_numbers=common_numbers,
+                    genders=common_genders,
                 ),
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
@@ -329,7 +330,10 @@ class RussianRenderer:
                     domain=NumericDomain(
                         minimum=0, maximum=10**18 - 1, allow_negative=False
                     ),
-                    **common,
+                    cases=common_cases,
+                    animacies=common_animacies,
+                    grammatical_numbers=common_numbers,
+                    genders=common_genders,
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.DECIMAL),
@@ -352,11 +356,11 @@ class RussianRenderer:
         elif request.form is NumeralForm.FRACTION:
             text = self._fraction(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._ordinal(value, request.morphology)
+            text = self._ordinal(require_int(value), request.morphology)
         elif request.form is NumeralForm.ORDINAL_NUMERIC:
             text = f"{value}."
         else:
-            text = self._cardinal(value, request.morphology)
+            text = self._cardinal(require_int(value), request.morphology)
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )

@@ -174,8 +174,8 @@ def realize(
         normalized = NumeralRequest(
             request,
             canonicalize_locale(locale),
-            form,
-            syntax,
+            form,  # type: ignore[arg-type]
+            Syntax.coerce(syntax),
             morphology,
             style,
             normalized_features,

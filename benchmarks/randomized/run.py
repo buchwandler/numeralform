@@ -27,7 +27,13 @@ from .adapters import (
     run_numeralform_compat,
 )
 from .compare import compare_results
-from .generator import CONFIG_PATH, generate_cases, load_config
+from .generator import (
+    _NUM2WORDS_CANONICAL_LOCALE_MAP,
+    CONFIG_PATH,
+    GENERATOR_VERSION,
+    generate_cases,
+    load_config,
+)
 from .model import DIFFERENTIAL_STATUSES, DifferentialResult, RandomCase
 from .report import write_reports
 
@@ -94,11 +100,14 @@ def _metadata(
 ) -> dict:
     return {
         "schema_version": 2,
+        "generator_version": GENERATOR_VERSION,
         "target": target,
         "seed": seed,
         "profile": profile,
         "requested_cases": requested_cases,
         "config_hash": config.config_hash,
+        "currency_minor_units": dict(config.values["currency_minor_units"]),
+        "locale_mapping": dict(_NUM2WORDS_CANONICAL_LOCALE_MAP),
         "num2words": {
             "repository": NUM2WORDS_REPOSITORY,
             "commit": NUM2WORDS_COMMIT,

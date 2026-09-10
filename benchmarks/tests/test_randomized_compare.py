@@ -62,6 +62,46 @@ def test_english_year_readings_are_accepted_variants():
         assert result.equivalence_rule == "en-year-reading"
 
 
+def test_english_decimal_trailing_zero_precision_is_accepted():
+    for value, oracle, canonical in (
+        (Decimal("1.20"), "one point two", "one point two zero"),
+        (Decimal("1.00"), "one", "one point zero zero"),
+        (Decimal("10.10"), "ten point one", "ten point one zero"),
+    ):
+        result = compare_results(
+            case(kind="decimal", value=value),
+            ExecutionResult.text_result(oracle),
+            ExecutionResult.text_result(canonical),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == "en-decimal-trailing-zero-precision"
+
+
+def test_english_decimal_trailing_zero_precision_negative_controls():
+    for value, oracle, canonical in (
+        (Decimal("10.01"), "ten point one", "ten point zero one"),
+        (Decimal("1.20"), "one point two", "one point two one"),
+    ):
+        result = compare_results(
+            case(kind="decimal", value=value),
+            ExecutionResult.text_result(oracle),
+            ExecutionResult.text_result(canonical),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"
+
+
+def test_jpy_semantic_difference_is_not_accepted_as_text_variant():
+    result = compare_results(
+        case(kind="currency", value=Decimal("61.50"), currency="JPY"),
+        ExecutionResult.text_result("sixty-one yen, fifty sen"),
+        ExecutionResult.text_result("sixty-two yen"),
+        accept_variants=True,
+    )
+    assert result.status == "mismatch"
+
+
 def test_english_eur_currency_is_an_accepted_variant():
     result = compare_results(
         case(kind="currency", value=Decimal("3327.34"), currency="EUR"),

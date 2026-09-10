@@ -45,10 +45,8 @@ class SerializedRandomValue:
                 parsed = Decimal(self.value)
             except Exception as exc:
                 raise ValueError(f"invalid decimal value: {self.value!r}") from exc
-            if not parsed.is_finite() or "." not in self.value:
-                raise ValueError(
-                    f"decimal value must be finite and explicit: {self.value!r}"
-                )
+            if not parsed.is_finite():
+                raise ValueError(f"decimal value must be finite: {self.value!r}")
 
     @classmethod
     def from_python(cls, value: int | Decimal) -> SerializedRandomValue:
@@ -60,10 +58,7 @@ class SerializedRandomValue:
             if not value.is_finite():
                 raise ValueError("decimal value must be finite")
             text = format(value, "f")
-            if "." not in text:
-                text += ".0"
             return cls("decimal", text)
-        raise TypeError(f"unsupported random value: {type(value).__name__}")
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> SerializedRandomValue:
@@ -81,7 +76,9 @@ class SerializedRandomValue:
         text = self.value
         negative = text.startswith("-")
         text = text.lstrip("+-")
-        integer, fraction = text.split(".", 1)
+        integer, dot, fraction = text.partition(".")
+        if not dot:
+            fraction = "0"
         return DecimalNumber(integer, fraction, negative)
 
 
@@ -98,6 +95,7 @@ class RandomCase:
     value: SerializedRandomValue
     currency: str | None = None
     tags: tuple[str, ...] = ()
+    oracle_locale: str | None = None
 
     def __post_init__(self) -> None:
         if self.kind not in CASE_KINDS:
@@ -115,6 +113,10 @@ class RandomCase:
         if self.kind != "currency" and self.currency is not None:
             raise ValueError("only currency cases may specify a currency")
         object.__setattr__(self, "tags", tuple(self.tags))
+        if self.oracle_locale is None:
+            object.__setattr__(self, "oracle_locale", self.locale)
+        elif not self.oracle_locale:
+            raise ValueError("oracle locale is required")
 
     def python_value(self) -> int | Decimal:
         return self.value.python_value()
@@ -133,6 +135,7 @@ class RandomCase:
             "index": self.index,
             "case_id": self.case_id,
             "locale": self.locale,
+            "oracle_locale": self.oracle_locale,
             "kind": self.kind,
             "surface": self.surface,
             "value": self.value.to_dict(),
@@ -149,6 +152,7 @@ class RandomCase:
             index=int(payload["index"]),
             case_id=str(payload["case_id"]),
             locale=str(payload["locale"]),
+            oracle_locale=str(payload.get("oracle_locale", payload["locale"])),
             kind=str(payload["kind"]),
             surface=str(payload["surface"]),
             value=SerializedRandomValue.from_dict(payload["value"]),

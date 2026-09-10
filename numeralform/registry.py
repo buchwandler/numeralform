@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from .errors import (
     InvalidRequestError,
     InvalidValueError,
@@ -11,7 +13,14 @@ from .errors import (
     UnsupportedStyleError,
 )
 from .locale import LocaleCapabilities, canonicalize_locale, fallback_chain
-from .model import Morphology, NumeralForm, NumeralRequest, Syntax
+from .model import (
+    Morphology,
+    NumeralForm,
+    NumeralRequest,
+    NumericValue,
+    Syntax,
+    coerce_value,
+)
 from .renderers.base import LocaleRenderer
 from .renderers.ordinal import OrdinalNotationRenderer
 from .renderers.unsupported import UnsupportedLocaleRenderer
@@ -150,7 +159,7 @@ def _ensure_builtins() -> None:
     ):
         if locale not in _RENDERERS:
             register_locale(locale, renderer)
-    regional = {
+    regional: dict[str, type[LocaleRenderer] | LocaleRenderer] = {
         "en-GB": EnglishGBRenderer,
         "en-IN": EnglishIndiaRenderer,
         "en-NG": EnglishRenderer,
@@ -217,8 +226,8 @@ def _ensure_builtins() -> None:
         "zh-TW",
     ):
         if locale not in _RENDERERS:
-            renderer = regional.get(locale, UnsupportedLocaleRenderer(locale))
-            register_locale(locale, renderer)
+            regional_renderer = regional.get(locale, UnsupportedLocaleRenderer(locale))
+            register_locale(locale, regional_renderer)
 
 
 def registered_locales() -> tuple[str, ...]:
@@ -290,18 +299,23 @@ def supports(
         from .model import DecimalNumber, DigitSequence, FractionNumber
         from .renderers.base import validate_request
 
-        sample = value
-        if sample is None:
-            sample = {
-                NumeralForm.DECIMAL: DecimalNumber("0", "0"),
-                NumeralForm.FRACTION: FractionNumber(0, 1),
-                NumeralForm.DIGITS: DigitSequence("0"),
-            }.get(normalized_form, 0)
+        sample: NumericValue = (
+            coerce_value(value)
+            if value is not None
+            else cast(
+                NumericValue,
+                {
+                    NumeralForm.DECIMAL: DecimalNumber("0", "0"),
+                    NumeralForm.FRACTION: FractionNumber(0, 1),
+                    NumeralForm.DIGITS: DigitSequence("0"),
+                }.get(normalized_form, 0),
+            )
+        )
         request = NumeralRequest(
             sample,
             locale_tag,
             normalized_form,
-            syntax,
+            Syntax.coerce(syntax),
             Morphology(**morphology)
             if isinstance(morphology, dict)
             else morphology or Morphology(),

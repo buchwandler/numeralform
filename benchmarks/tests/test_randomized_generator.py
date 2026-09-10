@@ -1,6 +1,12 @@
 from decimal import Decimal
 
-from benchmarks.randomized.generator import generate_cases, shared_locales
+from benchmarks.randomized.generator import (
+    SharedLocale,
+    generate_cases,
+    shared_locale_pairs,
+    shared_locales,
+)
+from benchmarks.randomized.model import RandomCase, SerializedRandomValue
 
 
 def test_generation_is_seeded_and_filters_are_respected():
@@ -30,6 +36,16 @@ def test_shared_locales_normalizes_regional_spellings():
     )
 
 
+def test_shared_locale_pairs_route_pinned_english_to_gb():
+    assert shared_locale_pairs(
+        canonical_locales=("en", "en-US", "en-GB", "de"),
+        external_locales=("en", "de"),
+    ) == (
+        SharedLocale("de", "de"),
+        SharedLocale("en-GB", "en"),
+    )
+
+
 def test_shared_profile_filters_oracle_unsupported_candidates():
     calls = []
 
@@ -54,3 +70,50 @@ def test_shared_profile_filters_oracle_unsupported_candidates():
     assert config.profile == "shared"
     assert len(calls) >= 3
     assert rejected["generation_rejected_oracle_unsupported"] >= 2
+
+
+def test_shared_jpy_generation_uses_integral_amounts_and_exact_spelling():
+    cases, _, _ = generate_cases(
+        seed=3,
+        count=20,
+        profile="shared",
+        canonical_locales=("en",),
+        external_locales=("en",),
+        locales=("en",),
+        kinds=("currency",),
+        currencies=("JPY",),
+        supports=lambda locale, kind, value: True,
+        currency_supports=lambda locale, value, currency: True,
+    )
+    assert all(
+        case.python_value() == case.python_value().to_integral_value() for case in cases
+    )
+    assert all("." not in case.value.value for case in cases)
+    assert all(case.oracle_locale == "en" for case in cases)
+
+
+def test_decimal_serialization_preserves_whole_number_spelling():
+    assert SerializedRandomValue.from_python(Decimal(61)).to_dict() == {
+        "kind": "decimal",
+        "value": "61",
+    }
+    assert SerializedRandomValue.from_python(Decimal("61.0")).value == "61.0"
+
+
+def test_v1_replay_without_oracle_locale_defaults_to_canonical_locale():
+    case = RandomCase.from_dict(
+        {
+            "schema_version": 1,
+            "generator_version": 1,
+            "seed": 1,
+            "index": 0,
+            "case_id": "random-v1:1:000000",
+            "locale": "en",
+            "kind": "cardinal",
+            "surface": "1",
+            "value": {"kind": "int", "value": "1"},
+            "currency": None,
+            "tags": [],
+        }
+    )
+    assert case.oracle_locale == "en"

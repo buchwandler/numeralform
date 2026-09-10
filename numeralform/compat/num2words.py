@@ -557,8 +557,21 @@ def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
         return f"{sign}{whole} point {digits}"
 
 
+def _legacy_has_explicit_fraction(value: object) -> bool:
+    if isinstance(value, float):
+        return True
+    if isinstance(value, DecimalNumber):
+        return True
+    return "." in str(value)
+
+
 def _legacy_currency(
-    value: object, locale: str, code: str, cents: bool, separator: str | None
+    value: object,
+    locale: str,
+    code: str,
+    cents: bool,
+    separator: str | None,
+    source_value: object,
 ) -> str:
     from ..currency import _parse_amount
 
@@ -709,10 +722,7 @@ def _legacy_currency(
     spacing = " " if language not in {"th", "ko"} else ""
     text = words(amount.major) + spacing + major_name
     include_minor = amount.minor_units and (
-        amount.minor
-        or (
-            isinstance(value, (Decimal, DecimalNumber)) and language not in {"ko", "th"}
-        )
+        amount.minor or _legacy_has_explicit_fraction(source_value)
     )
     if include_minor:
         minor_value = (
@@ -811,6 +821,7 @@ def _num2words_impl(
     compat_locale = resolve_compat_locale(lang)
     locale = compat_locale.resolution.numeralform_locale
     request_locale = lang.replace("_", "-")
+    original_number = number
     value = _coerce_legacy_number(number)
     if "precision" in options:
         value = _apply_precision(value, options.pop("precision"))
@@ -832,6 +843,7 @@ def _num2words_impl(
             currency,
             options.pop("cents", True),
             options.pop("separator", None),
+            original_number,
         )
     if to == "cardinal" and isinstance(value, int) and not options:
         return _legacy_cardinal(value, request_locale)

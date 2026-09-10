@@ -17,7 +17,7 @@ from ..model import (
     NumeralRequest,
     NumeralResult,
 )
-from .base import validate_request
+from .base import require_int, validate_request
 
 
 class GenericLocaleRenderer:
@@ -47,7 +47,11 @@ class GenericLocaleRenderer:
         validate_request(request, self.capabilities())
         value = request.value
         if request.form is NumeralForm.DIGITS:
-            text = value.digits if isinstance(value, DigitSequence) else str(abs(value))
+            text = (
+                value.digits
+                if isinstance(value, DigitSequence)
+                else str(abs(require_int(value)))
+            )
         elif request.form is NumeralForm.DECIMAL:
             if not isinstance(value, DecimalNumber):
                 raise InvalidValueError("decimal form requires DecimalNumber")

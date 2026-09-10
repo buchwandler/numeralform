@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import DigitSequence, NumeralForm, NumeralRequest, NumeralResult, Syntax
-from .base import validate_request
+from .base import require_int, validate_request
 
 _UNDER_20 = (
     "nolla",
@@ -153,24 +153,31 @@ class FinnishRenderer:
 
     @staticmethod
     def capabilities() -> LocaleCapabilities:
-        common = {
-            "cases": frozenset({"nominative"}),
-            "grammatical_numbers": frozenset({"singular"}),
-            "domain": NumericDomain(maximum=9999),
-        }
+        common_cases = frozenset({"nominative"})
+        common_numbers = frozenset({"singular"})
+        common_domain = NumericDomain(maximum=9999)
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(
                     NumeralForm.CARDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ATTRIBUTIVE}),
-                    **common,
+                    cases=common_cases,
+                    grammatical_numbers=common_numbers,
+                    domain=common_domain,
                 ),
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
-                    **common,
+                    cases=common_cases,
+                    grammatical_numbers=common_numbers,
+                    domain=common_domain,
                 ),
-                CapabilityProfile(NumeralForm.ORDINAL_NUMERIC, **common),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL_NUMERIC,
+                    cases=common_cases,
+                    grammatical_numbers=common_numbers,
+                    domain=common_domain,
+                ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
@@ -182,9 +189,9 @@ class FinnishRenderer:
     def render(self, request: NumeralRequest) -> NumeralResult:
         validate_request(request, self.capabilities())
         if request.form is NumeralForm.CARDINAL:
-            text = self._cardinal(request.value, request.morphology)
+            text = self._cardinal(require_int(request.value), request.morphology)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._ordinal(request.value, request.morphology)
+            text = self._ordinal(require_int(request.value), request.morphology)
         elif request.form is NumeralForm.ORDINAL_NUMERIC:
             text = f"{request.value}."
         elif request.form is NumeralForm.DIGITS:
@@ -197,7 +204,7 @@ class FinnishRenderer:
                 _UNDER_20[int(d)] if int(d) < 20 else str(d) for d in digits
             )
         elif request.form is NumeralForm.YEAR:
-            text = self._cardinal(request.value, request.morphology)
+            text = self._cardinal(require_int(request.value), request.morphology)
         else:
             raise InvalidValueError(f"Finnish does not implement {request.form.value}")
         return NumeralResult(

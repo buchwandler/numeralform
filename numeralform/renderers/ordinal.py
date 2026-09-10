@@ -6,7 +6,7 @@ from dataclasses import replace
 
 from ..locale import CapabilityProfile, LocaleCapabilities
 from ..model import Gender, NumeralForm, NumeralRequest, NumeralResult
-from .base import LocaleRenderer, validate_request
+from .base import LocaleRenderer, require_int, validate_request
 
 
 class OrdinalNotationRenderer:
@@ -41,7 +41,7 @@ class OrdinalNotationRenderer:
             return self._delegate.render(request)
         capabilities = self.capabilities()
         validate_request(request, capabilities)
-        value = request.value
+        value = require_int(request.value)
         language = self.locale.split("-", 1)[0]
         gender = request.morphology.gender
         if language == "en":

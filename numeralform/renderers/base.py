@@ -21,6 +21,12 @@ from ..model import (
 )
 
 
+def require_int(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise InvalidValueError("value must be an integer")
+    return value
+
+
 class LocaleRenderer(Protocol):
     locale: str
 

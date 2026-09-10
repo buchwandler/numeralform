@@ -9,7 +9,7 @@ from ..model import (
     NumeralRequest,
     NumeralResult,
 )
-from .base import validate_request
+from .base import require_int, validate_request
 
 _DIGITS = (
     "영",
@@ -60,9 +60,9 @@ class KoreanRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._render_digits(value)
         elif request.form is NumeralForm.YEAR:
-            text = self._render_cardinal(value) + "년"
+            text = self._render_cardinal(require_int(value)) + "년"
         else:
-            text = self._render_cardinal(value)
+            text = self._render_cardinal(require_int(value))
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )

@@ -301,12 +301,11 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
     from ..model import Syntax
 
     language = locale.split("-", 1)[0]
-    kwargs = {"locale": locale}
     if language == "en" and locale not in {"en", "en-US", "en-GB"}:
-        kwargs["style"] = "british-and"
+        return render(value, locale=locale, style="british-and")
     if language == "es" and gender is not None:
-        kwargs.update(syntax=Syntax.ATTRIBUTIVE, gender=gender)
-    return render(value, **kwargs)
+        return render(value, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=gender)
+    return render(value, locale=locale)
 
 
 def render_currency(

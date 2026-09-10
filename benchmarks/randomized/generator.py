@@ -21,7 +21,8 @@ from .surfaces import surface_for
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = BENCHMARK_ROOT / "config" / "num2words_random.toml"
 SCHEMA_VERSION = 1
-GENERATOR_VERSION = 1
+SCHEMA_VERSION = 2
+GENERATOR_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,22 +83,60 @@ def normalize_locale(locale: str) -> str:
     return locale.replace("_", "-")
 
 
+@dataclass(frozen=True, slots=True)
+class SharedLocale:
+    canonical: str
+    oracle: str
+
+
+_NUM2WORDS_CANONICAL_LOCALE_MAP = {
+    "en": "en-GB",
+}
+
+
+def shared_locale_pairs(
+    oracle_root: Path | None = None,
+    *,
+    canonical_locales: Iterable[str] | None = None,
+    external_locales: Iterable[str] | None = None,
+) -> tuple[SharedLocale, ...]:
+    canonical = {
+        normalize_locale(locale)
+        for locale in (canonical_locales or numeralform.locales())
+    }
+    if external_locales is None:
+        if oracle_root is None:
+            raise RuntimeError(
+                "a verified oracle checkout is required for locale discovery"
+            )
+        external = {normalize_locale(locale) for locale in oracle_locales(oracle_root)}
+    else:
+        external = {normalize_locale(locale) for locale in external_locales}
+    pairs: list[SharedLocale] = []
+    for oracle in sorted(external):
+        mapped = _NUM2WORDS_CANONICAL_LOCALE_MAP.get(oracle)
+        if mapped in canonical:
+            pairs.append(SharedLocale(mapped, oracle))
+        elif oracle in canonical:
+            pairs.append(SharedLocale(oracle, oracle))
+    return tuple(pairs)
+
+
 def shared_locales(
     oracle_root: Path | None = None,
     *,
     canonical_locales: Iterable[str] | None = None,
     external_locales: Iterable[str] | None = None,
 ) -> tuple[str, ...]:
-    canonical = set(canonical_locales or numeralform.locales())
-    if external_locales is None:
-        if oracle_root is None:
-            raise RuntimeError(
-                "a verified oracle checkout is required for locale discovery"
-            )
-        external = set(oracle_locales(oracle_root))
-    else:
-        external = {normalize_locale(locale) for locale in external_locales}
-    return tuple(sorted(canonical & external))
+    """Return canonical locales from the explicit shared locale pairs."""
+    return tuple(
+        pair.canonical
+        for pair in shared_locale_pairs(
+            oracle_root,
+            canonical_locales=canonical_locales,
+            external_locales=external_locales,
+        )
+    )
 
 
 def weighted_choice(rng: random.Random, weights: dict[str, int]) -> str:
@@ -173,23 +212,16 @@ def _decimal(rng: random.Random, profile: dict) -> Decimal:
     return Decimal(f"{integer}.{fraction:0{digits}d}")
 
 
-def _currency_decimal(rng: random.Random, profile: dict) -> Decimal:
+def _currency_decimal(rng: random.Random, profile: dict, currency: str) -> Decimal:
     minimum = Decimal(str(profile["currency_min"]))
     maximum = Decimal(str(profile["currency_max"]))
-    digits = max(-minimum.as_tuple().exponent, -maximum.as_tuple().exponent)
-    lower = int(minimum * (10**digits))
-    upper = int(maximum * (10**digits))
-    return Decimal(rng.randint(lower, upper)) / (10**digits)
-
-
-def _currency_decimal(rng: random.Random, profile: dict) -> Decimal:
-    minimum = Decimal(str(profile["currency_min"]))
-    maximum = Decimal(str(profile["currency_max"]))
-    digits = max(-minimum.as_tuple().exponent, -maximum.as_tuple().exponent)
+    digits = int(profile["currency_minor_units"][currency])
     scale = 10**digits
-    lower = int(minimum * scale)
-    upper = int(maximum * scale)
+    lower = int((minimum * scale).to_integral_value(rounding="ROUND_CEILING"))
+    upper = int((maximum * scale).to_integral_value(rounding="ROUND_FLOOR"))
     scaled = rng.randint(lower, upper)
+    if digits == 0:
+        return Decimal(scaled)
     integer, fraction = divmod(scaled, scale)
     return Decimal(f"{integer}.{fraction:0{digits}d}")
 
@@ -246,7 +278,8 @@ def _candidate(
     if kind == "decimal":
         return _decimal(rng, profile), None
     if kind == "currency":
-        return _currency_decimal(rng, profile), rng.choice(currency_choices)
+        currency = rng.choice(currency_choices)
+        return _currency_decimal(rng, profile, currency), currency
     raise ValueError(f"unknown case kind: {kind!r}")
 
 
@@ -288,11 +321,13 @@ def generate_cases(
     if count < 0:
         raise ValueError("case count must be non-negative")
     config = load_config(config_path, profile)
-    available_locales = shared_locales(
+    pairs = shared_locale_pairs(
         oracle_root,
         canonical_locales=canonical_locales,
         external_locales=external_locales,
     )
+    pair_by_canonical = {pair.canonical: pair for pair in pairs}
+    available_locales = tuple(sorted(pair_by_canonical))
     selected_locales = tuple(
         sorted({normalize_locale(locale) for locale in locales or available_locales})
     )
@@ -308,6 +343,14 @@ def generate_cases(
     selected_currencies = tuple(currencies or profile_values["currencies"])
     if not selected_currencies:
         raise ValueError("at least one currency is required")
+    unknown_currencies = set(selected_currencies) - set(
+        profile_values["currency_minor_units"]
+    )
+    if unknown_currencies:
+        raise ValueError(
+            "currency minor units are not configured: "
+            + ", ".join(sorted(unknown_currencies))
+        )
     rng = random.Random(seed)
     supports = supports or _default_supports
     currency_supports = currency_supports or _default_currency_supports
@@ -318,6 +361,7 @@ def generate_cases(
         "generation_rejected_numeralform_unsupported": 0,
         "generation_rejected_oracle_unsupported": 0,
         "generation_rejected_duplicate": 0,
+        "generation_rejected_semantic_incompatibility": 0,
     }
     max_attempts = max(
         count * int(profile_values.get("max_attempt_multiplier", 20)), count + 1
@@ -326,6 +370,7 @@ def generate_cases(
     while len(generated) < count and attempts < max_attempts:
         attempts += 1
         locale = rng.choice(selected_locales)
+        oracle_locale = pair_by_canonical[locale].oracle
         kind = weighted_choice(
             rng, {key: config.weights[key] for key in selected_kinds}
         )
@@ -341,7 +386,9 @@ def generate_cases(
             if not supported:
                 rejected["generation_rejected_numeralform_unsupported"] += 1
                 continue
-        if profile == "shared" and not oracle_supports(locale, kind, value, currency):
+        if profile == "shared" and not oracle_supports(
+            oracle_locale, kind, value, currency
+        ):
             rejected["generation_rejected_oracle_unsupported"] += 1
             continue
         serialized = SerializedRandomValue.from_python(value)
@@ -353,17 +400,18 @@ def generate_cases(
         surface, tags = surface_for(locale, kind, value, currency=currency, rng=rng)
         generated.append(
             RandomCase(
-                SCHEMA_VERSION,
-                GENERATOR_VERSION,
-                seed,
-                len(generated),
-                f"random-v1:{seed}:{len(generated):06d}",
-                locale,
-                kind,
-                surface,
-                serialized,
-                currency,
-                tags,
+                schema_version=SCHEMA_VERSION,
+                generator_version=GENERATOR_VERSION,
+                seed=seed,
+                index=len(generated),
+                case_id=f"random-v{GENERATOR_VERSION}:{seed}:{len(generated):06d}",
+                locale=locale,
+                kind=kind,
+                surface=surface,
+                value=serialized,
+                currency=currency,
+                tags=tags,
+                oracle_locale=oracle_locale,
             )
         )
     if len(generated) != count:
@@ -376,13 +424,16 @@ def generate_cases(
 __all__ = [
     "CONFIG_PATH",
     "GENERATOR_VERSION",
+    "_NUM2WORDS_CANONICAL_LOCALE_MAP",
     "RandomConfig",
+    "SharedLocale",
     "_default_currency_supports",
     "_default_supports",
     "generate_cases",
     "load_config",
     "normalize_locale",
     "random_integer",
+    "shared_locale_pairs",
     "shared_locales",
     "weighted_choice",
 ]

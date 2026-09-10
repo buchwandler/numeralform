@@ -14,6 +14,11 @@ class EnglishGBRenderer(EnglishRenderer):
     locale = "en-GB"
     default_cardinal_style = "british-and"
 
+    def _render_year(self, value: int) -> str:
+        if 2001 <= value <= 2009:
+            return f"two thousand and {self._render_cardinal(value % 1000)}"
+        return super()._render_year(value)
+
 
 class EnglishIndiaRenderer(EnglishRenderer):
     locale = "en-IN"

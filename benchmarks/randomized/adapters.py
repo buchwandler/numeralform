@@ -35,7 +35,7 @@ def num2words_call_kwargs(
 
 
 def num2words_kwargs(case: RandomCase) -> dict[str, Any]:
-    return num2words_call_kwargs(case.locale, case.kind, case.currency)
+    return num2words_call_kwargs(case.oracle_locale, case.kind, case.currency)
 
 
 def run_num2words(

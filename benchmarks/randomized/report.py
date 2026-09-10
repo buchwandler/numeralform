@@ -32,8 +32,7 @@ def summarize(
     counts = Counter(result.status for result in results)
     summary: dict[str, Any] = dict(metadata)
     summary.setdefault("schema_version", 2)
-    summary.setdefault("generator_version", 1)
-    summary["generated_cases"] = len(results)
+    summary.setdefault("generator_version", 2)
     summary["counts"] = {
         status: counts.get(status, 0) for status in DIFFERENTIAL_STATUSES
     }
@@ -58,6 +57,7 @@ def summarize(
     oracle_errors = (result for result in results if result.status == "oracle-error")
     summary["breakdowns"] = {
         "locale": _breakdown(results, "locale"),
+        "oracle_locale": _breakdown(results, "oracle_locale"),
         "kind": _breakdown(results, "kind"),
         "currency": _breakdown(
             (result for result in results if result.case.currency is not None),
@@ -86,9 +86,8 @@ def summarize(
             )
         ),
         "mismatches_by_locale": _breakdown(mismatches, "locale"),
-        "mismatches_by_kind": _breakdown(
-            (result for result in results if result.status == "mismatch"), "kind"
-        ),
+        "mismatches_by_oracle_locale": _breakdown(mismatches, "oracle_locale"),
+        "mismatches_by_kind": _breakdown(mismatches, "kind"),
         "oracle_errors_by_locale": _breakdown(oracle_errors, "locale"),
         "oracle_errors_by_kind": _breakdown(
             (result for result in results if result.status == "oracle-error"), "kind"
@@ -112,6 +111,7 @@ def _result_value(result: DifferentialResult) -> str:
 def _group_key(result: DifferentialResult) -> tuple[Any, ...]:
     return (
         result.case.locale,
+        result.case.oracle_locale,
         result.case.kind,
         result.case.currency,
         result.status,
@@ -134,10 +134,9 @@ def human_report(
         "",
         f"target:             {metadata.get('target', 'canonical')}",
         f"seed:               {metadata.get('seed', '<unknown>')}",
-        f"generator version:  {metadata.get('generator_version', 1)}",
         f"profile:            {metadata.get('profile', '<unknown>')}",
+        f"generator version:  {metadata.get('generator_version', 2)}",
         f"cases:              {metadata.get('requested_cases', len(results))}",
-        f"generated cases:    {len(results)}",
         f"num2words commit:   {metadata.get('num2words', {}).get('commit', '<unknown>')}",
         "",
         f"matches:            {counts['match']}",
@@ -150,8 +149,23 @@ def human_report(
         f"exact parity:       {summary['comparability']['exact_parity_rate']:.2%}",
         f"semantic parity:    {summary['comparability']['semantic_parity_rate']:.2%}",
     ]
+    locale_mapping = metadata.get("locale_mapping", {})
+    if locale_mapping:
+        lines.extend(("", "locale mapping:"))
+        lines.extend(
+            f"  num2words {oracle} -> numeralform {canonical}"
+            for oracle, canonical in sorted(locale_mapping.items())
+        )
+    currency_minor_units = metadata.get("currency_minor_units", {})
+    if currency_minor_units:
+        lines.extend(("", "currency minor units:"))
+        lines.extend(
+            f"  {currency}: {digits}"
+            for currency, digits in sorted(currency_minor_units.items())
+        )
     for label, values in (
         ("cases by locale", summary["breakdowns"]["locale"]),
+        ("cases by oracle locale", summary["breakdowns"]["oracle_locale"]),
         ("accepted variants by locale", summary["breakdowns"]["variants_by_locale"]),
         ("accepted variants by kind", summary["breakdowns"]["variants_by_kind"]),
         ("accepted variants by rule", summary["breakdowns"]["variants_by_rule"]),
@@ -174,7 +188,7 @@ def human_report(
             first = group[0]
             lines.extend(
                 (
-                    f"  locale={first.case.locale} kind={first.case.kind} currency={first.case.currency or '-'} status={first.status} shape={first.difference_shape or first.status}"
+                    f"  locale={first.case.locale} oracle_locale={first.case.oracle_locale} kind={first.case.kind} currency={first.case.currency or '-'} status={first.status} shape={first.difference_shape or first.status}"
                     + (
                         f" rule={first.equivalence_rule}"
                         if first.equivalence_rule

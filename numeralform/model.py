@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
@@ -150,7 +150,7 @@ class LocaleFeatures:
     locale-specific switches belong here and are validated by capabilities.
     """
 
-    values: Mapping[str, FeatureScalar] = ()
+    values: Mapping[str, FeatureScalar] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         values = dict(self.values) if not isinstance(self.values, tuple) else {}
@@ -212,7 +212,7 @@ def _coerce_open_feature(enum_type, value, field: str):
 
 @dataclass(frozen=True, slots=True)
 class Morphology:
-    gender: Gender | None = None
+    gender: Gender | str | None = None
     case: Case | str | None = None
     animacy: Animacy | str | None = None
     grammatical_number: str | None = None
@@ -223,31 +223,31 @@ class Morphology:
     def __post_init__(self) -> None:
         if self.gender is not None:
             object.__setattr__(self, "gender", Gender.coerce(self.gender))
-        for field, enum_type in (("case", Case), ("animacy", Animacy)):
-            value = getattr(self, field)
+        for field_name, enum_type in (("case", Case), ("animacy", Animacy)):
+            value = getattr(self, field_name)
             if value is not None:
                 object.__setattr__(
-                    self, field, _coerce_open_feature(enum_type, value, field)
+                    self, field_name, _coerce_open_feature(enum_type, value, field_name)
                 )
-        for field in (
+        for field_name in (
             "grammatical_number",
             "noun_class",
             "definiteness",
             "state",
         ):
-            value = getattr(self, field)
+            value = getattr(self, field_name)
             if value is not None and (not isinstance(value, str) or not value.strip()):
-                raise InvalidRequestError(f"{field} must be a non-empty string")
+                raise InvalidRequestError(f"{field_name} must be a non-empty string")
             if isinstance(value, str):
-                object.__setattr__(self, field, value.strip().lower())
+                object.__setattr__(self, field_name, value.strip().lower())
 
 
 @dataclass(frozen=True, slots=True)
 class NumeralRequest:
     value: NumericValue | Decimal | Fraction
     locale: str
-    form: NumeralForm | str | None = None
-    syntax: Syntax | str = Syntax.STANDALONE
+    form: NumeralForm = field(default=None)  # type: ignore[assignment]
+    syntax: Syntax = Syntax.STANDALONE
     morphology: Morphology = Morphology()
     style: str | None = None
     features: LocaleFeatures = LocaleFeatures()

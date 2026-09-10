@@ -71,6 +71,21 @@ def test_variable_currency_scale():
     )
 
 
+def test_legacy_jpy_decimal_marker_controls_zero_sen_output():
+    assert (
+        num2words(Decimal(61), lang="en", to="currency", currency="JPY")
+        == "sixty-one yen"
+    )
+    assert (
+        num2words(Decimal("61.0"), lang="en", to="currency", currency="JPY")
+        == "sixty-one yen, zero sen"
+    )
+    assert (
+        num2words(Decimal("61.50"), lang="en", to="currency", currency="JPY")
+        == "sixty-one yen, fifty sen"
+    )
+
+
 def test_english_regional_canonical_dialects_do_not_change_compatibility():
     assert num2words(582378.922, lang="en", to="cardinal") == (
         "five hundred and eighty-two thousand, three hundred and seventy-eight point nine two two"

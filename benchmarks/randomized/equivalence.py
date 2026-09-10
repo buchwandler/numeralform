@@ -98,6 +98,30 @@ def _english_year_variant(case: RandomCase, expected: str, actual: str) -> bool:
     return False
 
 
+def _english_decimal_precision_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.kind != "decimal" or case.locale.split("-", 1)[0] != "en":
+        return False
+    _, fraction = (
+        case.value.value.split(".", 1) if "." in case.value.value else ("", "")
+    )
+    trimmed = fraction.rstrip("0")
+    trailing = len(fraction) - len(trimmed)
+    if not trailing:
+        return False
+    candidate = actual
+    for _ in range(trailing):
+        if not candidate.endswith(" zero"):
+            return False
+        candidate = candidate.removesuffix(" zero")
+    if not trimmed:
+        if not candidate.endswith(" point"):
+            return False
+        candidate = candidate.removesuffix(" point")
+    return _surface_key(candidate) == _surface_key(expected)
+
+
 def accepted_variant(
     case: RandomCase,
     expected: str,
@@ -110,6 +134,8 @@ def accepted_variant(
         return f"surface:{difference_shape}"
     if _english_year_variant(case, expected, actual):
         return "en-year-reading"
+    if _english_decimal_precision_variant(case, expected, actual):
+        return "en-decimal-trailing-zero-precision"
     if case.kind == "currency":
         expected_key = _currency_key(case, expected)
         actual_key = _currency_key(case, actual)

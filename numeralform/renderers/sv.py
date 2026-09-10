@@ -10,7 +10,7 @@ from ..model import (
     NumeralResult,
     Syntax,
 )
-from .base import validate_request
+from .base import require_int, validate_request
 
 _UNDER_20 = (
     "noll",
@@ -107,11 +107,11 @@ class SwedishRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._render_digits(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._render_ordinal(value)
+            text = self._render_ordinal(require_int(value))
         elif request.form is NumeralForm.YEAR:
-            text = self._render_cardinal(value)
+            text = self._render_cardinal(require_int(value))
         else:
-            text = self._render_cardinal(value)
+            text = self._render_cardinal(require_int(value))
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )

@@ -13,7 +13,7 @@ from ..model import (
     NumeralResult,
     Syntax,
 )
-from .base import validate_request
+from .base import require_int, validate_request
 
 _SMALL = (
     "zero",
@@ -146,11 +146,11 @@ class EnglishRenderer:
         elif request.form is NumeralForm.FRACTION:
             text = self._render_fraction(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._render_ordinal(value)
+            text = self._render_ordinal(require_int(value))
         elif request.form is NumeralForm.YEAR:
-            text = self._render_year(value)
+            text = self._render_year(require_int(value))
         else:
-            text = self._render_cardinal(value, request.style)
+            text = self._render_cardinal(require_int(value), request.style)
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )
@@ -265,6 +265,8 @@ class EnglishRenderer:
             raise InvalidValueError("year form requires a non-negative integer")
         if value > 9999:
             raise InvalidValueError("English year supports values from 0 through 9999")
+        if value == 1000:
+            return "one thousand"
         if 1000 <= value <= 1999:
             first, second = divmod(value, 100)
             if second == 0:
