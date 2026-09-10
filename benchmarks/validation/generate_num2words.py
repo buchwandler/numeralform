@@ -8,10 +8,7 @@ checked offline after the oracle data has been committed.
 from __future__ import annotations
 
 import argparse
-import importlib.metadata
-import importlib.util
 import json
-import subprocess
 import sys
 import tempfile
 import unicodedata
@@ -32,16 +29,26 @@ else:
     from .model import CompatInvocation, SerializedCompatValue, ValidationCase
 
 
+from benchmarks.validation.oracle.num2words import (
+    NUM2WORDS_COMMIT,
+    NUM2WORDS_PACKAGE,
+    NUM2WORDS_PROFILE,
+    NUM2WORDS_VERSION,
+    load_num2words,
+    oracle_version,
+)
+
+PINNED_ORACLE_COMMIT = NUM2WORDS_COMMIT
+ORACLE_PACKAGE = NUM2WORDS_PACKAGE
+COMPATIBILITY_PROFILE = NUM2WORDS_PROFILE
+PINNED_ORACLE_VERSION = NUM2WORDS_VERSION
+
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_ROOT = BENCHMARK_ROOT / "config"
 DATA_ROOT = BENCHMARK_ROOT / "data"
 CONFIG_PATH = CONFIG_ROOT / "num2words.toml"
 NUM2WORDS_CORPUS = DATA_ROOT / "corpora" / "num2words"
 NUM2WORDS_ORACLE = DATA_ROOT / "oracles" / "num2words"
-ORACLE_PACKAGE = "num2words"
-COMPATIBILITY_PROFILE = "num2words-git-07814cb"
-PINNED_ORACLE_VERSION = "0.5.14"
-PINNED_ORACLE_COMMIT = "07814cb114157f582c40a00119c2e9faba8dcee2"
 UPSTREAM_LOCALES = (
     "am",
     "ar",
@@ -148,70 +155,6 @@ def _load_toml(path: Path) -> dict[str, Any]:
     return config
 
 
-def _verify_oracle_checkout(
-    root: Path, expected_sha: str = PINNED_ORACLE_COMMIT
-) -> Path:
-    root = root.resolve()
-    if not root.is_dir():
-        raise RuntimeError(f"oracle checkout does not exist: {root}")
-    try:
-        actual = subprocess.check_output(
-            ["git", "-C", str(root), "rev-parse", "HEAD"],
-            text=True,
-            stderr=subprocess.STDOUT,
-        ).strip()
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise RuntimeError(f"oracle checkout is not a Git repository: {root}") from exc
-    if actual != expected_sha:
-        raise RuntimeError(
-            f"oracle checkout SHA mismatch: expected {expected_sha}, got {actual}"
-        )
-    return root
-
-
-def _external_num2words(oracle_root: Path | None = None):
-    """Load the external oracle from the requested checkout only."""
-    if oracle_root is not None:
-        root = _verify_oracle_checkout(oracle_root)
-        sys.path.insert(0, str(root))
-        for name in list(sys.modules):
-            if name == ORACLE_PACKAGE or name.startswith(f"{ORACLE_PACKAGE}."):
-                del sys.modules[name]
-    spec = importlib.util.find_spec(ORACLE_PACKAGE)
-    if spec is None or spec.origin is None:
-        raise RuntimeError(f"unable to locate oracle package {ORACLE_PACKAGE!r}")
-    module_path = Path(spec.origin).resolve()
-    if oracle_root is not None and not module_path.is_relative_to(
-        oracle_root.resolve()
-    ):
-        raise RuntimeError(
-            f"oracle module is outside checkout: {module_path} (root {oracle_root})"
-        )
-    from num2words import (
-        num2words as external_num2words,  # type: ignore[import-not-found]
-    )
-
-    return external_num2words
-
-
-def _oracle_version(oracle_root: Path | None = None) -> str:
-    if oracle_root is not None:
-        for distribution in importlib.metadata.distributions(
-            path=[str(oracle_root.resolve())]
-        ):
-            name = distribution.metadata.get("Name", "").lower()
-            if name == ORACLE_PACKAGE:
-                return distribution.version
-        version_file = oracle_root.resolve() / "bin" / "num2words"
-        if version_file.is_file():
-            for line in version_file.read_text(encoding="utf-8").splitlines():
-                if line.startswith("__version__ = "):
-                    return line.split("=", 1)[1].strip().strip("'\"")
-        raise RuntimeError(
-            f"unable to determine {ORACLE_PACKAGE} package metadata from {oracle_root}"
-        )
-    return importlib.metadata.version(ORACLE_PACKAGE)
-
 
 def _value(value: object) -> SerializedCompatValue:
     return SerializedCompatValue.from_python(value)
@@ -311,8 +254,8 @@ def generate_cases(
     profiles = tuple(config["profiles"])
     if oracle_root is None:
         raise RuntimeError("a verified oracle checkout is required; pass --oracle-root")
-    external_num2words = _external_num2words(oracle_root)
-    version = _oracle_version(oracle_root)
+    external_num2words = load_num2words(oracle_root)
+    version = oracle_version(oracle_root)
     expected_version = str(config["package_version_metadata"])
     if version != expected_version:
         raise RuntimeError(

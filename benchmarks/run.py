@@ -66,6 +66,20 @@ def run_num2words() -> int:
     )
 
 
+def run_num2words_random() -> int:
+    from .randomized.generator import load_config
+    from .randomized.run import DEFAULT_ORACLE_ROOT, DEFAULT_OUTPUT_DIR, run_benchmark
+
+    config = load_config()
+    randomized = config.randomized
+    return run_benchmark(
+        cases=int(randomized["default_cases"]),
+        seed=int(randomized["default_seed"]),
+        profile=str(randomized["default_profile"]),
+        oracle_root=DEFAULT_ORACLE_ROOT,
+        output_dir=DEFAULT_OUTPUT_DIR,
+    )
+
 def run_cldr(selected: set[str] | None = None) -> int:
     generate_cldr(CLDR_CONFIG, CLDR_CORPUS, selected)
     cases, files, release, exceptions = _load_tree(CLDR_CORPUS)
@@ -75,6 +89,8 @@ def run_cldr(selected: set[str] | None = None) -> int:
 
 
 def run(target: str, selected: set[str] | None = None) -> int:
+    if target == "num2words-random":
+        return run_num2words_random()
     if target == "num2words":
         return run_num2words()
     if target == "cldr":
@@ -88,8 +104,7 @@ def run(target: str, selected: set[str] | None = None) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", choices=("num2words", "cldr", "all"))
-    parser.add_argument("--mapping", action="append", dest="mapping")
+    parser.add_argument("target", choices=("num2words", "num2words-random", "cldr", "all"))
     args = parser.parse_args(argv)
     try:
         return run(args.target, set(args.mapping or ()) or None)

@@ -3,7 +3,7 @@ output = "context_numeralform.md"
 keep_docstrings = true
 dedupe = true
 respect_gitignore = true
-exclude = ["*/.venv/*", "context_numeralform.*"]
+exclude = ["*/.venv/*", "context_numeralform.*", "**/benchmarks/data/**"]
 include = [
   "**/*.py",
   "**/*.toml",

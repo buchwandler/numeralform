@@ -29,6 +29,28 @@ jobs:
           printf '%s\n' 'from numeralform.compat import num2words' '__all__ = ["num2words"]' > benchmarks/data/results/num2words-shim/num2words/__init__.py
           python -m pytest -q benchmarks/data/oracles/num2words/tests
 
+
+  num2words-random:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Numeralform and test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Acquire pinned oracle
+        run: python -m benchmarks.download num2words
+      - name: Run randomized differential benchmark
+        run: |
+          SEED="$(date -u +%G%V)"
+          python -m benchmarks.randomized --cases 10000 --seed "$SEED"
+      - name: Upload randomized benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: num2words-random
+          path: benchmarks/data/results/num2words-random/
   cldr:
     runs-on: ubuntu-latest
     steps:

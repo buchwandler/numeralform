@@ -22,6 +22,47 @@ Run generation and comparison:
 python -m benchmarks.run num2words
 ```
 
+## Randomized num2words differential benchmark
+
+This suite generates reproducible semantic numeral requests, compares canonical Numeralform with the pinned external num2words checkout, and records exact matches, text differences, and renderer errors. It is a correctness benchmark, not a performance benchmark. The displayed surface string is diagnostic metadata. Typed values, locale, form, and currency are passed explicitly to both implementations, so strings such as `1.23 $` are never parsed by either renderer.
+
+Acquire the pinned oracle before running it:
+
+```bash
+python -m benchmarks.download num2words
+```
+
+Run a reproducible common-profile sample:
+
+```bash
+python -m benchmarks.randomized --cases 10000 --seed 20260910
+```
+
+Use `--profile stress` for broader domains, repeat `--locale`, `--kind`, or `--currency` to filter cases, and use `--record-all` to retain matches. Text differences are diagnostic by default. Add `--fail-on-diff` when a strict experiment should return exit code 1 for any non-match. Infrastructure and configuration failures return exit code 2.
+
+Reports are written under `benchmarks/data/results/num2words-random/`:
+
+```text
+summary.json       provenance, counts, and breakdowns
+differences.jsonl  every non-match with replayable semantic data
+report.txt         grouped human-readable differences
+all-results.jsonl  optional complete result stream
+```
+
+Replay a recorded case without regenerating it:
+
+```bash
+python -m benchmarks.randomized \
+  --replay benchmarks/data/results/num2words-random/differences.jsonl \
+  --case-id random-v1:20260910:000123
+```
+
+The top-level convenience target is explicit and is not included in `python -m benchmarks.run all`:
+
+```bash
+python -m benchmarks.run num2words-random
+```
+
 ## CLDR benchmark
 
 Run this in the pinned ICU/PyICU maintainer environment:

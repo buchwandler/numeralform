@@ -114,6 +114,41 @@ def test_spanish_baseline_and_morphology():
     assert render(1, locale="es", syntax="attributive", gender="feminine") == "una"
 
 
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [
+        (70, "setenta"),
+        (79, "setenta e nove"),
+        (80, "oitenta"),
+        (89, "oitenta e nove"),
+        (90, "noventa"),
+        (99, "noventa e nove"),
+    ],
+)
+def test_portuguese_tens_boundaries(value, text):
+    assert render(value, locale="pt-BR") == text
+    assert render(value, locale="pt-PT") == text
+
+
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [
+        (10, "tionde"),
+        (11, "elfte"),
+        (12, "tolfte"),
+        (13, "trettonde"),
+        (14, "fjortonde"),
+        (15, "femtonde"),
+        (16, "sextonde"),
+        (17, "sjuttonde"),
+        (18, "artonde"),
+        (19, "nittonde"),
+    ],
+)
+def test_swedish_ordinal_teens(value, text):
+    assert render(value, locale="sv", form="ordinal") == text
+
+
 def test_russian_gender():
     assert render(1, locale="ru") == "один"
     assert render(1, locale="ru", gender="feminine") == "одна"

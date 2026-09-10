@@ -60,6 +60,7 @@ _TENS = (
     "quarenta",
     "cinquenta",
     "sessenta",
+    "setenta",
     "oitenta",
     "noventa",
 )
