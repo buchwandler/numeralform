@@ -13,6 +13,7 @@ CASE_KINDS = ("cardinal", "decimal", "ordinal", "year", "currency")
 EXECUTION_OUTCOMES = ("text", "exception")
 DIFFERENTIAL_STATUSES = (
     "match",
+    "variant",
     "mismatch",
     "oracle-error",
     "numeralform-error",
@@ -45,7 +46,9 @@ class SerializedRandomValue:
             except Exception as exc:
                 raise ValueError(f"invalid decimal value: {self.value!r}") from exc
             if not parsed.is_finite() or "." not in self.value:
-                raise ValueError(f"decimal value must be finite and explicit: {self.value!r}")
+                raise ValueError(
+                    f"decimal value must be finite and explicit: {self.value!r}"
+                )
 
     @classmethod
     def from_python(cls, value: int | Decimal) -> SerializedRandomValue:
@@ -118,6 +121,7 @@ class RandomCase:
 
     def as_decimal_number(self) -> DecimalNumber:
         return self.value.decimal_number()
+
     def decimal_number(self) -> DecimalNumber:
         return self.value.decimal_number()
 
@@ -179,6 +183,7 @@ class ExecutionResult:
             exception_type=type(exc).__name__,
             exception_message=str(exc),
         )
+
     def to_dict(self) -> dict[str, str | None]:
         return {
             "outcome": self.outcome,
@@ -204,12 +209,19 @@ class DifferentialResult:
     num2words: ExecutionResult
     numeralform: ExecutionResult
     difference_shape: str | None = None
+    equivalence_rule: str | None = None
 
     def __post_init__(self) -> None:
         if self.status not in DIFFERENTIAL_STATUSES:
             raise ValueError(f"unknown differential status: {self.status!r}")
-        if self.status == "match" and self.difference_shape is not None:
-            raise ValueError("matches cannot have a difference shape")
+        if self.status == "match" and (
+            self.difference_shape is not None or self.equivalence_rule is not None
+        ):
+            raise ValueError("matches cannot have difference metadata")
+        if self.status == "variant" and not self.equivalence_rule:
+            raise ValueError("variants require an equivalence rule")
+        if self.status != "variant" and self.equivalence_rule is not None:
+            raise ValueError("only variants may have an equivalence rule")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -217,6 +229,7 @@ class DifferentialResult:
             "status": self.status,
             "difference_shape": self.difference_shape,
             "num2words": self.num2words.to_dict(),
+            "equivalence_rule": self.equivalence_rule,
             "numeralform": self.numeralform.to_dict(),
         }
 
@@ -227,6 +240,7 @@ class DifferentialResult:
             status=str(payload["status"]),
             difference_shape=payload.get("difference_shape"),
             num2words=ExecutionResult.from_dict(payload["num2words"]),
+            equivalence_rule=payload.get("equivalence_rule"),
             numeralform=ExecutionResult.from_dict(payload["numeralform"]),
         )
 

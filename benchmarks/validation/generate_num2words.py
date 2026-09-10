@@ -155,7 +155,6 @@ def _load_toml(path: Path) -> dict[str, Any]:
     return config
 
 
-
 def _value(value: object) -> SerializedCompatValue:
     return SerializedCompatValue.from_python(value)
 

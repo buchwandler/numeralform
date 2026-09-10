@@ -61,13 +61,17 @@ def load_config(path: Path = CONFIG_PATH, profile: str | None = None) -> RandomC
     required = {"schema_version", "generator_version", "weights", selected}
     missing = required - set(randomized)
     if missing:
-        raise ValueError("randomized configuration missing: " + ", ".join(sorted(missing)))
+        raise ValueError(
+            "randomized configuration missing: " + ", ".join(sorted(missing))
+        )
     if randomized["schema_version"] != SCHEMA_VERSION:
         raise ValueError("unsupported randomized schema version")
     if randomized["generator_version"] != GENERATOR_VERSION:
         raise ValueError("unsupported randomized generator version")
     weights = randomized["weights"]
-    if tuple(weights) != CASE_KINDS or any(not isinstance(v, int) or v <= 0 for v in weights.values()):
+    if tuple(weights) != CASE_KINDS or any(
+        not isinstance(v, int) or v <= 0 for v in weights.values()
+    ):
         raise ValueError("randomized weights must list each case kind in stable order")
     if not isinstance(randomized[selected], dict):
         raise TypeError(f"randomized profile {selected!r} must be a table")
@@ -87,7 +91,9 @@ def shared_locales(
     canonical = set(canonical_locales or numeralform.locales())
     if external_locales is None:
         if oracle_root is None:
-            raise RuntimeError("a verified oracle checkout is required for locale discovery")
+            raise RuntimeError(
+                "a verified oracle checkout is required for locale discovery"
+            )
         external = set(oracle_locales(oracle_root))
     else:
         external = {normalize_locale(locale) for locale in external_locales}
@@ -160,7 +166,9 @@ def _edge_values() -> tuple[int, ...]:
 
 def _decimal(rng: random.Random, profile: dict) -> Decimal:
     integer = rng.randint(0, int(profile["decimal_integer_max"]))
-    digits = rng.choice(tuple(int(value) for value in profile["decimal_fraction_digits"]))
+    digits = rng.choice(
+        tuple(int(value) for value in profile["decimal_fraction_digits"])
+    )
     fraction = rng.randrange(10**digits)
     return Decimal(f"{integer}.{fraction:0{digits}d}")
 
@@ -172,6 +180,8 @@ def _currency_decimal(rng: random.Random, profile: dict) -> Decimal:
     lower = int(minimum * (10**digits))
     upper = int(maximum * (10**digits))
     return Decimal(rng.randint(lower, upper)) / (10**digits)
+
+
 def _currency_decimal(rng: random.Random, profile: dict) -> Decimal:
     minimum = Decimal(str(profile["currency_min"]))
     maximum = Decimal(str(profile["currency_max"]))
@@ -182,6 +192,8 @@ def _currency_decimal(rng: random.Random, profile: dict) -> Decimal:
     scaled = rng.randint(lower, upper)
     integer, fraction = divmod(scaled, scale)
     return Decimal(f"{integer}.{fraction:0{digits}d}")
+
+
 def _candidate(
     rng: random.Random,
     locale: str,
@@ -192,14 +204,31 @@ def _candidate(
     edge_probability = float(profile.get("edge_probability", 0.0))
     if kind in {"cardinal", "ordinal", "year"}:
         if kind == "cardinal":
-            minimum, maximum = int(profile["cardinal_min"]), int(profile["cardinal_max"])
+            minimum, maximum = (
+                int(profile["cardinal_min"]),
+                int(profile["cardinal_max"]),
+            )
             edges = _edge_values()
         elif kind == "ordinal":
             minimum, maximum = int(profile["ordinal_min"]), int(profile["ordinal_max"])
             edges = _edge_values()
         else:
             minimum, maximum = int(profile["year_min"]), int(profile["year_max"])
-            edges = (1000, 1001, 1099, 1100, 1900, 1901, 1999, 2000, 2001, 2009, 2010, 2024, 2099)
+            edges = (
+                1000,
+                1001,
+                1099,
+                1100,
+                1900,
+                1901,
+                1999,
+                2000,
+                2001,
+                2009,
+                2010,
+                2024,
+                2099,
+            )
         value = random_integer(
             rng,
             minimum=minimum,
@@ -207,7 +236,11 @@ def _candidate(
             edge_values=edges,
             edge_probability=edge_probability,
         )
-        if kind == "cardinal" and profile.get("cardinal_min", 0) < 0 and rng.random() < 0.1:
+        if (
+            kind == "cardinal"
+            and profile.get("cardinal_min", 0) < 0
+            and rng.random() < 0.1
+        ):
             value = -abs(value)
         return value, None
     if kind == "decimal":
@@ -216,12 +249,16 @@ def _candidate(
         return _currency_decimal(rng, profile), rng.choice(currency_choices)
     raise ValueError(f"unknown case kind: {kind!r}")
 
+
 def _default_supports(locale: str, kind: str, value: int | Decimal) -> bool:
     if kind == "decimal":
         from numeralform import DecimalNumber
 
-        return numeralform.supports(locale, form="decimal", value=DecimalNumber.from_decimal(value))
+        return numeralform.supports(
+            locale, form="decimal", value=DecimalNumber.from_decimal(value)
+        )
     return numeralform.supports(locale, form=kind, value=value)
+
 
 def _default_currency_supports(locale: str, value: Decimal, currency: str) -> bool:
     try:
@@ -245,7 +282,8 @@ def generate_cases(
     external_locales: Iterable[str] | None = None,
     supports: Callable[[str, str, int | Decimal], bool] | None = None,
     currency_supports: Callable[[str, Decimal, str], bool] | None = None,
-    oracle_supports: Callable[[str, str, int | Decimal, str | None], bool] | None = None,
+    oracle_supports: Callable[[str, str, int | Decimal, str | None], bool]
+    | None = None,
 ) -> tuple[tuple[RandomCase, ...], dict[str, int], RandomConfig]:
     if count < 0:
         raise ValueError("case count must be non-negative")
@@ -255,13 +293,17 @@ def generate_cases(
         canonical_locales=canonical_locales,
         external_locales=external_locales,
     )
-    selected_locales = tuple(sorted({normalize_locale(locale) for locale in locales or available_locales}))
+    selected_locales = tuple(
+        sorted({normalize_locale(locale) for locale in locales or available_locales})
+    )
     if not set(selected_locales) <= set(available_locales):
         unknown = sorted(set(selected_locales) - set(available_locales))
         raise ValueError("requested locales are not shared: " + ", ".join(unknown))
     selected_kinds = tuple(kinds or CASE_KINDS)
     if not selected_kinds or not set(selected_kinds) <= set(CASE_KINDS):
-        raise ValueError("requested kinds must be selected from the supported case kinds")
+        raise ValueError(
+            "requested kinds must be selected from the supported case kinds"
+        )
     profile_values = config.values
     selected_currencies = tuple(currencies or profile_values["currencies"])
     if not selected_currencies:
@@ -277,16 +319,24 @@ def generate_cases(
         "generation_rejected_oracle_unsupported": 0,
         "generation_rejected_duplicate": 0,
     }
-    max_attempts = max(count * int(profile_values.get("max_attempt_multiplier", 20)), count + 1)
+    max_attempts = max(
+        count * int(profile_values.get("max_attempt_multiplier", 20)), count + 1
+    )
     attempts = 0
     while len(generated) < count and attempts < max_attempts:
         attempts += 1
         locale = rng.choice(selected_locales)
-        kind = weighted_choice(rng, {key: config.weights[key] for key in selected_kinds})
-        value, currency = _candidate(rng, locale, kind, profile_values, selected_currencies)
+        kind = weighted_choice(
+            rng, {key: config.weights[key] for key in selected_kinds}
+        )
+        value, currency = _candidate(
+            rng, locale, kind, profile_values, selected_currencies
+        )
         if profile in {"common", "numeralform", "shared"}:
             supported = (
-                currency_supports(locale, value, currency) if kind == "currency" else supports(locale, kind, value)
+                currency_supports(locale, value, currency)
+                if kind == "currency"
+                else supports(locale, kind, value)
             )
             if not supported:
                 rejected["generation_rejected_numeralform_unsupported"] += 1

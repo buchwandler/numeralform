@@ -103,6 +103,8 @@ _DIGITS = (
 class EnglishRenderer:
     locale = "en"
 
+    default_cardinal_style = "default"
+
     @staticmethod
     def capabilities() -> LocaleCapabilities:
         return LocaleCapabilities(
@@ -129,7 +131,7 @@ class EnglishRenderer:
                 CapabilityProfile(NumeralForm.YEAR),
             ),
             notes=(
-                "Default cardinal composition omits British-style conjunctions.",
+                "Default cardinal composition is locale-owned; british-and remains an explicit style.",
                 "Year uses the explicit year form, not cardinal style inference.",
             ),
         )
@@ -154,6 +156,7 @@ class EnglishRenderer:
         )
 
     def _render_cardinal(self, value: int, style: str | None = None) -> str:
+        style = self.default_cardinal_style if style in (None, "default") else style
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:

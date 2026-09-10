@@ -80,6 +80,7 @@ def run_num2words_random() -> int:
         output_dir=DEFAULT_OUTPUT_DIR,
     )
 
+
 def run_cldr(selected: set[str] | None = None) -> int:
     generate_cldr(CLDR_CONFIG, CLDR_CORPUS, selected)
     cases, files, release, exceptions = _load_tree(CLDR_CORPUS)
@@ -104,7 +105,9 @@ def run(target: str, selected: set[str] | None = None) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", choices=("num2words", "num2words-random", "cldr", "all"))
+    parser.add_argument(
+        "target", choices=("num2words", "num2words-random", "cldr", "all")
+    )
     args = parser.parse_args(argv)
     try:
         return run(args.target, set(args.mapping or ()) or None)

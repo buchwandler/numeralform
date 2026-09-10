@@ -226,7 +226,9 @@ class FinnishRenderer:
                 text += self._cardinal(rest, morphology)
         else:
             group, rest = divmod(value, 1000)
-            text = "tuhat" if group == 1 else self._cardinal(group, morphology) + "tuhatta"
+            text = (
+                "tuhat" if group == 1 else self._cardinal(group, morphology) + "tuhatta"
+            )
             if rest:
                 text += " " + self._cardinal(rest, morphology)
         return self._inflect(
@@ -254,7 +256,9 @@ class FinnishRenderer:
             text = _ORDINALS[value]
         elif value < 100:
             tens, ones = divmod(value, 10)
-            text = _ORDINAL_TENS[tens] + (self._ordinal(ones, morphology) if ones else "")
+            text = _ORDINAL_TENS[tens] + (
+                self._ordinal(ones, morphology) if ones else ""
+            )
         else:
             hundreds, rest = divmod(value, 100)
             text = "sadas" if hundreds == 1 else _UNDER_20[hundreds] + "sadas"

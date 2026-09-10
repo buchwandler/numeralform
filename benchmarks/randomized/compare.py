@@ -34,6 +34,8 @@ def compare_results(
     case: RandomCase,
     num2words: ExecutionResult,
     numeralform: ExecutionResult,
+    *,
+    accept_variants: bool = False,
 ) -> DifferentialResult:
     """Compare two execution results and return a replayable result."""
     oracle_text = num2words.text
@@ -44,12 +46,31 @@ def compare_results(
         canonical_text = normalize(canonical_text)
         if oracle_text == canonical_text:
             return DifferentialResult(case, "match", num2words, numeralform)
+        shape = difference_shape(oracle_text, canonical_text)
+        if accept_variants:
+            from .equivalence import accepted_variant
+
+            rule = accepted_variant(
+                case,
+                oracle_text,
+                canonical_text,
+                difference_shape=shape,
+            )
+            if rule is not None:
+                return DifferentialResult(
+                    case,
+                    "variant",
+                    num2words,
+                    numeralform,
+                    shape,
+                    rule,
+                )
         return DifferentialResult(
             case,
             "mismatch",
             num2words,
             numeralform,
-            difference_shape(oracle_text, canonical_text),
+            shape,
         )
     if num2words.outcome == "exception" and numeralform.outcome == "exception":
         return DifferentialResult(case, "both-error", num2words, numeralform)

@@ -133,12 +133,16 @@ class FrenchRenderer:
                     if quotient == 1:
                         prefix = "mille"
                     else:
-                        prefix = f"{self._scale_quotient(self._cardinal(quotient))} mille"
+                        prefix = (
+                            f"{self._scale_quotient(self._cardinal(quotient))} mille"
+                        )
                 else:
                     if quotient == 1:
                         prefix = f"un {name}"
                     else:
-                        prefix = f"{self._scale_quotient(self._cardinal(quotient))} {name}s"
+                        prefix = (
+                            f"{self._scale_quotient(self._cardinal(quotient))} {name}s"
+                        )
                 return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         raise InvalidValueError("French cardinal value is outside the supported range")
 
@@ -155,6 +159,7 @@ class FrenchRenderer:
             return cardinal.removesuffix("s").removesuffix("e") + "ième"
         cardinal = self._cardinal(value)
         return cardinal.removesuffix("s").removesuffix("e") + "ième"
+
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

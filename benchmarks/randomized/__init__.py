@@ -1,4 +1,5 @@
 """Randomized differential benchmark for canonical Numeralform."""
+
 from .model import (
     DifferentialResult,
     ExecutionResult,

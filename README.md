@@ -26,7 +26,7 @@ render(DigitSequence("0042"), locale="en")
 render(DecimalNumber("1", "20"), locale="en")
 # "one point two zero"
 result = realize(42, locale="en-US")
-# result.locale == "en", result.requested_locale == "en-US"
+# result.locale == "en-US", result.requested_locale == "en-US"
 ```
 
 ## Why Numeralform

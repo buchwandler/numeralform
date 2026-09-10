@@ -35,7 +35,11 @@ def test_result_contains_effective_request_metadata():
     result = realize(42, locale="en-US", syntax="standalone")
     assert isinstance(result, NumeralResult)
     assert result.requested_locale == "en-US"
-    assert result.locale == "en"
+    assert result.locale == "en-US"
+    british = realize(42, locale="en-GB", syntax="standalone")
+    assert british.requested_locale == "en-GB"
+    assert british.locale == "en-GB"
+    assert british.style == "default"
     assert result.style == "default"
     assert result.syntax.value == "standalone"
     assert result.features == LocaleFeatures()

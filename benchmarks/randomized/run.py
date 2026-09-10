@@ -28,7 +28,7 @@ from .adapters import (
 )
 from .compare import compare_results
 from .generator import CONFIG_PATH, generate_cases, load_config
-from .model import DifferentialResult, RandomCase
+from .model import DIFFERENTIAL_STATUSES, DifferentialResult, RandomCase
 from .report import write_reports
 
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
@@ -63,6 +63,7 @@ def execute_case(
         case,
         run_num2words(case, external_num2words),
         numeralform_result,
+        accept_variants=target == "canonical",
     )
 
 
@@ -92,8 +93,7 @@ def _metadata(
     target: str,
 ) -> dict:
     return {
-        "schema_version": 1,
-        "generator_version": 1,
+        "schema_version": 2,
         "target": target,
         "seed": seed,
         "profile": profile,
@@ -123,11 +123,14 @@ def run_benchmark(
     currencies: Iterable[str] = (),
     record_all: bool = False,
     fail_on_diff: bool = False,
+    fail_on_unaccepted: bool = False,
 ) -> int:
     external_num2words = load_num2words(oracle_root)
     version = oracle_version(oracle_root)
     if version != NUM2WORDS_VERSION:
-        raise RuntimeError(f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}")
+        raise RuntimeError(
+            f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}"
+        )
     config = load_config(CONFIG_PATH, profile)
     external_locales = oracle_locales(oracle_root)
     generated, generation_stats, _ = generate_cases(
@@ -143,7 +146,9 @@ def run_benchmark(
             external_num2words, locale, kind, value, currency
         ),
     )
-    results = tuple(execute_case(case, external_num2words, target=target) for case in generated)
+    results = tuple(
+        execute_case(case, external_num2words, target=target) for case in generated
+    )
     metadata = _metadata(seed, profile, cases, config, version, target)
     paths = write_reports(
         results,
@@ -152,7 +157,10 @@ def run_benchmark(
         generation_stats=generation_stats,
         record_all=record_all,
     )
-    counts = {status: sum(result.status == status for result in results) for status in ("match", "mismatch", "oracle-error", "numeralform-error", "both-error")}
+    counts = {
+        status: sum(result.status == status for result in results)
+        for status in DIFFERENTIAL_STATUSES
+    }
     print("num2words-random benchmark")
     print(f"oracle: {NUM2WORDS_COMMIT}")
     print(f"seed: {seed}")
@@ -162,7 +170,13 @@ def run_benchmark(
         print(f"{status + ':':20}{value}")
     print(f"report: {paths['report']}")
     print(f"differences: {paths['differences']}")
-    return 1 if fail_on_diff and any(result.status != "match" for result in results) else 0
+    if fail_on_diff and any(result.status != "match" for result in results):
+        return 1
+    if fail_on_unaccepted and any(
+        result.status not in {"match", "variant"} for result in results
+    ):
+        return 1
+    return 0
 
 
 def _replay_target(path: Path, target: str | None) -> str:
@@ -187,11 +201,16 @@ def run_replay(
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
     return 1 if result.status != "match" else 0
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=int, default=10000)
     parser.add_argument("--seed", default="20260910", type=_seed)
-    parser.add_argument("--profile", choices=("shared", "numeralform", "common", "stress"), default="shared")
+    parser.add_argument(
+        "--profile",
+        choices=("shared", "numeralform", "common", "stress"),
+        default="shared",
+    )
     parser.add_argument("--target", choices=("canonical", "compat"), default=None)
     parser.add_argument("--locale", action="append", dest="locales", default=[])
     parser.add_argument("--kind", action="append", dest="kinds", default=[])
@@ -200,6 +219,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--oracle-root", type=Path, default=DEFAULT_ORACLE_ROOT)
     parser.add_argument("--record-all", action="store_true")
     parser.add_argument("--fail-on-diff", action="store_true")
+    parser.add_argument("--fail-on-unaccepted", action="store_true")
     parser.add_argument("--replay", type=Path)
     parser.add_argument("--case-id")
     return parser
@@ -225,6 +245,7 @@ def main(argv: list[str] | None = None) -> int:
         currencies=args.currencies,
         record_all=args.record_all,
         fail_on_diff=args.fail_on_diff,
+        fail_on_unaccepted=args.fail_on_unaccepted,
     )
 
 

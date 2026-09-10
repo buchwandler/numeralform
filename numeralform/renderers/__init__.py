@@ -10,7 +10,13 @@ from .it import ItalianRenderer
 from .ja import JapaneseRenderer
 from .ko import KoreanRenderer
 from .pt import PortugueseRenderer
-from .regional import EnglishIndiaRenderer, FrenchBelgiumRenderer, FrenchSwissRenderer
+from .regional import (
+    EnglishGBRenderer,
+    EnglishIndiaRenderer,
+    EnglishUSRenderer,
+    FrenchBelgiumRenderer,
+    FrenchSwissRenderer,
+)
 from .ru import RussianRenderer
 from .sv import SwedishRenderer
 from .th import ThaiRenderer
@@ -19,8 +25,10 @@ from .vi import VietnameseRenderer
 
 __all__ = [
     "CzechRenderer",
+    "EnglishGBRenderer",
     "EnglishIndiaRenderer",
     "EnglishRenderer",
+    "EnglishUSRenderer",
     "FinnishRenderer",
     "FrenchBelgiumRenderer",
     "FrenchRenderer",

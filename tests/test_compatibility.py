@@ -62,9 +62,24 @@ def test_rounding_and_cents_false():
 
 
 def test_variable_currency_scale():
-    assert num2words(5, lang="en", to="currency", currency="JPY") == "zero yen, five sen"
+
+    assert (
+        num2words(5, lang="en", to="currency", currency="JPY") == "zero yen, five sen"
+    )
     assert "fils" in num2words(
         Decimal("1.001"), lang="en", to="currency", currency="KWD"
+    )
+
+
+def test_english_regional_canonical_dialects_do_not_change_compatibility():
+    assert num2words(582378.922, lang="en", to="cardinal") == (
+        "five hundred and eighty-two thousand, three hundred and seventy-eight point nine two two"
+    )
+    assert num2words(53184, lang="en", to="currency", currency="USD") == (
+        "five hundred and thirty-one dollars, eighty-four cents"
+    )
+    assert num2words(92811, lang="en", to="currency", currency="GBP") == (
+        "nine hundred and twenty-eight pounds sterling, eleven pence"
     )
 
 
@@ -72,6 +87,7 @@ def test_indian_english_uses_lakh_and_crore():
     assert render(100_000, locale="en-IN") == "one lakh"
     assert render(10_000_000, locale="en-IN") == "one crore"
     assert num2words(100_000, lang="en-IN") == "one lakh"
+
 
 def test_belgian_and_swiss_french_have_regional_tens():
     assert render(70, locale="fr-BE") == "septante"
@@ -155,8 +171,10 @@ def test_fraction_string_and_precision():
 
 
 def test_pinned_compatibility_regression_fixtures():
-    assert num2words(690173780, lang="en") == ("six hundred and ninety million, one hundred and seventy-three thousand, "
-        "seven hundred and eighty")
+    assert num2words(690173780, lang="en") == (
+        "six hundred and ninety million, one hundred and seventy-three thousand, "
+        "seven hundred and eighty"
+    )
     assert num2words(Decimal("1.20"), lang="es") == "uno punto dos"
     assert num2words(Decimal("1.20"), lang="ru") == "одна целая двадцать сотых"
     assert num2words(2024, lang="ja", to="year") == "令和六年"

@@ -110,8 +110,10 @@ def _ensure_builtins() -> None:
     _BUILTINS_INITIALIZED = True
     from .renderers import (
         CzechRenderer,
+        EnglishGBRenderer,
         EnglishIndiaRenderer,
         EnglishRenderer,
+        EnglishUSRenderer,
         FinnishRenderer,
         FrenchBelgiumRenderer,
         FrenchRenderer,
@@ -149,8 +151,10 @@ def _ensure_builtins() -> None:
         if locale not in _RENDERERS:
             register_locale(locale, renderer)
     regional = {
+        "en-GB": EnglishGBRenderer,
         "en-IN": EnglishIndiaRenderer,
         "en-NG": EnglishRenderer,
+        "en-US": EnglishUSRenderer,
         "es-CO": SpanishRenderer,
         "es-CR": SpanishRenderer,
         "es-GT": SpanishRenderer,
@@ -171,6 +175,8 @@ def _ensure_builtins() -> None:
         "cy",
         "da",
         "en-IN",
+        "en-GB",
+        "en-US",
         "en-NG",
         "eo",
         "es-CO",

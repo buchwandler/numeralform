@@ -122,6 +122,7 @@ _HUNDREDS = {
 }
 _MAX_CARDINAL = 999_999_999_999
 
+
 class PortugueseRenderer:
     locale = "pt-BR"
 
@@ -182,7 +183,13 @@ class PortugueseRenderer:
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
             entry = _HUNDREDS[hundreds * 100]
-            prefix = entry[0] if hundreds == 1 and remainder == 0 else entry[-1] if hundreds == 1 else entry
+            prefix = (
+                entry[0]
+                if hundreds == 1 and remainder == 0
+                else entry[-1]
+                if hundreds == 1
+                else entry
+            )
             return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
         scale_words = (
             (1_000_000_000, "bilhão" if self._variant == "pt-BR" else "bilião"),
@@ -193,9 +200,15 @@ class PortugueseRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale == 1_000:
-                    prefix = "mil" if quotient == 1 else f"{self._cardinal(quotient)} mil"
+                    prefix = (
+                        "mil" if quotient == 1 else f"{self._cardinal(quotient)} mil"
+                    )
                 else:
-                    plural_names = {"milhão": "milhões", "bilhão": "bilhões", "bilião": "biliões"}
+                    plural_names = {
+                        "milhão": "milhões",
+                        "bilhão": "bilhões",
+                        "bilião": "biliões",
+                    }
                     scale_name = name if quotient == 1 else plural_names[name]
                     prefix = f"{self._cardinal(quotient)} {scale_name}"
                 return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
@@ -213,6 +226,7 @@ class PortugueseRenderer:
             prefix = _ORDINAL_TENS_PT[tens]
             return prefix if units == 0 else f"{prefix} {self._ordinal(units)}"
         return self._cardinal(value) + "ésimo"
+
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

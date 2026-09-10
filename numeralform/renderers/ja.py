@@ -73,12 +73,11 @@ class JapaneseRenderer:
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )
+
     def _year(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("year form requires a non-negative integer")
         return self._render_cardinal(value)
-
-
 
     def _render_cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):

@@ -50,8 +50,11 @@ def test_locale_normalization_and_fallback():
     assert canonicalize_locale("EN_us") == "en-US"
     assert canonicalize_locale("cn") == "zh-CN"
     assert fallback_chain("en-US") == ("en-US", "en")
-    assert resolve_locale("en-US") == "en"
+    assert resolve_locale("en-US") == "en-US"
+    assert resolve_locale("en-GB") == "en-GB"
     assert "en" in locales()
+    assert "en-US" in locales()
+    assert "en-GB" in locales()
     assert "ru" in locales()
     assert "am" not in locales()
     from numeralform import known_locales

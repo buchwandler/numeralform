@@ -23,7 +23,9 @@ def normalize(text: object) -> str:
     return unicodedata.normalize("NFC", str(text))
 
 
-def num2words_call_kwargs(locale: str, kind: str, currency: str | None = None) -> dict[str, Any]:
+def num2words_call_kwargs(
+    locale: str, kind: str, currency: str | None = None
+) -> dict[str, Any]:
     kwargs: dict[str, Any] = {"lang": locale.replace("-", "_")}
     if kind == "currency":
         kwargs.update(to="currency", currency=currency)
@@ -36,7 +38,9 @@ def num2words_kwargs(case: RandomCase) -> dict[str, Any]:
     return num2words_call_kwargs(case.locale, case.kind, case.currency)
 
 
-def run_num2words(case: RandomCase, external_num2words: Callable[..., Any]) -> ExecutionResult:
+def run_num2words(
+    case: RandomCase, external_num2words: Callable[..., Any]
+) -> ExecutionResult:
     """Execute a case against the supplied, already verified oracle function."""
     try:
         text = external_num2words(case.python_value(), **num2words_kwargs(case))

@@ -46,12 +46,12 @@ class CurrencyRequest:
     cents: bool = True
     separator: str | None = None
 
+
 @dataclass(frozen=True, slots=True)
 class CurrencyResult:
     text: str
     request: CurrencyRequest
     locale: str
-
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +61,9 @@ class CurrencyUnitLexeme:
     attach: bool = False
 
     def form(self, category: str) -> str:
-        return self.forms.get(category, self.forms.get("other", next(iter(self.forms.values()))))
+        return self.forms.get(
+            category, self.forms.get("other", next(iter(self.forms.values())))
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +72,7 @@ class CurrencyLocalePolicy:
     minor: CurrencyUnitLexeme
     connector: str
     omit_zero_minor: bool = False
+
 
 # The lexicon is deliberately data-driven.  Names not translated for a locale
 # use the English form, while scale is independent metadata.
@@ -87,12 +90,14 @@ _CURRENCIES = {
     "USD": {
         "en": ("dollar", "dollars", "cent", "cents"),
         "es": ("dólar", "dólares", "centavo", "centavos"),
+        "de": ("Dollar", "Dollar", "Cent", "Cent"),
         "fr": ("dollar", "dollars", "cent", "cents"),
         "ru": ("доллар", "доллара", "цент", "цента"),
     },
     "GBP": {
         "en": ("pound", "pounds", "penny", "pence"),
         "fr": ("livre", "livres", "penny", "pence"),
+        "de": ("Pfund", "Pfund", "Pence", "Pence"),
     },
     "RUB": {
         "ru": ("рубль", "рубля", "копейка", "копейки"),
@@ -193,8 +198,12 @@ def _currency_policy(code: str, language: str) -> CurrencyLocalePolicy:
     if script_names is not None:
         major_name, minor_name = script_names
         return CurrencyLocalePolicy(
-            CurrencyUnitLexeme({"one": major_name, "other": major_name}, attach=language == "th"),
-            CurrencyUnitLexeme({"one": minor_name, "other": minor_name}, attach=language == "th"),
+            CurrencyUnitLexeme(
+                {"one": major_name, "other": major_name}, attach=language == "th"
+            ),
+            CurrencyUnitLexeme(
+                {"one": minor_name, "other": minor_name}, attach=language == "th"
+            ),
             _CONNECTORS[language],
         )
     if language == "ru" and code in _RUSSIAN_CURRENCIES:
@@ -211,9 +220,13 @@ def _currency_policy(code: str, language: str) -> CurrencyLocalePolicy:
             CurrencyUnitLexeme({"one": minor[0], "few": minor[1], "many": minor[2]}),
             _CONNECTORS[language],
         )
-    names = _CURRENCIES.get(code, {}).get(language) or _CURRENCIES.get(code, {}).get("en")
+    names = _CURRENCIES.get(code, {}).get(language) or _CURRENCIES.get(code, {}).get(
+        "en"
+    )
     if names is None:
-        raise NotImplementedError(f"currency {code!r} is not implemented for locale {language!r}")
+        raise NotImplementedError(
+            f"currency {code!r} is not implemented for locale {language!r}"
+        )
     if language == "ru":
         major_forms = {"one": names[0], "few": names[1], "many": names[1]}
         minor_forms = {"one": names[2], "few": names[3], "many": names[3]}
@@ -288,11 +301,13 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
     from ..model import Syntax
 
     language = locale.split("-", 1)[0]
-    style = "british-and" if language == "en" else None
-    kwargs = {"locale": locale, "style": style}
+    kwargs = {"locale": locale}
+    if language == "en" and locale not in {"en", "en-US", "en-GB"}:
+        kwargs["style"] = "british-and"
     if language == "es" and gender is not None:
         kwargs.update(syntax=Syntax.ATTRIBUTIVE, gender=gender)
     return render(value, **kwargs)
+
 
 def render_currency(
     value,
@@ -318,7 +333,11 @@ def render_currency(
     major_category = _plural_category(language, amount.major)
     major_name = policy.major.form(major_category)
     major_words = _words(amount.major, locale, gender=policy.major.gender)
-    major_piece = f"{major_words}{major_name}" if policy.major.attach else f"{major_words} {major_name}"
+    major_piece = (
+        f"{major_words}{major_name}"
+        if policy.major.attach
+        else f"{major_words} {major_name}"
+    )
     sign = (
         "minus "
         if amount.negative and language == "en"
@@ -337,10 +356,15 @@ def render_currency(
             if cents
             else f"{amount.minor:0{amount.minor_units}d}"
         )
-        minor_piece = f"{minor_value}{minor_name}" if policy.minor.attach else f"{minor_value} {minor_name}"
+        minor_piece = (
+            f"{minor_value}{minor_name}"
+            if policy.minor.attach
+            else f"{minor_value} {minor_name}"
+        )
         joiner = f"{separator} " if separator is not None else policy.connector
         text += joiner + minor_piece
     return text
+
 
 def realize_currency(
     request_or_value: CurrencyRequest | MoneyAmount | object,

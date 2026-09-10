@@ -7,7 +7,7 @@ The canonical inventory is generated from runtime capabilities. `locales()` list
 The current executable renderers cover:
 
 - Czech: `cs`
-- English and regional English: `en`, `en-IN`, `en-NG`
+- English and regional English: `en`, `en-US`, `en-GB`, `en-IN`, `en-NG`
 - Finnish: `fi`
 - French and regional French: `fr`, `fr-BE`, `fr-CH`, `fr-DZ`
 - German: `de`

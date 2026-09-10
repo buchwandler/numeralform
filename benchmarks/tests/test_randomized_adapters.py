@@ -39,17 +39,31 @@ def test_num2words_dispatch_and_nfc():
     ]
     results = [run_num2words(case, fake) for case in cases]
     assert all(result.text == "é" for result in results)
-    assert [call[1]["to"] for call in calls] == ["cardinal", "cardinal", "ordinal", "year", "currency"]
+    assert [call[1]["to"] for call in calls] == [
+        "cardinal",
+        "cardinal",
+        "ordinal",
+        "year",
+        "currency",
+    ]
     assert calls[-1][1]["currency"] == "USD"
 
 
 def test_numeralform_decimal_and_exception_capture():
     case = make_case("decimal", Decimal("1.20"))
     seen = []
-    result = run_numeralform(case, render_function=lambda value, **kwargs: seen.append((value, kwargs)) or "ok")
+    result = run_numeralform(
+        case,
+        render_function=lambda value, **kwargs: seen.append((value, kwargs)) or "ok",
+    )
     assert result.text == "ok"
     assert seen[0][0].fraction == "20"
-    error = run_numeralform(case, render_function=lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("bad")))
+    error = run_numeralform(
+        case,
+        render_function=lambda *args, **kwargs: (_ for _ in ()).throw(
+            ValueError("bad")
+        ),
+    )
     assert error.outcome == "exception"
     assert error.exception_type == "ValueError"
 
@@ -64,4 +78,6 @@ def test_compat_adapter_uses_num2words_call_shape():
 
     result = run_numeralform_compat(case, num2words_function=fake)
     assert result.text == "ok"
-    assert calls == [(Decimal("1.20"), {"lang": "en", "to": "currency", "currency": "USD"})]
+    assert calls == [
+        (Decimal("1.20"), {"lang": "en", "to": "currency", "currency": "USD"})
+    ]

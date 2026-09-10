@@ -98,6 +98,7 @@ def _legacy_english_cardinal(value: int, locale: str) -> str:
             return prefix + joiner + _legacy_english_cardinal(remainder, locale)
     raise ValueError("English cardinal value must be non-negative")
 
+
 def _legacy_cardinal(value: int, locale: str) -> str:
     language = locale.split("-", 1)[0]
     if language == "en":
@@ -105,31 +106,115 @@ def _legacy_cardinal(value: int, locale: str) -> str:
     text = render(value, locale=locale)
     if language == "pt":
         if locale == "pt-BR":
-            text = re.sub(r"(milhões?|mil) e (?=(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos))", r"\1, ", text)
+            text = re.sub(
+                r"(milhões?|mil) e (?=(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos))",
+                r"\1, ",
+                text,
+            )
+            if value % 1000 in {100, 200, 300, 400, 500, 600, 700, 800, 900}:
+                text = re.sub(
+                    r"\bmil, (?=(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos))",
+                    "mil e ",
+                    text,
+                )
         else:
-            text = re.sub(r"(milhões?|mil) e (?=(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos))", r"\1 ", text)
+            text = re.sub(
+                r"(milhões?|mil) e (?=(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos))",
+                r"\1 ",
+                text,
+            )
+            if value % 1000 in {100, 200, 300, 400, 500, 600, 700, 800, 900}:
+                text = re.sub(
+                    r"\bmil (?=(?:cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos))",
+                    "mil e ",
+                    text,
+                )
     elif language == "ko":
         text = re.sub(r"([억만조경])", r"\1 ", text).strip()
         if text.startswith("일만") and value >= 10_000:
             text = text.replace("일만", "만", 1)
     elif language == "sv":
-        text = text if text == "fyrtio" else text.replace("fyrtio", "förtio")
+        text = text.replace("fyrtio", "förtio")
         remainder = value % 1000
-        if not (100 <= remainder < 1000 and remainder % 100):
+        if remainder < 100:
             text = text.replace("tusen ", "tusen")
+        lower_scale_remainder = value % 1_000_000
+        if lower_scale_remainder < 100:
+            text = text.replace("miljon ", "miljon").replace("miljoner ", "miljoner")
     elif language == "it":
-        text = text.replace("centoottanta", "centottanta").replace("centoott", "centott").replace("centodiciotto", "centodicotto")
-        text = re.sub(r"tre$", "tré", text)
+        text = (
+            text.replace("centoottanta", "centottanta")
+            .replace("centoott", "centott")
+            .replace("centodiciotto", "centodicotto")
+        )
+        text = text.replace("tré", "tre")
+
+        def has_accented_final(number):
+            if number < 100:
+                return number > 3 and number % 10 == 3
+            if number < 1000:
+                return number % 100 == 3
+            remainder = number % 1000
+            return remainder == 3 or (
+                remainder >= 100 and remainder % 100 >= 23 and remainder % 10 == 3
+            )
+
+        def accent_final(text_value, number):
+            if (
+                text_value.endswith("tre")
+                and len(text_value) > 3
+                and has_accented_final(number)
+            ):
+                return text_value[:-3] + "tré"
+            return text_value
+
+        if value >= 1_000_000:
+            scale = 1_000_000_000 if value >= 1_000_000_000 else 1_000_000
+            quotient, remainder = divmod(value, scale)
+            words = text.split()
+            if words and has_accented_final(quotient):
+                words[0] = words[0].removesuffix("tre") + "tre"
+            elif words and words[0].endswith("tre") and len(words[0]) > 3:
+                words[0] = words[0][:-3] + "tré"
+            if (
+                remainder
+                and words[-1].endswith("tré")
+                and has_accented_final(remainder)
+            ):
+                words[-1] = words[-1].replace("tré", "tre")
+            elif (
+                remainder
+                and words[-1].endswith("tre")
+                and not has_accented_final(remainder)
+            ):
+                words[-1] = words[-1][:-3] + "tré"
+            text = " ".join(words)
+        else:
+            text = accent_final(text, value)
     elif language == "fr":
         if locale in {"fr-BE", "fr-CH"}:
-            text = re.sub(r"\b(deux|trois|quatre|cinq|six|sept|huit|neuf) cent\b", r"\1 cents", text)
+            text = re.sub(
+                r"\b(deux|trois|quatre|cinq|six|sept|huit|neuf) cent\b",
+                r"\1 cents",
+                text,
+            )
             if text.startswith("un million"):
                 text = text.replace("un million", "un millions", 1)
             if text.endswith("quatre-vingts"):
                 text = text[:-1]
-        if locale != "fr-DZ":
-            text = re.sub(r"quatre-vingt (?=(?:millions?|mille)\b)", "quatre-vingts ", text)
-    elif language == "vi" and value % 1000 < 100 and value % 1000 and "nghìn lẻ " not in text and "nghìn " in text:
+        if locale not in {"fr-BE", "fr-CH"}:
+            text = re.sub(r"cents mille\b", "cent mille", text)
+            text = re.sub(r"quatre-vingts mille\b", "quatre-vingt mille", text)
+            text = re.sub(r"quatre-vingt (?=millions?\b)", "quatre-vingts ", text)
+        elif locale == "fr-BE":
+            text = text.replace("quatre-vingt-un", "quatre-vingt et un")
+    elif (
+        language == "vi"
+        and value % 1000 < 100
+        and value % 1000
+        and "nghìn lẻ " not in text
+        and "nghìn " in text
+    ):
         text = text.replace("nghìn ", "nghìn lẻ ", 1)
     elif language == "cs" and value >= 1_000_000:
         millions = value // 1_000_000
@@ -138,8 +223,6 @@ def _legacy_cardinal(value: int, locale: str) -> str:
         else:
             text = text.replace(" milion ", " milionů ")
     return text
-
-
 
 
 def _legacy_russian_decimal(value: DecimalNumber) -> str:
@@ -311,18 +394,26 @@ def _legacy_year(value: int, locale: str) -> str:
     if language == "fr":
         text = _legacy_cardinal(value, locale)
         if locale in {"fr-BE", "fr-CH"}:
-            text = re.sub(r"\b(deux|trois|quatre|cinq|six|sept|huit|neuf) cent\b", r"\1 cents", text)
+            text = re.sub(
+                r"\b(deux|trois|quatre|cinq|six|sept|huit|neuf) cent\b",
+                r"\1 cents",
+                text,
+            )
         return text
     if language == "de" and 1100 <= value < 2000:
         century, remainder = divmod(value, 100)
-        return render(century, locale="de") + "hundert" + (render(remainder, locale="de") if remainder else "")
+        return (
+            render(century, locale="de")
+            + "hundert"
+            + (render(remainder, locale="de") if remainder else "")
+        )
     if language == "fi":
         return render(value, locale=locale, form="year").replace(" ", "")
     if language == "pt":
         return _legacy_cardinal(value, locale)
     if language == "it":
         text = _legacy_cardinal(value, locale)
-        return text[:-3] + "tré" if text.endswith("tre") else text
+        return text
     if language != "en":
         return render(value, locale=locale, form="year")
     if 2000 <= value <= 2009:
@@ -420,6 +511,7 @@ def _translate_kwargs(kwargs: dict) -> dict:
             options["state"] = "construct"
     return options
 
+
 def _legacy_decimal(value: DecimalNumber, locale: str) -> str:
     fraction = value.fraction.rstrip("0")
     integer = int(value.integer)
@@ -449,7 +541,6 @@ def _compat_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
     return _render_decimal(value, locale, options)
 
 
-
 def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
     try:
         return render(value, locale=locale, form="decimal", **options)
@@ -466,14 +557,36 @@ def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
         return f"{sign}{whole} point {digits}"
 
 
-def _legacy_currency(value: object, locale: str, code: str, cents: bool, separator: str | None) -> str:
+def _legacy_currency(
+    value: object, locale: str, code: str, cents: bool, separator: str | None
+) -> str:
     from ..currency import _parse_amount
-    amount = _parse_amount(value, "EUR" if code == "JPY" else code, compatibility="num2words-0.5.14")
+
+    amount = _parse_amount(
+        value, "EUR" if code == "JPY" else code, compatibility="num2words-0.5.14"
+    )
     language = locale.split("-", 1)[0]
-    if language not in {"en", "cs", "de", "es", "fi", "fr", "it", "pt", "ru", "th", "ko"}:
+    if language not in {
+        "en",
+        "cs",
+        "de",
+        "es",
+        "fi",
+        "fr",
+        "it",
+        "pt",
+        "ru",
+        "th",
+        "ko",
+    }:
         from ..currency import render_currency
+
         return render_currency(
-            value, locale=locale, currency=code, cents=cents, separator=separator,
+            value,
+            locale=locale,
+            currency=code,
+            cents=cents,
+            separator=separator,
             compatibility="num2words-0.5.14",
         )
     if language == "en":
@@ -489,38 +602,99 @@ def _legacy_currency(value: object, locale: str, code: str, cents: bool, separat
         names = {"EUR": (("euro", "euro"), ("cent", "centů"))}
     elif language == "es":
         from ..model import Syntax
-        currency_gender = "feminine" if code == "GBP" else "masculine"
+
+        currency_gender = (
+            "masculine"
+            if code == "GBP" and amount.major < 1000
+            else "feminine"
+            if code == "GBP"
+            else "masculine"
+        )
         words = lambda number: render(
             number, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=currency_gender
         )
-        names = {"EUR": (("euro", "euros"), ("céntimo", "céntimos")), "USD": (("dólar", "dólares"), ("centavo", "centavos")), "GBP": (("libra", "libras"), ("penique", "peniques")), "JPY": (("yen", "yenes"), ("sen", "sen"))}
+        names = {
+            "EUR": (("euro", "euros"), ("céntimo", "céntimos")),
+            "USD": (("dólar", "dólares"), ("centavo", "centavos")),
+            "GBP": (("libra", "libras"), ("penique", "peniques")),
+            "JPY": (("yen", "yenes"), ("sen", "sen")),
+        }
     elif language == "fi":
         words = lambda number: render(number, locale="fi")
-        names = {"EUR": (("euro", "euroa"), ("sentti", "senttiä")), "USD": (("dollari", "dollaria"), ("sentti", "senttiä")), "GBP": (("punta", "puntaa"), ("penny", "pennyä")), "JPY": (("jeni", "jeniä"), ("seni", "seniä"))}
+        names = {
+            "EUR": (("euro", "euroa"), ("sentti", "senttiä")),
+            "USD": (("dollari", "dollaria"), ("sentti", "senttiä")),
+            "GBP": (("punta", "puntaa"), ("penny", "pennyä")),
+            "JPY": (("jeni", "jeniä"), ("seni", "seniä")),
+        }
     elif language == "de":
         words = lambda number: render(number, locale="de")
-        names = {"EUR": (("Euro", "Euro"), ("Cent", "Cent")), "GBP": (("Pfund", "Pfund"), ("Pence", "Pence")), "USD": (("Dollar", "Dollar"), ("Cent", "Cent"))}
+        names = {
+            "EUR": (("Euro", "Euro"), ("Cent", "Cent")),
+            "GBP": (("Pfund", "Pfund"), ("Pence", "Pence")),
+            "USD": (("Dollar", "Dollar"), ("Cent", "Cent")),
+        }
     elif language == "pt":
         words = lambda number: _legacy_cardinal(number, locale)
-        names = {"EUR": (("euro", "euros"), ("cêntimo", "cêntimos")), "GBP": (("libra", "libras"), ("pence", "pence")), "USD": (("dólar", "dólares"), ("cêntimo", "cêntimos"))}
+        names = {
+            "EUR": (("euro", "euros"), ("cêntimo", "cêntimos")),
+            "GBP": (("libra", "libras"), ("pence", "pence")),
+            "USD": (("dólar", "dólares"), ("cêntimo", "cêntimos")),
+        }
     elif language == "fr":
         words = lambda number: _legacy_cardinal(number, locale)
-        names = {"EUR": (("euro", "euros"), ("centime", "centimes")), "GBP": (("livre", "livres"), ("penny", "pence")), "USD": (("dollar", "dollars"), ("cent", "cents"))}
+        names = {
+            "EUR": (("euro", "euros"), ("centime", "centimes")),
+            "GBP": (("livre", "livres"), ("penny", "pence")),
+            "USD": (("dollar", "dollars"), ("cent", "cents")),
+        }
     elif language == "ru":
         words = lambda number: render(number, locale="ru")
-        names = {"EUR": (("евро", "евро"), ("цент", "центов")), "USD": (("доллар", "долларов"), ("цент", "центов")), "RUB": (("рубль", "рублей"), ("копейка", "копеек"))}
+        names = {
+            "EUR": (("евро", "евро"), ("цент", "центов")),
+            "USD": (("доллар", "долларов"), ("цент", "центов")),
+            "RUB": (("рубль", "рублей"), ("копейка", "копеек")),
+        }
     elif language == "it":
-        words = lambda number: _legacy_cardinal(number, locale)
-        names = {"EUR": (("euro", "euro"), ("centesimo", "centesimi")), "GBP": (("sterlina", "sterline"), ("penny", "penny")), "USD": (("dollaro", "dollari"), ("centesimo", "centesimi"))}
+
+        def words(number):
+            text = _legacy_cardinal(number, locale)
+            if number % 10 == 1 and number % 100 != 11:
+                text = text.removesuffix("o")
+            return text
+
+        names = {
+            "EUR": (("euro", "euro"), ("centesimo", "centesimi")),
+            "GBP": (("sterlina", "sterline"), ("penny", "penny")),
+            "USD": (("dollaro", "dollari"), ("centesimo", "centesimi")),
+        }
     else:
         words = lambda number: render(number, locale=locale).replace(" ", "")
-        names = {"EUR": (("ยูโร", "ยูโร"), ("เซนต์", "เซนต์")), "USD": (("ดอลลาร์", "ดอลลาร์"), ("เซนต์", "เซนต์")), "GBP": (("ปอนด์", "ปอนด์"), ("เพนนี", "เพนนี"))} if language == "th" else {"EUR": (("유로", "유로"), ("센트", "센트")), "USD": (("달러", "달러"), ("센트", "센트")), "GBP": (("파운드", "파운드"), ("펜스", "펜스")), "JPY": (("엔", "엔"), ("센", "센"))}
+        names = (
+            {
+                "EUR": (("ยูโร", "ยูโร"), ("เซนต์", "เซนต์")),
+                "USD": (("ดอลลาร์", "ดอลลาร์"), ("เซนต์", "เซนต์")),
+                "GBP": (("ปอนด์", "ปอนด์"), ("เพนนี", "เพนนี")),
+            }
+            if language == "th"
+            else {
+                "EUR": (("유로", "유로"), ("센트", "센트")),
+                "USD": (("달러", "달러"), ("센트", "센트")),
+                "GBP": (("파운드", "파운드"), ("펜스", "펜스")),
+                "JPY": (("엔", "엔"), ("센", "센")),
+            }
+        )
     try:
         major_names, minor_names = names[code]
     except KeyError:
         from ..currency import render_currency
+
         return render_currency(
-            value, locale=locale, currency=code, cents=cents, separator=separator,
+            value,
+            locale=locale,
+            currency=code,
+            cents=cents,
+            separator=separator,
             compatibility="num2words-0.5.14",
         )
     if language == "ru" and code in {"USD", "RUB"}:
@@ -534,31 +708,79 @@ def _legacy_currency(value: object, locale: str, code: str, cents: bool, separat
         major_name = major_names[0] if amount.major == 1 else major_names[1]
     spacing = " " if language not in {"th", "ko"} else ""
     text = words(amount.major) + spacing + major_name
-    include_minor = amount.minor_units and (amount.minor or isinstance(value, (Decimal, DecimalNumber)))
+    include_minor = amount.minor_units and (
+        amount.minor
+        or (
+            isinstance(value, (Decimal, DecimalNumber)) and language not in {"ko", "th"}
+        )
+    )
     if include_minor:
-        minor_value = words(amount.minor) if cents else f"{amount.minor:0{amount.minor_units}d}"
+        minor_value = (
+            words(amount.minor) if cents else f"{amount.minor:0{amount.minor_units}d}"
+        )
+        if language == "es" and cents:
+            from ..model import Syntax
+
+            minor_value = render(
+                amount.minor,
+                locale=locale,
+                syntax=Syntax.ATTRIBUTIVE,
+                gender="masculine",
+            )
         if language == "es" and amount.minor == 1 and cents:
             minor_value = minor_value.replace("uno", "un")
         if language == "ru":
             if amount.minor % 10 == 1 and amount.minor % 100 != 11:
                 minor_name = "цент"
-            elif amount.minor % 10 in {2, 3, 4} and amount.minor % 100 not in {12, 13, 14}:
+            elif amount.minor % 10 in {2, 3, 4} and amount.minor % 100 not in {
+                12,
+                13,
+                14,
+            }:
                 minor_name = "цента"
             else:
                 minor_name = "центов"
         elif language == "cs":
             if amount.minor == 1:
                 minor_name = "cent"
-            elif amount.minor in {2, 3, 4}:
+            elif amount.minor % 10 in {2, 3, 4} and amount.minor % 100 not in {
+                12,
+                13,
+                14,
+            }:
                 minor_name = "centy"
             else:
                 minor_name = "centů"
         else:
             minor_name = minor_names[0] if amount.minor == 1 else minor_names[1]
-        joiner = f"{separator} " if separator is not None else {"en": ", ", "cs": ", ", "de": " und ", "es": " con ", "fi": " ja ", "fr": " et ", "it": " e ", "pt": " e ", "ru": ", ", "th": "", "ko": " "}.get(language, " ")
+        joiner = (
+            f"{separator} "
+            if separator is not None
+            else {
+                "en": ", ",
+                "cs": ", ",
+                "de": " und ",
+                "es": " con ",
+                "fi": " ja ",
+                "fr": " et ",
+                "it": " e ",
+                "pt": " e ",
+                "ru": ", ",
+                "th": "",
+                "ko": " ",
+            }.get(language, " ")
+        )
         text += joiner + minor_value + spacing + minor_name
     if amount.negative:
-        text = ("minus " if language == "en" else "menos " if language == "pt" else "минус " if language == "ru" else "") + text
+        text = (
+            "minus "
+            if language == "en"
+            else "menos "
+            if language == "pt"
+            else "минус "
+            if language == "ru"
+            else ""
+        ) + text
     return text
 
 
@@ -594,13 +816,22 @@ def _num2words_impl(
         value = _apply_precision(value, options.pop("precision"))
     if compat_locale.renderer is not None:
         return render_compat(compat_locale, to, value, options)
-    if to == "year" and isinstance(value, int) and not options and locale.split("-", 1)[0] == "ja":
+    if (
+        to == "year"
+        and isinstance(value, int)
+        and not options
+        and locale.split("-", 1)[0] == "ja"
+    ):
         return _legacy_japanese_year(value)
     if to == "currency":
         currency = options.pop("currency", "EUR")
         options.pop("adjective", False)
         return _legacy_currency(
-            value, request_locale, currency, options.pop("cents", True), options.pop("separator", None),
+            value,
+            request_locale,
+            currency,
+            options.pop("cents", True),
+            options.pop("separator", None),
         )
     if to == "cardinal" and isinstance(value, int) and not options:
         return _legacy_cardinal(value, request_locale)
@@ -612,28 +843,78 @@ def _num2words_impl(
         language = request_locale.split("-", 1)[0]
         if language == "sv":
             text = render(value, locale="sv", form="ordinal")
-            text = text if text == "fyrtionde" else text.replace("fyrtio", "förtio").replace("tjugode", "tjugonde")
-            return text
+            return (
+                text.replace("fyrtio", "förtio")
+                .replace("fyrtionde", "förtionde")
+                .replace("tjugonde", "tjugode")
+            )
         if language == "it":
-            text = render(value, locale="it", form="ordinal")
-            return text.replace("cinqesimo", "cinquesimo").replace("sesimo", "seiesimo").replace("desimo", "duesimo").replace("tresimo", "treesimo")
+            if value < 20:
+                return render(value, locale="it", form="ordinal")
+            text = render(value, locale="it")
+            if value % 10 == 3:
+                return text[:-1] + "eesimo"
+            if value % 10 == 6:
+                return text + "esimo"
+            stem = text[:-1]
+            if stem.endswith("mil"):
+                stem += "l"
+            return stem + "esimo"
         if language == "en":
             return _legacy_english_ordinal(value)
         if language == "es":
             text = _legacy_spanish_ordinal(value)
+            if text == "décimoséptimo":
+                return "decimoséptimo"
             if value not in {7, 10}:
                 import unicodedata
+
                 text = "".join(
-                    char for char in unicodedata.normalize("NFD", text)
+                    char
+                    for char in unicodedata.normalize("NFD", text)
                     if unicodedata.category(char) != "Mn"
                 ).replace(" ", "")
             return text
         if language == "fr":
-            under_19 = {11: "onzième", 12: "douzième", 13: "treizième", 14: "quatorzième", 15: "quinzième", 16: "seizième", 17: "dix-septième", 18: "dix-huitième"}
+            if locale in {"fr", "fr-DZ"}:
+                legacy = {
+                    71: "soixante et onzième",
+                    72: "soixante-douzième",
+                    73: "soixante-treizième",
+                    74: "soixante-quatorzième",
+                    75: "soixante-quinzième",
+                    76: "soixante-seizième",
+                    80: "quatre-vingtsième",
+                    81: "quatre-vingt-unième",
+                    91: "quatre-vingt-onzième",
+                    92: "quatre-vingt-douzième",
+                    93: "quatre-vingt-treizième",
+                    94: "quatre-vingt-quatorzième",
+                    95: "quatre-vingt-quinzième",
+                    96: "quatre-vingt-seizième",
+                }
+                if value in legacy:
+                    return legacy[value]
+            under_19 = {
+                11: "onzième",
+                12: "douzième",
+                13: "treizième",
+                14: "quatorzième",
+                15: "quinzième",
+                16: "seizième",
+                17: "dix-septième",
+                18: "dix-huitième",
+            }
             if value in under_19:
                 return under_19[value]
-            text = render(value, locale=request_locale, form="ordinal").replace("quatre-vingts-", "quatre-vingt-")
+            text = render(value, locale=request_locale, form="ordinal").replace(
+                "quatre-vingts-", "quatre-vingt-"
+            )
             return re.sub(r"(.+)-premier$", r"\1 et unième", text)
+        if language == "ru":
+            return render(value, locale="ru", form="ordinal").replace(
+                "девяностой", "девяностый"
+            )
     if to == "year" and isinstance(value, int) and not options:
         return _legacy_year(value, request_locale)
     if options.get("style") == "num2words":

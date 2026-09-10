@@ -31,28 +31,59 @@ def summarize(
 ) -> dict[str, Any]:
     counts = Counter(result.status for result in results)
     summary: dict[str, Any] = dict(metadata)
-    summary.setdefault("schema_version", 1)
+    summary.setdefault("schema_version", 2)
     summary.setdefault("generator_version", 1)
     summary["generated_cases"] = len(results)
-    summary["counts"] = {status: counts.get(status, 0) for status in DIFFERENTIAL_STATUSES}
-    comparable_cases = counts.get("match", 0) + counts.get("mismatch", 0)
+    summary["counts"] = {
+        status: counts.get(status, 0) for status in DIFFERENTIAL_STATUSES
+    }
+    comparable_cases = (
+        counts.get("match", 0) + counts.get("variant", 0) + counts.get("mismatch", 0)
+    )
+    semantic_matches = counts.get("match", 0) + counts.get("variant", 0)
     summary["comparability"] = {
         "comparable_cases": comparable_cases,
         "exact_matches": counts.get("match", 0),
+        "accepted_variants": counts.get("variant", 0),
+        "semantic_matches": semantic_matches,
         "exact_parity_rate": (
             counts.get("match", 0) / comparable_cases if comparable_cases else 0.0
         ),
+        "semantic_parity_rate": (
+            semantic_matches / comparable_cases if comparable_cases else 0.0
+        ),
     }
     mismatches = (result for result in results if result.status == "mismatch")
+    variants = (result for result in results if result.status == "variant")
     oracle_errors = (result for result in results if result.status == "oracle-error")
     summary["breakdowns"] = {
         "locale": _breakdown(results, "locale"),
         "kind": _breakdown(results, "kind"),
         "currency": _breakdown(
-            (result for result in results if result.case.currency is not None), "currency"
+            (result for result in results if result.case.currency is not None),
+            "currency",
         ),
         "difference_shape": dict(
-            sorted(Counter(result.difference_shape for result in results if result.difference_shape).items())
+            sorted(
+                Counter(
+                    result.difference_shape
+                    for result in results
+                    if result.difference_shape
+                ).items()
+            )
+        ),
+        "variants_by_locale": _breakdown(variants, "locale"),
+        "variants_by_kind": _breakdown(
+            (result for result in results if result.status == "variant"), "kind"
+        ),
+        "variants_by_rule": dict(
+            sorted(
+                Counter(
+                    result.equivalence_rule
+                    for result in results
+                    if result.status == "variant" and result.equivalence_rule
+                ).items()
+            )
         ),
         "mismatches_by_locale": _breakdown(mismatches, "locale"),
         "mismatches_by_kind": _breakdown(
@@ -77,6 +108,7 @@ def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
 def _result_value(result: DifferentialResult) -> str:
     return result.case.value.kind + "(" + result.case.value.value + ")"
 
+
 def _group_key(result: DifferentialResult) -> tuple[Any, ...]:
     return (
         result.case.locale,
@@ -84,6 +116,7 @@ def _group_key(result: DifferentialResult) -> tuple[Any, ...]:
         result.case.currency,
         result.status,
         result.difference_shape,
+        result.equivalence_rule,
     )
 
 
@@ -109,14 +142,19 @@ def human_report(
         "",
         f"matches:            {counts['match']}",
         f"mismatches:         {counts['mismatch']}",
+        f"accepted variants:  {counts['variant']}",
         f"oracle errors:      {counts['oracle-error']}",
         f"numeralform errors: {counts['numeralform-error']}",
         f"both errors:        {counts['both-error']}",
         f"comparable cases:   {summary['comparability']['comparable_cases']}",
         f"exact parity:       {summary['comparability']['exact_parity_rate']:.2%}",
+        f"semantic parity:    {summary['comparability']['semantic_parity_rate']:.2%}",
     ]
     for label, values in (
         ("cases by locale", summary["breakdowns"]["locale"]),
+        ("accepted variants by locale", summary["breakdowns"]["variants_by_locale"]),
+        ("accepted variants by kind", summary["breakdowns"]["variants_by_kind"]),
+        ("accepted variants by rule", summary["breakdowns"]["variants_by_rule"]),
         ("cases by kind", summary["breakdowns"]["kind"]),
         ("mismatches by locale", summary["breakdowns"]["mismatches_by_locale"]),
         ("mismatches by kind", summary["breakdowns"]["mismatches_by_kind"]),
@@ -136,7 +174,12 @@ def human_report(
             first = group[0]
             lines.extend(
                 (
-                    f"  locale={first.case.locale} kind={first.case.kind} currency={first.case.currency or '-'} status={first.status} shape={first.difference_shape or first.status}",
+                    f"  locale={first.case.locale} kind={first.case.kind} currency={first.case.currency or '-'} status={first.status} shape={first.difference_shape or first.status}"
+                    + (
+                        f" rule={first.equivalence_rule}"
+                        if first.equivalence_rule
+                        else ""
+                    ),
                     f"    count: {len(group)}",
                     "    examples:",
                 )
@@ -197,7 +240,11 @@ def write_reports(
         ),
         encoding="utf-8",
     )
-    paths = {"summary": summary_path, "differences": differences_path, "report": report_path}
+    paths = {
+        "summary": summary_path,
+        "differences": differences_path,
+        "report": report_path,
+    }
     if record_all:
         all_path = output_dir / RESULT_FILENAMES["all"]
         _write_jsonl(all_path, (result.to_dict() for result in results))

@@ -55,6 +55,28 @@ oracle_locale = "en"
 rule_set = ""
 mode = "reviewed-only"
 
+
+[[mapping]]
+id = "en-US-cardinal-default"
+numeralform_locale = "en-US"
+form = "cardinal"
+syntax = "standalone"
+style = "default"
+oracle = ""
+oracle_locale = "en-US"
+rule_set = ""
+mode = "reviewed-only"
+
+[[mapping]]
+id = "en-GB-cardinal-default"
+numeralform_locale = "en-GB"
+form = "cardinal"
+syntax = "standalone"
+style = "default"
+oracle = ""
+oracle_locale = "en-GB"
+rule_set = ""
+mode = "reviewed-only"
 [[mapping]]
 id = "es-cardinal-attributive"
 numeralform_locale = "es"

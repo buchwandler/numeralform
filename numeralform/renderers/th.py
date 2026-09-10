@@ -67,12 +67,27 @@ class ThaiRenderer:
             return _UNDER_10[value]
         if value < 20:
             units = value % 10
-            return "สิบ" if units == 0 else "สิบเอ็ด" if units == 1 else f"สิบ{_UNDER_10[units]}"
+            return (
+                "สิบ"
+                if units == 0
+                else "สิบเอ็ด"
+                if units == 1
+                else f"สิบ{_UNDER_10[units]}"
+            )
         if value < 100:
             tens, units = divmod(value, 10)
             base = _TENS[tens]
-            return base if units == 0 else f"{base}{'เอ็ด' if units == 1 else _UNDER_10[units]}"
-        for scale, name in ((100_000, "แสน"), (10_000, "หมื่น"), (1_000, "พัน"), (100, "ร้อย")):
+            return (
+                base
+                if units == 0
+                else f"{base}{'เอ็ด' if units == 1 else _UNDER_10[units]}"
+            )
+        for scale, name in (
+            (100_000, "แสน"),
+            (10_000, "หมื่น"),
+            (1_000, "พัน"),
+            (100, "ร้อย"),
+        ):
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 text = f"{self._under_million(quotient)}{name}"
@@ -97,6 +112,7 @@ class ThaiRenderer:
             return self._under_million(low)
         text = f"{self._render_cardinal(high)}ล้าน"
         return text if low == 0 else text + self._under_million(low, trailing_one=True)
+
     def _render_digits(self, value) -> str:
         from ..model import DigitSequence
 

@@ -107,7 +107,11 @@ class CzechRenderer:
             return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         if value < 1_000_000:
             thousands, remainder = divmod(value, 1_000)
-            prefix = "tisíc" if thousands == 1 else f"{self._cardinal(thousands)} {self._scale_form(thousands, 'tisíc', 'tisíce', 'tisíc')}"
+            prefix = (
+                "tisíc"
+                if thousands == 1
+                else f"{self._cardinal(thousands)} {self._scale_form(thousands, 'tisíc', 'tisíce', 'tisíc')}"
+            )
             return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         millions, remainder = divmod(value, 1_000_000)
         prefix = f"{self._cardinal(millions)} {self._scale_form(millions, 'milion', 'miliony', 'milionů')}"
@@ -122,6 +126,7 @@ class CzechRenderer:
         if value % 10 in (2, 3, 4):
             return few
         return many
+
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

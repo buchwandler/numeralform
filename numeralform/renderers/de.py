@@ -140,17 +140,31 @@ class GermanRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale >= 1_000_000:
-                    prefix = f"eine {singular}" if quotient == 1 else f"{self._cardinal(quotient)} {plural}"
-                    return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
+                    prefix = (
+                        f"eine {singular}"
+                        if quotient == 1
+                        else f"{self._cardinal(quotient)} {plural}"
+                    )
+                    return prefix + (
+                        f" {self._cardinal(remainder)}" if remainder else ""
+                    )
                 if scale == 1_000:
-                    prefix = "eintausend" if quotient == 1 else f"{self._cardinal(quotient)}tausend"
+                    prefix = (
+                        "eintausend"
+                        if quotient == 1
+                        else f"{self._cardinal(quotient)}tausend"
+                    )
                     return prefix + (self._cardinal(remainder) if remainder else "")
         raise InvalidValueError("German cardinal value is outside the supported range")
+
     def _year(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("year form requires a non-negative integer")
+        if 1100 <= value < 2000:
+            century, remainder = divmod(value, 100)
+            prefix = f"{self._cardinal(century)}hundert"
+            return prefix + (self._cardinal(remainder) if remainder else "")
         return self._cardinal(value)
-
 
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:

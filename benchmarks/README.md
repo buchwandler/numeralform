@@ -24,7 +24,7 @@ python -m benchmarks.run num2words
 
 ## Randomized num2words differential benchmark
 
-This suite generates reproducible semantic numeral requests, compares canonical Numeralform with the pinned external num2words checkout, and records exact matches, text differences, and renderer errors. It is a correctness benchmark, not a performance benchmark. The displayed surface string is diagnostic metadata. Typed values, locale, form, and currency are passed explicitly to both implementations, so strings such as `1.23 $` are never parsed by either renderer.
+This suite generates reproducible semantic numeral requests, compares canonical Numeralform with the pinned external num2words checkout, and records exact matches, audited accepted variants, true mismatches, and renderer errors. Canonical comparisons report exact parity and semantic parity separately. The compatibility target remains exact. The displayed surface string is diagnostic metadata. Typed values, locale, form, and currency are passed explicitly to both implementations, so strings such as `1.23 $` are never parsed by either renderer.
 
 Acquire the pinned oracle before running it:
 
@@ -38,14 +38,13 @@ Run a reproducible common-profile sample:
 python -m benchmarks.randomized --cases 10000 --seed 20260910
 ```
 
-Use `--profile stress` for broader domains, repeat `--locale`, `--kind`, or `--currency` to filter cases, and use `--record-all` to retain matches. Text differences are diagnostic by default. Add `--fail-on-diff` when a strict experiment should return exit code 1 for any non-match. Infrastructure and configuration failures return exit code 2.
-
+Use `--profile stress` for broader domains, repeat `--locale`, `--kind`, or `--currency` to filter cases, and use `--record-all` to retain matches. Text differences are diagnostic by default. Add `--fail-on-diff` when a strict experiment should return exit code 1 for any non-exact result, including an accepted variant. Use `--fail-on-unaccepted` to ignore accepted variants but fail true mismatches and execution errors. Infrastructure and configuration failures return exit code 2.
 Reports are written under `benchmarks/data/results/num2words-random/`:
 
 ```text
-summary.json       provenance, counts, and breakdowns
-differences.jsonl  every non-match with replayable semantic data
-report.txt         grouped human-readable differences
+summary.json       schema v2 provenance, counts, parity, and breakdowns
+differences.jsonl  every non-exact result with replayable semantic data and variant rules
+report.txt         grouped human-readable differences, including variant rules
 all-results.jsonl  optional complete result stream
 ```
 
@@ -93,6 +92,5 @@ Only `.gitkeep` sentinels are tracked. Remove local benchmark state with:
 rm -rf benchmarks/data/corpora/* benchmarks/data/oracles/* benchmarks/data/results/*
 ```
 
-The corpus checker verifies JSONL ordering, NFC output, manifest hashes, case counts, exception records, and mismatch dimensions. A benchmark command returns non-zero when comparison mismatches or when required oracle/version checks fail. Reports group differences by locale, form, value range, expectation kind, and difference shape.
-
+The corpus checker verifies JSONL ordering, NFC output, manifest hashes, case counts, exception records, and mismatch dimensions. A benchmark command returns non-zero when comparison mismatches or when required oracle/version checks fail. Reports group differences by locale, form, value range, expectation kind, difference shape, and accepted equivalence rule.
 The default test extra includes pytest and coverage only. ICU/PyICU and the upstream num2words oracle are benchmark-only prerequisites. The package build includes `numeralform` and does not package this directory.

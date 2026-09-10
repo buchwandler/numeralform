@@ -6,6 +6,15 @@ from .en import EnglishRenderer
 from .fr import _UNDER_20, FrenchRenderer
 
 
+class EnglishUSRenderer(EnglishRenderer):
+    locale = "en-US"
+
+
+class EnglishGBRenderer(EnglishRenderer):
+    locale = "en-GB"
+    default_cardinal_style = "british-and"
+
+
 class EnglishIndiaRenderer(EnglishRenderer):
     locale = "en-IN"
 
@@ -89,4 +98,10 @@ class FrenchSwissRenderer(FrenchRenderer):
         return super()._cardinal(value)
 
 
-__all__ = ["EnglishIndiaRenderer", "FrenchBelgiumRenderer", "FrenchSwissRenderer"]
+__all__ = [
+    "EnglishGBRenderer",
+    "EnglishIndiaRenderer",
+    "EnglishUSRenderer",
+    "FrenchBelgiumRenderer",
+    "FrenchSwissRenderer",
+]

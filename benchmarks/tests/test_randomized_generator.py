@@ -22,7 +22,9 @@ def test_generation_is_seeded_and_filters_are_respected():
 
 
 def test_shared_locales_normalizes_regional_spellings():
-    assert shared_locales(canonical_locales=("en-IN", "de"), external_locales=("en_IN", "de")) == (
+    assert shared_locales(
+        canonical_locales=("en-IN", "de"), external_locales=("en_IN", "de")
+    ) == (
         "de",
         "en-IN",
     )

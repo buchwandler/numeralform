@@ -85,7 +85,10 @@ def test_finnish_capabilities_match_reviewed_domain():
     assert render(1000, locale="fi") == "tuhat"
     assert render(21, locale="fi") == "kaksikymmentäyksi"
     assert render(201, locale="fi") == "kaksisataayksi"
-    assert render(9999, locale="fi") == "yhdeksäntuhatta yhdeksänsataayhdeksänkymmentäyhdeksän"
+    assert (
+        render(9999, locale="fi")
+        == "yhdeksäntuhatta yhdeksänsataayhdeksänkymmentäyhdeksän"
+    )
     with pytest.raises(UnsupportedMorphologyError):
         render(1, locale="fi", case="genitive")
     with pytest.raises(InvalidValueError):
@@ -218,12 +221,23 @@ def test_random_report_renderer_regressions(locale, value, text):
 
 def test_currency_locale_morphology_and_joining():
     assert "центов" in render_currency(Decimal("0.38"), locale="ru", currency="EUR")
-    assert "treinta y un céntimos" in render_currency(Decimal("0.31"), locale="es", currency="EUR")
+    assert "treinta y un céntimos" in render_currency(
+        Decimal("0.31"), locale="es", currency="EUR"
+    )
     assert "dva eura" in render_currency(Decimal("2.02"), locale="cs", currency="EUR")
     assert "centy" in render_currency(Decimal("2.02"), locale="cs", currency="EUR")
-    assert render_currency(Decimal("1.20"), locale="ko", currency="USD") == "일 달러 이십 센트"
+    assert (
+        render_currency(Decimal("1.20"), locale="ko", currency="USD")
+        == "일 달러 이십 센트"
+    )
     assert "หนึ่งยูโร" in render_currency(Decimal("1.20"), locale="th", currency="EUR")
     assert " und " in render_currency(Decimal("1.20"), locale="de", currency="EUR")
+    assert render_currency(Decimal("8938.50"), locale="de", currency="GBP").endswith(
+        "Pfund und fünfzig Pence"
+    )
+    assert render_currency(Decimal("5532.49"), locale="de", currency="USD").endswith(
+        "Dollar und neunundvierzig Cent"
+    )
     assert " et " in render_currency(Decimal("1.20"), locale="fr", currency="EUR")
 
 
@@ -240,6 +254,11 @@ def test_canonical_ordinal_stems_and_compounds():
 
 
 def test_canonical_year_policies():
-    assert render(1828, locale="de", form="year") == "eintausendachthundertachtundzwanzig"
+    assert render(1828, locale="de", form="year") == "achtzehnhundertachtundzwanzig"
+    assert render(1099, locale="de", form="year") == "eintausendneunundneunzig"
+    assert render(1100, locale="de", form="year") == "elfhundert"
+    assert render(1900, locale="de", form="year") == "neunzehnhundert"
+    assert render(1999, locale="de", form="year") == "neunzehnhundertneunundneunzig"
+    assert render(2000, locale="de", form="year") == "zweitausend"
     assert render(2024, locale="ko", form="year") == "이천이십사년"
     assert render(2024, locale="ja", form="year") == "二千二十四"

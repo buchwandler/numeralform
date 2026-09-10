@@ -99,7 +99,9 @@ def oracle_version(root: Path) -> str:
         for line in version_file.read_text(encoding="utf-8").splitlines():
             if line.startswith("__version__ = "):
                 return line.split("=", 1)[1].strip().strip("'\"")
-    raise RuntimeError(f"unable to determine {NUM2WORDS_PACKAGE} package metadata from {root}")
+    raise RuntimeError(
+        f"unable to determine {NUM2WORDS_PACKAGE} package metadata from {root}"
+    )
 
 
 def normalize_locale(locale: str) -> str:

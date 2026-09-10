@@ -60,6 +60,7 @@ _SCALES = [
 ]
 _MAX_CARDINAL = 999_999_999_999
 
+
 class ItalianRenderer:
     locale = "it"
 
@@ -121,12 +122,19 @@ class ItalianRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale == 1_000:
-                    prefix = "mille" if quotient == 1 else self._cardinal(quotient) + "mila"
+                    prefix = (
+                        "mille" if quotient == 1 else self._cardinal(quotient) + "mila"
+                    )
                     return prefix + (self._cardinal(remainder) if remainder else "")
                 scale_name = singular if quotient == 1 else plural
-                prefix = f"un {scale_name}" if quotient == 1 else f"{self._cardinal(quotient)} {scale_name}"
+                prefix = (
+                    f"un {scale_name}"
+                    if quotient == 1
+                    else f"{self._cardinal(quotient)} {scale_name}"
+                )
                 return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
         raise InvalidValueError("Italian cardinal value is outside the supported range")
+
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
