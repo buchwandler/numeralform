@@ -55,13 +55,22 @@ _ORDINALS = {
     8: "achte",
     9: "neunte",
     10: "zehnte",
+    11: "elfte",
+    12: "zwölfte",
+    13: "dreizehnte",
+    14: "vierzehnte",
+    15: "fünfzehnte",
+    16: "sechzehnte",
+    17: "siebzehnte",
+    18: "achtzehnte",
+    19: "neunzehnte",
 }
 _SCALES = [
-    (1_000_000_000_000, "Billion"),
-    (1_000_000_000, "Milliarde"),
-    (1_000_000, "Million"),
-    (1_000, "tausend"),
-    (100, "hundert"),
+    (1_000_000_000_000, "Billion", "Billionen"),
+    (1_000_000_000, "Milliarde", "Milliarden"),
+    (1_000_000, "Million", "Millionen"),
+    (1_000, "tausend", "tausend"),
+    (100, "hundert", "hundert"),
 ]
 _MAX_CARDINAL = 999_999_999_999
 
@@ -98,7 +107,7 @@ class GermanRenderer:
         elif request.form is NumeralForm.ORDINAL:
             text = self._ordinal(value)
         elif request.form is NumeralForm.YEAR:
-            text = self._cardinal(value)
+            text = self._year(value)
         else:
             text = self._cardinal(value)
         return NumeralResult(
@@ -117,37 +126,31 @@ class GermanRenderer:
         if value == 0:
             return "null"
         if value < 10:
-            return _UNITS[value] if value > 1 else ("eins" if value == 1 else "null")
+            return _UNITS[value] if value > 1 else "eins"
         if value < 20:
             return _TEENS[value - 10]
         if value < 100:
             tens, units = divmod(value, 10)
-            if units == 0:
-                return _TENS[tens]
-            return f"{_UNITS[units]}und{_TENS[tens]}"
+            return _TENS[tens] if units == 0 else f"{_UNITS[units]}und{_TENS[tens]}"
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
             prefix = ("ein" if hundreds == 1 else _UNITS[hundreds]) + "hundert"
             return prefix + (self._cardinal(remainder) if remainder else "")
-        for scale, name in _SCALES:
+        for scale, singular, plural in _SCALES:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale >= 1_000_000:
-                    if quotient == 1:
-                        prefix = f"eine {name}"
-                    else:
-                        prefix = f"{self._cardinal(quotient)} {name}"
-                    # Add 'n' for plural Milliarden
-                    if scale == 1_000_000_000 and quotient > 1:
-                        prefix += "n"
-                elif scale == 1_000:
-                    prefix = (
-                        "ein" if quotient == 1 else self._cardinal(quotient)
-                    ) + name
-                else:
-                    prefix = ("ein" if quotient == 1 else _UNITS[quotient]) + name
-                return prefix + (self._cardinal(remainder) if remainder else "")
+                    prefix = f"eine {singular}" if quotient == 1 else f"{self._cardinal(quotient)} {plural}"
+                    return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
+                if scale == 1_000:
+                    prefix = "eintausend" if quotient == 1 else f"{self._cardinal(quotient)}tausend"
+                    return prefix + (self._cardinal(remainder) if remainder else "")
         raise InvalidValueError("German cardinal value is outside the supported range")
+    def _year(self, value: int) -> str:
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise InvalidValueError("year form requires a non-negative integer")
+        return self._cardinal(value)
+
 
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:

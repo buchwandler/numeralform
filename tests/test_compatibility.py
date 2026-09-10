@@ -52,17 +52,17 @@ def test_integer_currency_input_is_minor_units_only_in_compatibility_mode():
     canonical = render_currency(5, locale="en", currency="EUR")
     legacy = num2words(5, lang="en", to="currency", currency="EUR")
     assert "five euros" in canonical
-    assert "zero euros" in legacy
+    assert "zero euro" in legacy
     assert "five cents" in legacy
 
 
 def test_rounding_and_cents_false():
-    assert "three euros" in num2words(Decimal("2.995"), lang="en", to="currency")
+    assert "three euro" in num2words(Decimal("2.995"), lang="en", to="currency")
     assert ", 05 cents" in num2words(5, lang="en", to="currency", cents=False)
 
 
 def test_variable_currency_scale():
-    assert num2words(5, lang="en", to="currency", currency="JPY") == "five yen"
+    assert num2words(5, lang="en", to="currency", currency="JPY") == "zero yen, five sen"
     assert "fils" in num2words(
         Decimal("1.001"), lang="en", to="currency", currency="KWD"
     )
@@ -71,8 +71,7 @@ def test_variable_currency_scale():
 def test_indian_english_uses_lakh_and_crore():
     assert render(100_000, locale="en-IN") == "one lakh"
     assert render(10_000_000, locale="en-IN") == "one crore"
-    assert "lakh" not in num2words(100_000, lang="en-IN")
-
+    assert num2words(100_000, lang="en-IN") == "one lakh"
 
 def test_belgian_and_swiss_french_have_regional_tens():
     assert render(70, locale="fr-BE") == "septante"
@@ -153,3 +152,14 @@ def test_fraction_string_and_precision():
     assert "one third" in num2words("1/3", lang="en")
     assert "one third" in num2words("1/3", lang="en", to="fraction")
     assert "point" in num2words(1.239, lang="en", precision=2)
+
+
+def test_pinned_compatibility_regression_fixtures():
+    assert num2words(690173780, lang="en") == ("six hundred and ninety million, one hundred and seventy-three thousand, "
+        "seven hundred and eighty")
+    assert num2words(Decimal("1.20"), lang="es") == "uno punto dos"
+    assert num2words(Decimal("1.20"), lang="ru") == "одна целая двадцать сотых"
+    assert num2words(2024, lang="ja", to="year") == "令和六年"
+    assert num2words(1901, lang="en", to="year") == "nineteen oh-one"
+    assert num2words(100001, lang="pt") == "cem mil e um"
+    assert num2words(83, lang="fr-BE", to="ordinal") == "quatre-vingt-troisième"

@@ -60,7 +60,7 @@ class KoreanRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._render_digits(value)
         elif request.form is NumeralForm.YEAR:
-            text = self._render_cardinal(value)
+            text = self._render_cardinal(value) + "년"
         else:
             text = self._render_cardinal(value)
         return NumeralResult(

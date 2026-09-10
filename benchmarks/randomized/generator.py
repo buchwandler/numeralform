@@ -56,7 +56,7 @@ def load_config(path: Path = CONFIG_PATH, profile: str | None = None) -> RandomC
     if not isinstance(randomized, dict):
         raise TypeError("randomized configuration requires [randomized]")
     selected = profile or randomized.get("default_profile")
-    if selected not in {"common", "stress"}:
+    if selected not in {"shared", "numeralform", "common", "stress"}:
         raise ValueError(f"unknown randomized profile: {selected!r}")
     required = {"schema_version", "generator_version", "weights", selected}
     missing = required - set(randomized)
@@ -235,7 +235,7 @@ def generate_cases(
     *,
     seed: int,
     count: int,
-    profile: str = "common",
+    profile: str = "shared",
     oracle_root: Path | None = None,
     locales: Iterable[str] | None = None,
     kinds: Iterable[str] | None = None,
@@ -245,6 +245,7 @@ def generate_cases(
     external_locales: Iterable[str] | None = None,
     supports: Callable[[str, str, int | Decimal], bool] | None = None,
     currency_supports: Callable[[str, Decimal, str], bool] | None = None,
+    oracle_supports: Callable[[str, str, int | Decimal, str | None], bool] | None = None,
 ) -> tuple[tuple[RandomCase, ...], dict[str, int], RandomConfig]:
     if count < 0:
         raise ValueError("case count must be non-negative")
@@ -268,9 +269,14 @@ def generate_cases(
     rng = random.Random(seed)
     supports = supports or _default_supports
     currency_supports = currency_supports or _default_currency_supports
+    oracle_supports = oracle_supports or (lambda locale, kind, value, currency: True)
     generated: list[RandomCase] = []
     seen: set[tuple[str, str, str, str | None]] = set()
-    rejected = {"generation_rejected_numeralform_unsupported": 0, "generation_rejected_duplicate": 0}
+    rejected = {
+        "generation_rejected_numeralform_unsupported": 0,
+        "generation_rejected_oracle_unsupported": 0,
+        "generation_rejected_duplicate": 0,
+    }
     max_attempts = max(count * int(profile_values.get("max_attempt_multiplier", 20)), count + 1)
     attempts = 0
     while len(generated) < count and attempts < max_attempts:
@@ -278,16 +284,19 @@ def generate_cases(
         locale = rng.choice(selected_locales)
         kind = weighted_choice(rng, {key: config.weights[key] for key in selected_kinds})
         value, currency = _candidate(rng, locale, kind, profile_values, selected_currencies)
-        if profile == "common":
+        if profile in {"common", "numeralform", "shared"}:
             supported = (
                 currency_supports(locale, value, currency) if kind == "currency" else supports(locale, kind, value)
             )
             if not supported:
                 rejected["generation_rejected_numeralform_unsupported"] += 1
                 continue
+        if profile == "shared" and not oracle_supports(locale, kind, value, currency):
+            rejected["generation_rejected_oracle_unsupported"] += 1
+            continue
         serialized = SerializedRandomValue.from_python(value)
         identity = (locale, kind, serialized.value, currency)
-        if profile == "common" and identity in seen:
+        if profile in {"common", "numeralform", "shared"} and identity in seen:
             rejected["generation_rejected_duplicate"] += 1
             continue
         seen.add(identity)
@@ -318,6 +327,8 @@ __all__ = [
     "CONFIG_PATH",
     "GENERATOR_VERSION",
     "RandomConfig",
+    "_default_currency_supports",
+    "_default_supports",
     "generate_cases",
     "load_config",
     "normalize_locale",

@@ -3,10 +3,11 @@ from __future__ import annotations
 import subprocess
 import sys
 import textwrap
+from decimal import Decimal
 
 import pytest
 
-from numeralform import DigitSequence, NumeralFormError, render
+from numeralform import DigitSequence, NumeralFormError, render, render_currency
 from numeralform.errors import InvalidValueError, UnsupportedMorphologyError
 
 
@@ -79,9 +80,12 @@ def test_locale_owned_numeric_ordinals_match_capabilities():
 def test_finnish_capabilities_match_reviewed_domain():
     assert render(1, locale="fi") == "yksi"
     assert render(12, locale="fi") == "kaksitoista"
-    assert render(42, locale="fi") == "neljäkymmentä kaksi"
+    assert render(42, locale="fi") == "neljäkymmentäkaksi"
     assert render(100, locale="fi") == "sata"
     assert render(1000, locale="fi") == "tuhat"
+    assert render(21, locale="fi") == "kaksikymmentäyksi"
+    assert render(201, locale="fi") == "kaksisataayksi"
+    assert render(9999, locale="fi") == "yhdeksäntuhatta yhdeksänsataayhdeksänkymmentäyhdeksän"
     with pytest.raises(UnsupportedMorphologyError):
         render(1, locale="fi", case="genitive")
     with pytest.raises(InvalidValueError):
@@ -184,3 +188,58 @@ def test_unknown_legacy_options_fail():
 
     with pytest.raises(NumeralFormError):
         num2words(42, currency="EUR")
+
+
+@pytest.mark.parametrize(
+    ("locale", "value", "text"),
+    (
+        ("pt", 200, "duzentos"),
+        ("pt", 2000, "dois mil"),
+        ("pt", 100000, "cem mil"),
+        ("pt", 2_000_000, "dois milhões"),
+        ("cs", 99, "devadesát devět"),
+        ("cs", 2000, "dva tisíce"),
+        ("th", 99999, "เก้าหมื่นเก้าพันเก้าร้อยเก้าสิบเก้า"),
+        ("th", 100001, "หนึ่งแสนเอ็ด"),
+        ("de", 2_000_000, "zwei Millionen"),
+        ("it", 1001, "milleuno"),
+        ("it", 1_000_001, "un milione e uno"),
+        ("fi", 21, "kaksikymmentäyksi"),
+        ("ko", 2009, "이천구년"),
+        ("sv", 1999, "etttusen niohundranittionio"),
+        ("fr", 80000, "quatre-vingt mille"),
+        ("vi", 1_000_001, "một triệu lẻ một"),
+    ),
+)
+def test_random_report_renderer_regressions(locale, value, text):
+    form = "year" if locale == "ko" else "cardinal"
+    assert render(value, locale=locale, form=form) == text
+
+
+def test_currency_locale_morphology_and_joining():
+    assert "центов" in render_currency(Decimal("0.38"), locale="ru", currency="EUR")
+    assert "treinta y un céntimos" in render_currency(Decimal("0.31"), locale="es", currency="EUR")
+    assert "dva eura" in render_currency(Decimal("2.02"), locale="cs", currency="EUR")
+    assert "centy" in render_currency(Decimal("2.02"), locale="cs", currency="EUR")
+    assert render_currency(Decimal("1.20"), locale="ko", currency="USD") == "일 달러 이십 센트"
+    assert "หนึ่งยูโร" in render_currency(Decimal("1.20"), locale="th", currency="EUR")
+    assert " und " in render_currency(Decimal("1.20"), locale="de", currency="EUR")
+    assert " et " in render_currency(Decimal("1.20"), locale="fr", currency="EUR")
+
+
+def test_canonical_ordinal_stems_and_compounds():
+    assert render(11, locale="de", form="ordinal") == "elfte"
+    assert render(13, locale="de", form="ordinal") == "dreizehnte"
+    assert render(88, locale="fi", form="ordinal") == "kahdeksaskymmeneskahdeksas"
+    assert render(54, locale="fr", form="ordinal") == "cinquante-quatrième"
+    assert render(50, locale="it", form="ordinal") == "cinquantesimo"
+    assert render(57, locale="it", form="ordinal") == "cinquantasettesimo"
+    assert render(11, locale="pt", form="ordinal") == "décimo primeiro"
+    assert render(23, locale="ru", form="ordinal") == "двадцать третий"
+    assert render(42, locale="sv", form="ordinal") == "fyrtioandra"
+
+
+def test_canonical_year_policies():
+    assert render(1828, locale="de", form="year") == "eintausendachthundertachtundzwanzig"
+    assert render(2024, locale="ko", form="year") == "이천이십사년"
+    assert render(2024, locale="ja", form="year") == "二千二十四"

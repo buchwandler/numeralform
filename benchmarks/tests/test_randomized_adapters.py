@@ -1,6 +1,10 @@
 from decimal import Decimal
 
-from benchmarks.randomized.adapters import run_num2words, run_numeralform
+from benchmarks.randomized.adapters import (
+    run_num2words,
+    run_numeralform,
+    run_numeralform_compat,
+)
 from benchmarks.randomized.model import RandomCase, SerializedRandomValue
 
 
@@ -48,3 +52,16 @@ def test_numeralform_decimal_and_exception_capture():
     error = run_numeralform(case, render_function=lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("bad")))
     assert error.outcome == "exception"
     assert error.exception_type == "ValueError"
+
+
+def test_compat_adapter_uses_num2words_call_shape():
+    case = make_case("currency", Decimal("1.20"), "USD")
+    calls = []
+
+    def fake(value, **kwargs):
+        calls.append((value, kwargs))
+        return "ok"
+
+    result = run_numeralform_compat(case, num2words_function=fake)
+    assert result.text == "ok"
+    assert calls == [(Decimal("1.20"), {"lang": "en", "to": "currency", "currency": "USD"})]

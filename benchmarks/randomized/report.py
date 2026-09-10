@@ -35,6 +35,16 @@ def summarize(
     summary.setdefault("generator_version", 1)
     summary["generated_cases"] = len(results)
     summary["counts"] = {status: counts.get(status, 0) for status in DIFFERENTIAL_STATUSES}
+    comparable_cases = counts.get("match", 0) + counts.get("mismatch", 0)
+    summary["comparability"] = {
+        "comparable_cases": comparable_cases,
+        "exact_matches": counts.get("match", 0),
+        "exact_parity_rate": (
+            counts.get("match", 0) / comparable_cases if comparable_cases else 0.0
+        ),
+    }
+    mismatches = (result for result in results if result.status == "mismatch")
+    oracle_errors = (result for result in results if result.status == "oracle-error")
     summary["breakdowns"] = {
         "locale": _breakdown(results, "locale"),
         "kind": _breakdown(results, "kind"),
@@ -43,6 +53,14 @@ def summarize(
         ),
         "difference_shape": dict(
             sorted(Counter(result.difference_shape for result in results if result.difference_shape).items())
+        ),
+        "mismatches_by_locale": _breakdown(mismatches, "locale"),
+        "mismatches_by_kind": _breakdown(
+            (result for result in results if result.status == "mismatch"), "kind"
+        ),
+        "oracle_errors_by_locale": _breakdown(oracle_errors, "locale"),
+        "oracle_errors_by_kind": _breakdown(
+            (result for result in results if result.status == "oracle-error"), "kind"
         ),
     }
     if generation_stats:
@@ -59,17 +77,13 @@ def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
 def _result_value(result: DifferentialResult) -> str:
     return result.case.value.kind + "(" + result.case.value.value + ")"
 
-
 def _group_key(result: DifferentialResult) -> tuple[Any, ...]:
     return (
         result.case.locale,
         result.case.kind,
         result.case.currency,
+        result.status,
         result.difference_shape,
-        result.num2words.text,
-        result.numeralform.text,
-        result.num2words.exception_type,
-        result.numeralform.exception_type,
     )
 
 
@@ -85,6 +99,7 @@ def human_report(
     lines = [
         "NUM2WORDS ↔ NUMERALFORM RANDOM DIFFERENTIAL BENCHMARK",
         "",
+        f"target:             {metadata.get('target', 'canonical')}",
         f"seed:               {metadata.get('seed', '<unknown>')}",
         f"generator version:  {metadata.get('generator_version', 1)}",
         f"profile:            {metadata.get('profile', '<unknown>')}",
@@ -97,11 +112,17 @@ def human_report(
         f"oracle errors:      {counts['oracle-error']}",
         f"numeralform errors: {counts['numeralform-error']}",
         f"both errors:        {counts['both-error']}",
+        f"comparable cases:   {summary['comparability']['comparable_cases']}",
+        f"exact parity:       {summary['comparability']['exact_parity_rate']:.2%}",
     ]
     for label, values in (
-        ("by locale", summary["breakdowns"]["locale"]),
-        ("by kind", summary["breakdowns"]["kind"]),
-        ("by difference shape", summary["breakdowns"]["difference_shape"]),
+        ("cases by locale", summary["breakdowns"]["locale"]),
+        ("cases by kind", summary["breakdowns"]["kind"]),
+        ("mismatches by locale", summary["breakdowns"]["mismatches_by_locale"]),
+        ("mismatches by kind", summary["breakdowns"]["mismatches_by_kind"]),
+        ("oracle errors by locale", summary["breakdowns"]["oracle_errors_by_locale"]),
+        ("oracle errors by kind", summary["breakdowns"]["oracle_errors_by_kind"]),
+        ("mismatches by difference shape", summary["breakdowns"]["difference_shape"]),
     ):
         lines.extend(("", label))
         lines.extend(f"  {key}: {value}" for key, value in values.items())
@@ -115,15 +136,21 @@ def human_report(
             first = group[0]
             lines.extend(
                 (
-                    f"  locale={first.case.locale} kind={first.case.kind} currency={first.case.currency or '-'} shape={first.difference_shape or first.status}",
+                    f"  locale={first.case.locale} kind={first.case.kind} currency={first.case.currency or '-'} status={first.status} shape={first.difference_shape or first.status}",
                     f"    count: {len(group)}",
-                    f"    first case: {first.case.case_id}",
-                    f"    surface: {first.case.surface!r}",
-                    f"    semantic: {_result_value(first)}",
-                    f"    num2words: {first.num2words.text if first.num2words.text is not None else '<exception: ' + str(first.num2words.exception_type) + '>'}",
-                    f"    numeralform: {first.numeralform.text if first.numeralform.text is not None else '<exception: ' + str(first.numeralform.exception_type) + '>'}",
+                    "    examples:",
                 )
             )
+            for example in group[:5]:
+                lines.extend(
+                    (
+                        f"      case: {example.case.case_id}",
+                        f"        surface: {example.case.surface!r}",
+                        f"        semantic: {_result_value(example)}",
+                        f"        num2words: {example.num2words.text if example.num2words.text is not None else '<exception: ' + str(example.num2words.exception_type) + '>'}",
+                        f"        numeralform: {example.numeralform.text if example.numeralform.text is not None else '<exception: ' + str(example.numeralform.exception_type) + '>'}",
+                    )
+                )
     differences = [result for result in results if result.status != "match"]
     if differences:
         lines.extend(("", f"sample differences (maximum {sample_limit})"))

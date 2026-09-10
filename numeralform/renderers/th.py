@@ -24,12 +24,6 @@ _UNDER_10 = (
     "เก้า",
 )
 _TENS = ("", "สิบ", "ยี่สิบ", "สามสิบ", "สี่สิบ", "ห้าสิบ", "หกสิบ", "เจ็ดสิบ", "แปดสิบ", "เก้าสิบ")
-_SCALES = [
-    (1_000_000_000_000, "ล้านล้าน"),
-    (1_000_000, "ล้าน"),
-    (1_000, "พัน"),
-    (100, "ร้อย"),
-]
 _MAX_CARDINAL = 999_999_999_999
 
 
@@ -66,7 +60,28 @@ class ThaiRenderer:
             text, request.locale, request.form, request.style, request.morphology
         )
 
-    def _render_cardinal(self, value: int, *, trailing_one: bool = False) -> str:
+    def _under_million(self, value: int, *, trailing_one: bool = False) -> str:
+        if value < 10:
+            if value == 1 and trailing_one:
+                return "เอ็ด"
+            return _UNDER_10[value]
+        if value < 20:
+            units = value % 10
+            return "สิบ" if units == 0 else "สิบเอ็ด" if units == 1 else f"สิบ{_UNDER_10[units]}"
+        if value < 100:
+            tens, units = divmod(value, 10)
+            base = _TENS[tens]
+            return base if units == 0 else f"{base}{'เอ็ด' if units == 1 else _UNDER_10[units]}"
+        for scale, name in ((100_000, "แสน"), (10_000, "หมื่น"), (1_000, "พัน"), (100, "ร้อย")):
+            if value >= scale:
+                quotient, remainder = divmod(value, scale)
+                text = f"{self._under_million(quotient)}{name}"
+                if remainder:
+                    text += self._under_million(remainder, trailing_one=True)
+                return text
+        raise InvalidValueError("Thai value is outside the under-million range")
+
+    def _render_cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
@@ -77,40 +92,11 @@ class ThaiRenderer:
             return "ติดลบ" + self._render_cardinal(-value)
         if value == 0:
             return "ศูนย์"
-        if value < 10:
-            # Context-sensitive one: เอ็ด when trailing after scales, หนึ่ง standalone
-            if value == 1 and trailing_one:
-                return "เอ็ด"
-            return _UNDER_10[value]
-        if value < 20:
-            units = value % 10
-            if units == 0:
-                return "สิบ"
-            if units == 1:
-                return "สิบเอ็ด"
-            return f"สิบ{_UNDER_10[units]}"
-        if value < 100:
-            tens, units = divmod(value, 10)
-            base = _TENS[tens]
-            if units == 0:
-                return base
-            if units == 1:
-                return f"{base}เอ็ด"
-            return f"{base}{_UNDER_10[units]}"
-        # For larger values, use recursive composition
-        for scale, name in _SCALES:
-            if value >= scale:
-                quotient, remainder = divmod(value, scale)
-                # Leading 1 at scale position uses หนึ่ง, not เอ็ด
-                if quotient == 1:
-                    base = f"หนึ่ง{name}"
-                else:
-                    base = f"{self._render_cardinal(quotient)}{name}"
-                if remainder == 0:
-                    return base
-                return f"{base}{self._render_cardinal(remainder, trailing_one=True)}"
-        raise InvalidValueError("Thai cardinal value is outside the supported range")
-
+        high, low = divmod(value, 1_000_000)
+        if high == 0:
+            return self._under_million(low)
+        text = f"{self._render_cardinal(high)}ล้าน"
+        return text if low == 0 else text + self._under_million(low, trailing_one=True)
     def _render_digits(self, value) -> str:
         from ..model import DigitSequence
 

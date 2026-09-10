@@ -84,6 +84,10 @@ class FrenchRenderer:
             text, request.locale, request.form, request.style, request.morphology
         )
 
+    @staticmethod
+    def _scale_quotient(value: str) -> str:
+        return value[:-1] if value.endswith("quatre-vingts") else value
+
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
@@ -129,12 +133,12 @@ class FrenchRenderer:
                     if quotient == 1:
                         prefix = "mille"
                     else:
-                        prefix = f"{self._cardinal(quotient)} mille"
+                        prefix = f"{self._scale_quotient(self._cardinal(quotient))} mille"
                 else:
                     if quotient == 1:
                         prefix = f"un {name}"
                     else:
-                        prefix = f"{self._cardinal(quotient)} {name}s"
+                        prefix = f"{self._scale_quotient(self._cardinal(quotient))} {name}s"
                 return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         raise InvalidValueError("French cardinal value is outside the supported range")
 
@@ -143,8 +147,14 @@ class FrenchRenderer:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value in _ORDINALS:
             return _ORDINALS[value]
-        return self._cardinal(value) + "ième"
-
+        if value < 100:
+            _tens, units = divmod(value, 10)
+            if units:
+                return f"{self._cardinal(value - units)}-{self._ordinal(units)}"
+            cardinal = self._cardinal(value)
+            return cardinal.removesuffix("s").removesuffix("e") + "ième"
+        cardinal = self._cardinal(value)
+        return cardinal.removesuffix("s").removesuffix("e") + "ième"
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

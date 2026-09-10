@@ -46,3 +46,7 @@ Use `numeralform.compat.num2words` for the tested pinned `num2words` 0.5.14 surf
 ## Currency
 
 `render_currency` returns text. `realize_currency` accepts a value or `CurrencyRequest` and returns `CurrencyResult`. Currency options are explicit and unknown options raise `TypeError`.
+
+## Year semantics
+
+`form="year"` is a spoken year expression, not an alias for cardinal rendering. English uses locale-specific year grouping, Korean appends `년`, and German and Japanese use their canonical cardinal realization. Japanese era conversion is available only through the compatibility namespace.

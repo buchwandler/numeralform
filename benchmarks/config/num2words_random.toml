@@ -3,7 +3,7 @@ schema_version = 1
 generator_version = 1
 default_cases = 10000
 default_seed = 20260910
-default_profile = "common"
+default_profile = "shared"
 
 [randomized.weights]
 cardinal = 40
@@ -11,6 +11,36 @@ decimal = 20
 ordinal = 15
 year = 10
 currency = 15
+
+[randomized.shared]
+edge_probability = 0.25
+cardinal_min = 0
+cardinal_max = 999999999
+ordinal_min = 1
+ordinal_max = 99
+year_min = 1000
+year_max = 2099
+decimal_integer_max = 999999
+decimal_fraction_digits = [1, 2, 3, 4]
+currency_min = "0.00"
+currency_max = "9999.99"
+currencies = ["EUR", "USD", "GBP", "JPY"]
+max_attempt_multiplier = 20
+
+[randomized.numeralform]
+edge_probability = 0.25
+cardinal_min = 0
+cardinal_max = 999999999
+ordinal_min = 1
+ordinal_max = 99
+year_min = 1000
+year_max = 2099
+decimal_integer_max = 999999
+decimal_fraction_digits = [1, 2, 3, 4]
+currency_min = "0.00"
+currency_max = "9999.99"
+currencies = ["EUR", "USD", "GBP", "JPY"]
+max_attempt_multiplier = 20
 
 [randomized.common]
 edge_probability = 0.25

@@ -486,6 +486,8 @@ class RussianRenderer:
         if value < 100:
             tens, ones = divmod(value, 10)
             if ones:
+                if ones == 3 and case == 0 and gender == "m":
+                    return f"{_TENS_CASES[tens][0]} третий"
                 return f"{_TENS_CASES[tens][0]} {self._ordinal_word(ones, case, gender, animate)}"
             return self._ordinal_tens(tens, case, gender, animate)
         for exponent in sorted(_SCALE_NOM, reverse=True):

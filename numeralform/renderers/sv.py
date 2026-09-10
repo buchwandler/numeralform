@@ -145,7 +145,7 @@ class SwedishRenderer:
                         prefix = "en " + name
                     else:
                         prefix = self._render_cardinal(quotient) + " " + name + "er"
-                return prefix + (self._render_cardinal(remainder) if remainder else "")
+                return prefix + (" " + self._render_cardinal(remainder) if remainder else "")
         raise InvalidValueError("Swedish cardinal value is outside the supported range")
 
     def _render_ordinal(self, value: int) -> str:

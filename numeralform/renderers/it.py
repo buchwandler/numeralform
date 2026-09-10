@@ -53,9 +53,12 @@ _ORDINALS = {
     9: "nono",
     10: "decimo",
 }
-_SCALES = [(1_000_000_000, "miliardo"), (1_000_000, "milione"), (1_000, "mille")]
+_SCALES = [
+    (1_000_000_000, "miliardo", "miliardi"),
+    (1_000_000, "milione", "milioni"),
+    (1_000, "mille", "mila"),
+]
 _MAX_CARDINAL = 999_999_999_999
-
 
 class ItalianRenderer:
     locale = "it"
@@ -108,38 +111,29 @@ class ItalianRenderer:
             tens, units = divmod(value, 10)
             base = _TENS[tens]
             if units in (1, 8):
-                # Elision: ventuno, ventotto
                 return base[:-1] + _UNDER_20[units]
             return base + (_UNDER_20[units] if units else "")
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
-            if hundreds == 1:
-                prefix = "cento"
-            else:
-                prefix = _UNDER_20[hundreds] + "cento"
+            prefix = "cento" if hundreds == 1 else _UNDER_20[hundreds] + "cento"
             return prefix + (self._cardinal(remainder) if remainder else "")
-        for scale, name in _SCALES:
+        for scale, singular, plural in _SCALES:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale == 1_000:
-                    if quotient == 1:
-                        prefix = "mille"
-                    else:
-                        prefix = self._cardinal(quotient) + "mila"
-                else:
-                    if quotient == 1:
-                        prefix = f"un {name}"
-                    else:
-                        prefix = f"{self._cardinal(quotient)} {name}"
-                return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
+                    prefix = "mille" if quotient == 1 else self._cardinal(quotient) + "mila"
+                    return prefix + (self._cardinal(remainder) if remainder else "")
+                scale_name = singular if quotient == 1 else plural
+                prefix = f"un {scale_name}" if quotient == 1 else f"{self._cardinal(quotient)} {scale_name}"
+                return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
         raise InvalidValueError("Italian cardinal value is outside the supported range")
-
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value in _ORDINALS:
             return _ORDINALS[value]
-        return self._cardinal(value) + "esimo"
+        cardinal = self._cardinal(value)
+        return cardinal.rstrip("aeiou") + "esimo"
 
     def _digits(self, value) -> str:
         from ..model import DigitSequence

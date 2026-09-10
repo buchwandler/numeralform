@@ -20,7 +20,12 @@ from benchmarks.validation.oracle.num2words import (
     oracle_version,
 )
 
-from .adapters import run_num2words, run_numeralform
+from .adapters import (
+    num2words_call_kwargs,
+    run_num2words,
+    run_numeralform_canonical,
+    run_numeralform_compat,
+)
 from .compare import compare_results
 from .generator import CONFIG_PATH, generate_cases, load_config
 from .model import DifferentialResult, RandomCase
@@ -31,11 +36,33 @@ DEFAULT_ORACLE_ROOT = BENCHMARK_ROOT / "data" / "oracles" / "num2words"
 DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
 
 
-def execute_case(case: RandomCase, external_num2words) -> DifferentialResult:
+def _oracle_supports(external_num2words, locale, kind, value, currency):
+    try:
+        external_num2words(
+            value,
+            **num2words_call_kwargs(locale, kind, currency),
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
+
+def execute_case(
+    case: RandomCase,
+    external_num2words,
+    *,
+    target: str = "canonical",
+) -> DifferentialResult:
+    if target == "canonical":
+        numeralform_result = run_numeralform_canonical(case)
+    elif target == "compat":
+        numeralform_result = run_numeralform_compat(case)
+    else:
+        raise ValueError(f"unknown benchmark target: {target!r}")
     return compare_results(
         case,
         run_num2words(case, external_num2words),
-        run_numeralform(case),
+        numeralform_result,
     )
 
 
@@ -56,10 +83,18 @@ def _seed(value: str) -> int:
     return int(value)
 
 
-def _metadata(seed: int, profile: str, requested_cases: int, config, version: str) -> dict:
+def _metadata(
+    seed: int,
+    profile: str,
+    requested_cases: int,
+    config,
+    version: str,
+    target: str,
+) -> dict:
     return {
         "schema_version": 1,
         "generator_version": 1,
+        "target": target,
         "seed": seed,
         "profile": profile,
         "requested_cases": requested_cases,
@@ -82,6 +117,7 @@ def run_benchmark(
     profile: str,
     oracle_root: Path,
     output_dir: Path,
+    target: str = "canonical",
     locales: Iterable[str] = (),
     kinds: Iterable[str] = (),
     currencies: Iterable[str] = (),
@@ -103,9 +139,12 @@ def run_benchmark(
         currencies=currencies or None,
         external_locales=external_locales,
         config_path=CONFIG_PATH,
+        oracle_supports=lambda locale, kind, value, currency: _oracle_supports(
+            external_num2words, locale, kind, value, currency
+        ),
     )
-    results = tuple(execute_case(case, external_num2words) for case in generated)
-    metadata = _metadata(seed, profile, cases, config, version)
+    results = tuple(execute_case(case, external_num2words, target=target) for case in generated)
+    metadata = _metadata(seed, profile, cases, config, version, target)
     paths = write_reports(
         results,
         output_dir,
@@ -126,18 +165,34 @@ def run_benchmark(
     return 1 if fail_on_diff and any(result.status != "match" for result in results) else 0
 
 
-def run_replay(path: Path, case_id: str, oracle_root: Path) -> int:
+def _replay_target(path: Path, target: str | None) -> str:
+    if target is not None:
+        return target
+    summary_path = path.with_name("summary.json")
+    if summary_path.exists():
+        metadata = json.loads(summary_path.read_text(encoding="utf-8"))
+        return str(metadata.get("target", "canonical"))
+    return "canonical"
+
+
+def run_replay(
+    path: Path,
+    case_id: str,
+    oracle_root: Path,
+    target: str | None = None,
+) -> int:
     case = _load_replay(path, case_id)
-    result = execute_case(case, load_num2words(oracle_root))
+    selected_target = _replay_target(path, target)
+    result = execute_case(case, load_num2words(oracle_root), target=selected_target)
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
     return 1 if result.status != "match" else 0
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=int, default=10000)
     parser.add_argument("--seed", default="20260910", type=_seed)
-    parser.add_argument("--profile", choices=("common", "stress"), default="common")
+    parser.add_argument("--profile", choices=("shared", "numeralform", "common", "stress"), default="shared")
+    parser.add_argument("--target", choices=("canonical", "compat"), default=None)
     parser.add_argument("--locale", action="append", dest="locales", default=[])
     parser.add_argument("--kind", action="append", dest="kinds", default=[])
     parser.add_argument("--currency", action="append", dest="currencies", default=[])
@@ -155,13 +210,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.replay is not None:
         if not args.case_id:
             raise ValueError("--case-id is required with --replay")
-        return run_replay(args.replay, args.case_id, args.oracle_root)
+        return run_replay(args.replay, args.case_id, args.oracle_root, args.target)
     if args.cases < 0:
         raise ValueError("--cases must be non-negative")
     return run_benchmark(
         cases=args.cases,
         seed=args.seed,
         profile=args.profile,
+        target=args.target or "canonical",
         oracle_root=args.oracle_root,
         output_dir=args.output_dir,
         locales=args.locales,

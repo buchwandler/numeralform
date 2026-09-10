@@ -53,6 +53,25 @@ _ORDINALS = {
     8: "kahdeksas",
     9: "yhdeksäs",
     10: "kymmenes",
+    11: "yhdestoista",
+    12: "kahdestoista",
+    13: "kolmastoista",
+    14: "neljästoista",
+    15: "viidestoista",
+    16: "kuudestoista",
+    17: "seitsemästoista",
+    18: "kahdeksastoista",
+    19: "yhdeksästoista",
+}
+_ORDINAL_TENS = {
+    2: "kahdeskymmenes",
+    3: "kolmaskymmenes",
+    4: "neljäskymmenes",
+    5: "viideskymmenes",
+    6: "kuudeskymmenes",
+    7: "seitsemäskymmenes",
+    8: "kahdeksaskymmenes",
+    9: "yhdeksäskymmenes",
 }
 _CASES = frozenset(
     {
@@ -199,18 +218,15 @@ class FinnishRenderer:
                 return _SMALL_CASES[value][case]
         elif value < 100:
             tens, ones = divmod(value, 10)
-            text = _TENS[tens] + (" " + _UNDER_20[ones] if ones else "")
+            text = _TENS[tens] + (_UNDER_20[ones] if ones else "")
         elif value < 1000:
             hundreds, rest = divmod(value, 100)
             text = "sata" if hundreds == 1 else _UNDER_20[hundreds] + "sataa"
             if rest:
-                text += " " + self._cardinal(rest, morphology)
+                text += self._cardinal(rest, morphology)
         else:
-            scale, name = self._scale(value)
-            group, rest = divmod(value, scale)
-            text = (
-                name if group == 1 else self._cardinal(group, morphology) + " " + name
-            )
+            group, rest = divmod(value, 1000)
+            text = "tuhat" if group == 1 else self._cardinal(group, morphology) + "tuhatta"
             if rest:
                 text += " " + self._cardinal(rest, morphology)
         return self._inflect(
@@ -238,16 +254,12 @@ class FinnishRenderer:
             text = _ORDINALS[value]
         elif value < 100:
             tens, ones = divmod(value, 10)
-            text = (
-                _TENS[tens].replace("kymmentä", "kymmenes")
-                if not ones
-                else _TENS[tens] + " " + self._ordinal(ones, morphology)
-            )
+            text = _ORDINAL_TENS[tens] + (self._ordinal(ones, morphology) if ones else "")
         else:
             hundreds, rest = divmod(value, 100)
             text = "sadas" if hundreds == 1 else _UNDER_20[hundreds] + "sadas"
             if rest:
-                text += " " + self._ordinal(rest, morphology)
+                text += self._ordinal(rest, morphology)
         return self._inflect(
             text, _case_name(morphology.case), morphology.grammatical_number == "plural"
         )

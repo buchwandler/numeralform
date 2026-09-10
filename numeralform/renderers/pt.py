@@ -76,9 +76,51 @@ _ORDINALS_BR = {
     9: "nono",
     10: "décimo",
 }
-_SCALES = [(1_000_000_000_000, "bilhão"), (1_000_000, "milhão"), (1_000, "mil")]
+_ORDINALS_PT = {
+    0: "zeroésimo",
+    1: "primeiro",
+    2: "segundo",
+    3: "terceiro",
+    4: "quarto",
+    5: "quinto",
+    6: "sexto",
+    7: "sétimo",
+    8: "oitavo",
+    9: "nono",
+    10: "décimo",
+    11: "décimo primeiro",
+    12: "décimo segundo",
+    13: "décimo terceiro",
+    14: "décimo quarto",
+    15: "décimo quinto",
+    16: "décimo sexto",
+    17: "décimo sétimo",
+    18: "décimo oitavo",
+    19: "décimo nono",
+    20: "vigésimo",
+}
+_ORDINAL_TENS_PT = {
+    2: "vigésimo",
+    3: "trigésimo",
+    4: "quadragésimo",
+    5: "quinquagésimo",
+    6: "sexagésimo",
+    7: "septuagésimo",
+    8: "octogésimo",
+    9: "nonagésimo",
+}
+_HUNDREDS = {
+    100: ("cem", "cento"),
+    200: "duzentos",
+    300: "trezentos",
+    400: "quatrocentos",
+    500: "quinhentos",
+    600: "seiscentos",
+    700: "setecentos",
+    800: "oitocentos",
+    900: "novecentos",
+}
 _MAX_CARDINAL = 999_999_999_999
-
 
 class PortugueseRenderer:
     locale = "pt-BR"
@@ -136,26 +178,27 @@ class PortugueseRenderer:
             return self._under_20[value]
         if value < 100:
             tens, units = divmod(value, 10)
-            base = _TENS[tens]
-            return base + (" e " + self._under_20[units] if units else "")
+            return _TENS[tens] + (f" e {self._under_20[units]}" if units else "")
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
-            if hundreds == 1:
-                prefix = "cem" if remainder == 0 else "cento"
-            else:
-                prefix = self._under_20[hundreds] + "centos"
-            return prefix + (" e " + self._cardinal(remainder) if remainder else "")
-        for scale, name in _SCALES:
+            entry = _HUNDREDS[hundreds * 100]
+            prefix = entry[0] if hundreds == 1 and remainder == 0 else entry[-1] if hundreds == 1 else entry
+            return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
+        scale_words = (
+            (1_000_000_000, "bilhão" if self._variant == "pt-BR" else "bilião"),
+            (1_000_000, "milhão"),
+            (1_000, "mil"),
+        )
+        for scale, name in scale_words:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale == 1_000:
-                    prefix = "mil"
+                    prefix = "mil" if quotient == 1 else f"{self._cardinal(quotient)} mil"
                 else:
-                    if quotient == 1:
-                        prefix = f"um {name}"
-                    else:
-                        prefix = f"{self._cardinal(quotient)} {name}"
-                return prefix + (" e " + self._cardinal(remainder) if remainder else "")
+                    plural_names = {"milhão": "milhões", "bilhão": "bilhões", "bilião": "biliões"}
+                    scale_name = name if quotient == 1 else plural_names[name]
+                    prefix = f"{self._cardinal(quotient)} {scale_name}"
+                return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
         raise InvalidValueError(
             "Portuguese cardinal value is outside the supported range"
         )
@@ -163,10 +206,13 @@ class PortugueseRenderer:
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
-        if value in _ORDINALS_BR:
-            return _ORDINALS_BR[value]
+        if value <= 20:
+            return _ORDINALS_PT[value]
+        if value < 100:
+            tens, units = divmod(value, 10)
+            prefix = _ORDINAL_TENS_PT[tens]
+            return prefix if units == 0 else f"{prefix} {self._ordinal(units)}"
         return self._cardinal(value) + "ésimo"
-
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

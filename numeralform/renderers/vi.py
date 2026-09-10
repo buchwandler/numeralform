@@ -94,7 +94,7 @@ class VietnameseRenderer:
             if units == 0:
                 return "mười"
             if units == 1:
-                return "mười mốt"
+                return "mười một"
             if units == 5:
                 return "mười lăm"
             return f"mười {_UNDER_10[units]}"
@@ -122,7 +122,7 @@ class VietnameseRenderer:
                 base = f"{self._render_cardinal(quotient)} {name}"
                 if remainder == 0:
                     return base
-                if scale == 1_000 and remainder < 10:
+                if remainder < 10:
                     return f"{base} lẻ {_UNDER_10[remainder]}"
                 return f"{base} {self._render_cardinal(remainder)}"
         raise InvalidValueError(

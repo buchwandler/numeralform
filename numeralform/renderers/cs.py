@@ -100,26 +100,28 @@ class CzechRenderer:
             return _UNDER_20[value]
         if value < 100:
             tens, units = divmod(value, 10)
-            return _TENS[tens] + (_UNDER_20[units] if units else "")
+            return _TENS[tens] + (f" {_UNDER_20[units]}" if units else "")
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
-            return _HUNDREDS[hundreds] + (
-                self._cardinal(remainder) if remainder else ""
-            )
+            prefix = _HUNDREDS[hundreds]
+            return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         if value < 1_000_000:
             thousands, remainder = divmod(value, 1_000)
-            if thousands == 1:
-                prefix = "tisíc"
-            else:
-                prefix = self._cardinal(thousands) + " tisíc"
-            return prefix + (" " + self._cardinal(remainder) if remainder else "")
+            prefix = "tisíc" if thousands == 1 else f"{self._cardinal(thousands)} {self._scale_form(thousands, 'tisíc', 'tisíce', 'tisíc')}"
+            return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         millions, remainder = divmod(value, 1_000_000)
-        if millions == 1:
-            prefix = "milion"
-        else:
-            prefix = self._cardinal(millions) + " milionů"
-        return prefix + (" " + self._cardinal(remainder) if remainder else "")
+        prefix = f"{self._cardinal(millions)} {self._scale_form(millions, 'milion', 'miliony', 'milionů')}"
+        return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
 
+    @staticmethod
+    def _scale_form(value: int, one: str, few: str, many: str) -> str:
+        if value % 100 in (11, 12, 13, 14):
+            return many
+        if value % 10 == 1:
+            return one
+        if value % 10 in (2, 3, 4):
+            return few
+        return many
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 
