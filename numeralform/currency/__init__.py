@@ -97,7 +97,7 @@ _CURRENCIES = {
     "GBP": {
         "en": ("pound", "pounds", "penny", "pence"),
         "fr": ("livre", "livres", "penny", "pence"),
-        "de": ("Pfund", "Pfund", "Pence", "Pence"),
+        "de": ("Pfund", "Pfund", "Penny", "Pence"),
     },
     "RUB": {
         "ru": ("рубль", "рубля", "копейка", "копейки"),
@@ -305,7 +305,11 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
         return render(value, locale=locale, style="british-and")
     if language == "es" and gender is not None:
         return render(value, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=gender)
-    return render(value, locale=locale)
+    text = render(value, locale=locale)
+    if language == "de" and text.endswith("eins"):
+        # A cardinal directly before a currency unit is attributive: eins -> ein.
+        return text.removesuffix("eins") + "ein"
+    return text
 
 
 def render_currency(

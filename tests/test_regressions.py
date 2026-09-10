@@ -241,6 +241,43 @@ def test_currency_locale_morphology_and_joining():
     assert " et " in render_currency(Decimal("1.20"), locale="fr", currency="EUR")
 
 
+def test_german_currency_uses_attributive_terminal_ein():
+    assert render(1, locale="de") == "eins"
+    assert render(301, locale="de") == "dreihunderteins"
+    assert (
+        render_currency(Decimal("301.58"), locale="de", currency="EUR")
+        == "dreihundertein Euro und achtundfünfzig Cent"
+    )
+    assert (
+        render_currency(Decimal("1341.01"), locale="de", currency="EUR")
+        == "eintausenddreihunderteinundvierzig Euro und ein Cent"
+    )
+    assert (
+        render_currency(Decimal("501.72"), locale="de", currency="GBP")
+        == "fünfhundertein Pfund und zweiundsiebzig Pence"
+    )
+    assert (
+        render_currency(Decimal("4216.01"), locale="de", currency="GBP")
+        == "viertausendzweihundertsechzehn Pfund und ein Penny"
+    )
+    assert (
+        render_currency(Decimal("6401.30"), locale="de", currency="USD")
+        == "sechstausendvierhundertein Dollar und dreißig Cent"
+    )
+    assert (
+        render_currency(Decimal("1.01"), locale="de", currency="EUR")
+        == "ein Euro und ein Cent"
+    )
+    assert (
+        render_currency(Decimal("21.21"), locale="de", currency="EUR")
+        == "einundzwanzig Euro und einundzwanzig Cent"
+    )
+    assert (
+        render_currency(Decimal("101.11"), locale="de", currency="EUR")
+        == "einhundertein Euro und elf Cent"
+    )
+
+
 def test_canonical_ordinal_stems_and_compounds():
     assert render(11, locale="de", form="ordinal") == "elfte"
     assert render(13, locale="de", form="ordinal") == "dreizehnte"

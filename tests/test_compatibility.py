@@ -71,6 +71,28 @@ def test_variable_currency_scale():
     )
 
 
+def test_german_currency_matches_pinned_num2words_morphology():
+    assert (
+        num2words(
+            Decimal("301.58"),
+            lang="de",
+            to="currency",
+            currency="EUR",
+        )
+        == "dreihundertein Euro und achtundfünfzig Cent"
+    )
+
+    assert (
+        num2words(
+            Decimal("4216.01"),
+            lang="de",
+            to="currency",
+            currency="GBP",
+        )
+        == "viertausendzweihundertsechzehn Pfund und ein Penny"
+    )
+
+
 def test_legacy_jpy_decimal_marker_controls_zero_sen_output():
     assert (
         num2words(Decimal(61), lang="en", to="currency", currency="JPY")

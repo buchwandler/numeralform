@@ -641,10 +641,14 @@ def _legacy_currency(
             "JPY": (("jeni", "jeniä"), ("seni", "seniä")),
         }
     elif language == "de":
-        words = lambda number: render(number, locale="de")
+
+        def words(number):
+            text = render(number, locale="de")
+            return text.removesuffix("eins") + "ein" if text.endswith("eins") else text
+
         names = {
             "EUR": (("Euro", "Euro"), ("Cent", "Cent")),
-            "GBP": (("Pfund", "Pfund"), ("Pence", "Pence")),
+            "GBP": (("Pfund", "Pfund"), ("Penny", "Pence")),
             "USD": (("Dollar", "Dollar"), ("Cent", "Cent")),
         }
     elif language == "pt":

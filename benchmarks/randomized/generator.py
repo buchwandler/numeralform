@@ -328,8 +328,16 @@ def generate_cases(
     )
     pair_by_canonical = {pair.canonical: pair for pair in pairs}
     available_locales = tuple(sorted(pair_by_canonical))
+    requested_locales = {
+        normalize_locale(locale) for locale in locales or available_locales
+    }
     selected_locales = tuple(
-        sorted({normalize_locale(locale) for locale in locales or available_locales})
+        sorted(
+            _NUM2WORDS_CANONICAL_LOCALE_MAP.get(locale, locale)
+            if locale not in pair_by_canonical
+            else locale
+            for locale in requested_locales
+        )
     )
     if not set(selected_locales) <= set(available_locales):
         unknown = sorted(set(selected_locales) - set(available_locales))

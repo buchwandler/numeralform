@@ -46,6 +46,40 @@ def test_shared_locale_pairs_route_pinned_english_to_gb():
     )
 
 
+def test_requested_oracle_english_locale_routes_to_shared_gb_pair():
+    cases, _, _ = generate_cases(
+        seed=5,
+        count=3,
+        canonical_locales=("en", "en-US", "en-GB"),
+        external_locales=("en",),
+        locales=("en",),
+        kinds=("cardinal",),
+        supports=lambda locale, kind, value: True,
+        currency_supports=lambda locale, value, currency: True,
+        oracle_supports=lambda locale, kind, value, currency: True,
+    )
+
+    assert {case.locale for case in cases} == {"en-GB"}
+    assert {case.oracle_locale for case in cases} == {"en"}
+
+
+def test_requested_canonical_shared_locale_wins_over_oracle_alias():
+    cases, _, _ = generate_cases(
+        seed=5,
+        count=1,
+        canonical_locales=("en",),
+        external_locales=("en",),
+        locales=("en",),
+        kinds=("cardinal",),
+        supports=lambda *args: True,
+        currency_supports=lambda *args: True,
+        oracle_supports=lambda *args: True,
+    )
+
+    assert cases[0].locale == "en"
+    assert cases[0].oracle_locale == "en"
+
+
 def test_shared_profile_filters_oracle_unsupported_candidates():
     calls = []
 
