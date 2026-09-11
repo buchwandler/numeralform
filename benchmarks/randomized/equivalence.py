@@ -32,7 +32,9 @@ _EN_SMALL = (
     "nine",
 )
 
-# These are benchmark policy aliases, not runtime lexicon data.
+# These are benchmark policy aliases, not runtime lexicon data. They must only
+# collapse terminology that denotes the same currency units; they must not
+# normalize numeric words or signs.
 _CURRENCY_RULES = {
     ("en", "EUR"): (("euro", "euros"), ("cent", "cents"), ("and",)),
     ("en", "USD"): (("dollar", "dollars"), ("cent", "cents"), ("and",)),
@@ -45,11 +47,52 @@ _CURRENCY_RULES = {
     ("en", "AUD"): (("dollar", "dollars", "Australian dollar", "Australian dollars"), ("cent", "cents"), ("and",)),
     ("en", "INR"): (("rupee", "rupees", "Indian rupee", "Indian rupees"), ("paisa", "paise"), ("and",)),
     ("en", "RUB"): (("ruble", "rubles", "rouble", "roubles"), ("kopeck", "kopecks", "kopek", "kopeks"), ("and",)),
-    ("en", "SAR"): (("Saudi riyal", "Saudi riyals", "riyal", "riyals"), ("halala", "halalas"), ("and",)),
+    ("en", "SAR"): (
+        ("Saudi riyal", "Saudi riyals", "riyal", "riyals"),
+        ("halala", "halalas", "halalah", "halalahs"),
+        ("and",),
+    ),
     ("en", "PLN"): (("zloty", "zlotys", "złoty", "złotys"), ("grosz", "groszy"), ("and",)),
     ("en", "JPY"): (("yen",), ("sen",), ("and",)),
+    ("en", "HUF"): (("forint", "forints"), ("fillér", "filler", "fillers"), ("and",)),
+    ("en", "NOK"): (
+        ("krone", "kroner", "Norwegian krone", "Norwegian kroner"),
+        ("øre",),
+        ("and",),
+    ),
+    ("en", "SEK"): (
+        ("krona", "kronor", "Swedish krona", "Swedish kronor"),
+        ("öre",),
+        ("and",),
+    ),
+    ("es", "CAD"): (
+        ("dólar", "dólares", "dólar canadiense", "dólares canadienses"),
+        ("centavo", "centavos"),
+        ("y", "con", "and"),
+    ),
+    ("es", "NOK"): (
+        ("corona", "coronas", "corona noruega", "coronas noruegas"),
+        ("øre",),
+        ("y", "con", "and"),
+    ),
+    ("es", "GBP"): (
+        ("libra", "libras", "libra esterlina", "libras esterlinas"),
+        ("penique", "peniques"),
+        ("y", "con", "and"),
+    ),
+    ("fi", "AUD"): (
+        ("dollari", "dollaria", "Australian dollari", "Australian dollaria"),
+        ("sentti", "senttiä"),
+        ("ja", "and"),
+    ),
+    ("fi", "SEK"): (
+        ("kruunu", "kruunua"),
+        ("äyri", "äyriä", "öre"),
+        ("ja", "and"),
+    ),
     ("ru", "EUR"): (("евро",), ("цент", "цента", "центов"), ("и",)),
     ("ru", "USD"): (("доллар", "доллара", "долларов"), ("цент", "цента", "центов"), ("и",)),
+    ("ru", "RUB"): (("рубль", "рубля", "рублей"), ("копейка", "копейки", "копеек"), ("и",)),
     ("cs", "EUR"): (("euro", "eura", "eur"), ("cent", "centy", "centů"), ("a",)),
     ("cs", "USD"): (("dolar", "dolary", "dolarů"), ("cent", "centy", "centů"), ("a",)),
     ("cs", "GBP"): (("libra", "libry", "liber"), ("pence", "pencí"), ("a",)),
@@ -66,9 +109,50 @@ _FR_CONTINUATION_WORDS = frozenset(
         "un", "une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf",
         "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "vingt",
         "trente", "quarante", "cinquante", "soixante", "septante", "huitante", "nonante",
-        "et", "premier", "première", "deuxième", "troisième", "quatrième",
+        "et", "mille", "premier", "première", "deuxième", "troisième", "quatrième",
+        "cinquième", "sixième", "septième", "huitième", "neuvième", "dixième",
+        "onzième", "douzième", "treizième", "quatorzième", "quinzième", "seizième",
+        "septantième", "huitantième", "nonantième",
     }
 )
+_FR_NOUN_AFTER_NUMBER = frozenset(
+    {
+        "million", "millions", "milliard", "milliards",
+        "euro", "euros", "dollar", "dollars", "livre", "livres",
+    }
+)
+_PT_ORDINAL_ORACLE_REPAIRS = {
+    "quadrigentésimo": "quadringentésimo",
+    "septigentésimo": "septingentésimo",
+    "octigentésimo": "octingentésimo",
+    "tricentésimo": "trecentésimo",
+    "seiscentésimo": "sexcentésimo",
+}
+_VI_UNDER_20 = (
+    "không",
+    "một",
+    "hai",
+    "ba",
+    "bốn",
+    "năm",
+    "sáu",
+    "bảy",
+    "tám",
+    "chín",
+    "mười",
+    "mười một",
+    "mười hai",
+    "mười ba",
+    "mười bốn",
+    "mười lăm",
+    "mười sáu",
+    "mười bảy",
+    "mười tám",
+    "mười chín",
+)
+_DE_UNITS = ("null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun")
+_DE_TEENS = ("zehn", "elf", "zwölf", "dreizehn", "vierzehn", "fünfzehn", "sechzehn", "siebzehn", "achtzehn", "neunzehn")
+_DE_TENS = ("", "", "zwanzig", "dreißig", "vierzig", "fünfzig", "sechzig", "siebzig", "achtzig", "neunzig")
 
 
 def _surface_key(text: str) -> str:
@@ -76,6 +160,12 @@ def _surface_key(text: str) -> str:
     text = _PUNCTUATION_RE.sub(" ", text)
     return _SPACE_RE.sub(" ", text).strip()
 
+
+def _explicit_sign(text: str) -> str | None:
+    stripped = text.lstrip()
+    if stripped.startswith(('-', '+')):
+        return stripped[0]
+    return None
 
 def _replace_phrase(text: str, phrase: str, marker: str) -> str:
     pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
@@ -100,7 +190,11 @@ def _currency_key(case: RandomCase, text: str) -> str | None:
 
 def _english_under_100(value: int) -> str:
     if value < 20:
-        return ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen")[value]
+        return (
+            "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+            "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+            "seventeen", "eighteen", "nineteen",
+        )[value]
     tens = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")[value // 10]
     return tens if value % 10 == 0 else f"{tens}-{_EN_SMALL[value % 10]}"
 
@@ -113,31 +207,76 @@ def _english_year_variant(case: RandomCase, expected: str, actual: str) -> bool:
         return False
     expected_key = _surface_key(expected)
     actual_key = _surface_key(actual)
+    allowed: set[str] = set()
     if 100 <= value <= 999:
         hundreds, remainder = divmod(value, 100)
         if remainder == 0:
             return False
         prefix = _EN_SMALL[hundreds]
         remainder_words = _english_under_100(remainder)
-        allowed = {_surface_key(value) for value in (
+        forms = {
             f"{prefix} {remainder_words}",
             f"{prefix} hundred {remainder_words}",
             f"{prefix} hundred and {remainder_words}",
-        )}
-        return expected_key in allowed and actual_key in allowed
-    if 1001 <= value <= 1009:
-        unit = _EN_SMALL[value - 1000]
-        allowed = {
-            f"one thousand {unit}",
-            f"one thousand and {unit}",
-            f"ten oh {unit}",
         }
+        if remainder < 10:
+            forms.add(f"{prefix} oh {_EN_SMALL[remainder]}")
+        allowed = {_surface_key(item) for item in forms}
         return expected_key in allowed and actual_key in allowed
-    if 2001 <= value <= 2009:
-        unit = _EN_SMALL[value - 2000]
-        allowed = {f"two thousand {unit}", f"two thousand and {unit}"}
-        return expected_key in allowed and actual_key in allowed
+
+    if 1000 <= value <= 9999:
+        thousands, remainder = divmod(value, 1000)
+        forms: set[str] = set()
+        if remainder == 0:
+            return False
+        if thousands < 10 and remainder < 100:
+            remainder_words = _english_under_100(remainder)
+            forms.update(
+                {
+                    f"{_EN_SMALL[thousands]} thousand {remainder_words}",
+                    f"{_EN_SMALL[thousands]} thousand and {remainder_words}",
+                }
+            )
+        first, second = divmod(value, 100)
+        if 10 <= first < 100 and second:
+            if second < 10:
+                forms.add(f"{_english_under_100(first)} oh {_EN_SMALL[second]}")
+            else:
+                forms.add(f"{_english_under_100(first)} {_english_under_100(second)}")
+        allowed = {_surface_key(item) for item in forms}
+        return bool(allowed) and expected_key in allowed and actual_key in allowed
     return False
+
+
+def _de_cardinal_under_10000(value: int) -> str:
+    if value < 10:
+        return _DE_UNITS[value]
+    if value < 20:
+        return _DE_TEENS[value - 10]
+    if value < 100:
+        tens, units = divmod(value, 10)
+        return _DE_TENS[tens] if units == 0 else f"{_DE_UNITS[units]}und{_DE_TENS[tens]}"
+    if value < 1000:
+        hundreds, remainder = divmod(value, 100)
+        prefix = ("ein" if hundreds == 1 else _DE_UNITS[hundreds]) + "hundert"
+        return prefix + (_de_cardinal_under_10000(remainder) if remainder else "")
+    thousands, remainder = divmod(value, 1000)
+    prefix = "eintausend" if thousands == 1 else f"{_de_cardinal_under_10000(thousands)}tausend"
+    return prefix + (_de_cardinal_under_10000(remainder) if remainder else "")
+
+
+def _german_post_2000_year_oracle_quirk(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "de" or case.kind != "year":
+        return False
+    value = case.python_value()
+    if not isinstance(value, int) or not 2000 <= value <= 9999:
+        return False
+    canonical = _de_cardinal_under_10000(value)
+    century, remainder = divmod(value, 100)
+    oracle_style = f"{_de_cardinal_under_10000(century)}hundert"
+    if remainder:
+        oracle_style += _de_cardinal_under_10000(remainder)
+    return _surface_key(expected) == _surface_key(oracle_style) and _surface_key(actual) == _surface_key(canonical)
 
 
 def _decimal_trailing_zero_precision_variant(case: RandomCase, expected: str, actual: str) -> bool:
@@ -180,24 +319,130 @@ def _spanish_ordinal_synonym_variant(case: RandomCase, expected: str, actual: st
     return allowed is not None and _surface_key(expected) in {_surface_key(value) for value in allowed} and _surface_key(actual) in {_surface_key(value) for value in allowed}
 
 
+def _spanish_gbp_gender_variant(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "es" or case.kind != "currency" or case.currency != "GBP":
+        return False
+    repaired = _surface_key(expected)
+    for masculine, feminine in (
+        ("doscientos", "doscientas"),
+        ("trescientos", "trescientas"),
+        ("cuatrocientos", "cuatrocientas"),
+        ("quinientos", "quinientas"),
+        ("seiscientos", "seiscientas"),
+        ("setecientos", "setecientas"),
+        ("ochocientos", "ochocientas"),
+        ("novecientos", "novecientas"),
+    ):
+        repaired = _replace_phrase(repaired, masculine, feminine)
+    if repaired == _surface_key(expected):
+        return False
+    expected_key = _currency_key(case, repaired)
+    actual_key = _currency_key(case, actual)
+    return expected_key is not None and expected_key == actual_key
+
+
 def _finnish_compound_spacing_variant(case: RandomCase, expected: str, actual: str) -> bool:
-    return case.locale.split("-", 1)[0] == "fi" and case.kind == "year" and "".join(expected.split()) == "".join(actual.split())
+    return (
+        case.locale.split("-", 1)[0] == "fi"
+        and case.kind in {"cardinal", "year"}
+        and "".join(expected.split()) == "".join(actual.split())
+    )
+
+
+def _repair_french_oracle(text: str) -> str:
+    tokens = _surface_key(text).split()
+    repaired: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "un" and index + 1 < len(tokens) and tokens[index + 1] == "millions":
+            repaired.extend(("un", "million"))
+            index += 2
+            continue
+        if token == "centsième":
+            repaired.append("centième")
+            index += 1
+            continue
+        if token == "cents" and index + 1 < len(tokens):
+            next_token = tokens[index + 1]
+            if next_token in _FR_CONTINUATION_WORDS and next_token not in _FR_NOUN_AFTER_NUMBER:
+                repaired.append("cent")
+                index += 1
+                continue
+        if (
+            token == "quatre"
+            and index + 3 < len(tokens)
+            and tokens[index + 1:index + 4] == ["vingt", "et", "un"]
+        ):
+            repaired.extend(("quatre", "vingt", "un"))
+            index += 4
+            continue
+        repaired.append(token)
+        index += 1
+
+    # num2words occasionally omits the plural on a terminal 80. Repair only the
+    # oracle side; an erroneous Numeralform "quatre-vingt millions" must remain a mismatch.
+    if len(repaired) >= 2 and repaired[-2:] == ["quatre", "vingt"]:
+        repaired[-1] = "vingts"
+    return " ".join(repaired)
 
 
 def _french_cent_oracle_quirk(case: RandomCase, expected: str, actual: str) -> bool:
-    if case.locale.split("-", 1)[0] != "fr" or case.kind not in {"cardinal", "ordinal", "year"}:
+    if case.locale.split("-", 1)[0] != "fr" or case.kind not in {"cardinal", "ordinal", "year", "currency"}:
         return False
     tokens = _surface_key(expected).split()
-    repaired = ["cent" if token == "cents" and index + 1 < len(tokens) and tokens[index + 1] in _FR_CONTINUATION_WORDS else token for index, token in enumerate(tokens)]
+    repaired = [
+        "cent"
+        if token == "cents"
+        and index + 1 < len(tokens)
+        and tokens[index + 1] in _FR_CONTINUATION_WORDS
+        and tokens[index + 1] not in _FR_NOUN_AFTER_NUMBER
+        else token
+        for index, token in enumerate(tokens)
+    ]
     return " ".join(repaired) == _surface_key(actual) and repaired != tokens
+
+
+def _french_oracle_orthography_quirk(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "fr" or case.kind not in {"cardinal", "ordinal", "year", "currency"}:
+        return False
+    repaired = _repair_french_oracle(expected)
+    return repaired != _surface_key(expected) and repaired == _surface_key(actual)
 
 
 def _italian_cento_elision_variant(case: RandomCase, expected: str, actual: str) -> bool:
     if case.locale.split("-", 1)[0] != "it":
         return False
+
     def canonical(text: str) -> str:
-        return re.sub(r"cento(?=(?:ottanta|otto|uno|undici))", "cent", _surface_key(text))
-    return canonical(expected) == canonical(actual) and (canonical(expected) != _surface_key(expected) or canonical(actual) != _surface_key(actual))
+        return re.sub("cento(?=(?:ottanta|ottant|otto|uno|undici))", "cent", _surface_key(text))
+
+    return canonical(expected) == canonical(actual) and (
+        canonical(expected) != _surface_key(expected)
+        or canonical(actual) != _surface_key(actual)
+    )
+
+
+def _italian_number_orthography_variant(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "it" or case.kind not in {"cardinal", "currency", "year"}:
+        return False
+    # Do not use accent folding to excuse a Numeralform regression when the oracle
+    # already carries the required final accent.
+    if "tré" in expected and "tré" not in actual:
+        return False
+
+    expected_key = _surface_key(expected).replace("dicotto", "diciotto")
+    actual_key = _surface_key(actual)
+    # A compound ending in -tré takes the written accent. Do not strip an accent
+    # inside a longer token such as *trentatrémila; there `tre` is not word-final.
+    expected_key = re.sub(r"tré\b", "tre", expected_key)
+    actual_key = re.sub(r"tré\b", "tre", actual_key)
+    expected_key = re.sub("cento(?=(?:ottanta|ottant|otto|uno|undici))", "cent", expected_key)
+    actual_key = re.sub("cento(?=(?:ottanta|ottant|otto|uno|undici))", "cent", actual_key)
+    return expected_key == actual_key and (
+        expected_key != _surface_key(expected)
+        or actual_key != _surface_key(actual)
+    )
 
 
 def _japanese_ordinal_numeric_variant(case: RandomCase, expected: str, actual: str) -> bool:
@@ -208,6 +453,25 @@ def _japanese_ordinal_numeric_variant(case: RandomCase, expected: str, actual: s
     return expected in allowed and actual in allowed
 
 
+def _korean_ordinal_numeric_spacing_variant(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "ko" or case.kind != "ordinal_num":
+        return False
+
+    def canonical(text: str) -> str:
+        return re.sub(r"\s+(?=번째\b)", "", unicodedata.normalize("NFC", text).strip())
+
+    return canonical(expected) == canonical(actual) and expected != actual
+
+
+def _portuguese_ordinal_oracle_variant(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "pt" or case.kind != "ordinal":
+        return False
+    repaired = _surface_key(expected)
+    for oracle, canonical in _PT_ORDINAL_ORACLE_REPAIRS.items():
+        repaired = _replace_phrase(repaired, oracle, canonical)
+    return repaired != _surface_key(expected) and repaired == _surface_key(actual)
+
+
 def _swedish_oracle_orthography_variant(case: RandomCase, expected: str, actual: str) -> bool:
     if case.locale.split("-", 1)[0] != "sv":
         return False
@@ -215,17 +479,58 @@ def _swedish_oracle_orthography_variant(case: RandomCase, expected: str, actual:
     return "".join(repaired.split()) == "".join(_surface_key(actual).split())
 
 
+def _swedish_ordinal_oracle_variant(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "sv" or case.kind != "ordinal":
+        return False
+    repaired = _surface_key(expected).replace("tjugode", "tjugonde")
+    return repaired != _surface_key(expected) and "".join(repaired.split()) == "".join(_surface_key(actual).split())
+
+
+def _thai_currency_connector_variant(case: RandomCase, expected: str, actual: str) -> bool:
+    if (
+        case.locale.split("-", 1)[0] != "th"
+        or case.kind != "currency"
+        or case.options.get("separator") is not None
+    ):
+        return False
+
+    def canonical(text: str) -> str:
+        return re.sub(r"\s+", "", unicodedata.normalize("NFC", text)).replace("และ", "")
+
+    return canonical(expected) == canonical(actual) and expected != actual
+
+
+def _vietnamese_negative_oracle_quirk(case: RandomCase, expected: str, actual: str) -> bool:
+    if case.locale.split("-", 1)[0] != "vi" or case.kind != "cardinal":
+        return False
+    value = case.python_value()
+    if not isinstance(value, int) or not -19 <= value <= -1:
+        return False
+    correct = f"âm {_VI_UNDER_20[-value]}"
+    oracle_bug = _VI_UNDER_20[20 + value]
+    return _surface_key(expected) == _surface_key(oracle_bug) and _surface_key(actual) == _surface_key(correct)
+
+
 def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]], ...]:
     return (
         ("en-year-reading", _english_year_variant),
+        ("oracle:de-post-2000-year", _german_post_2000_year_oracle_quirk),
         ("decimal-trailing-zero-precision", _decimal_trailing_zero_precision_variant),
         ("oracle:es-ordinal-accent", _spanish_ordinal_accent_oracle_quirk),
         ("variant:es-ordinal-synonym", _spanish_ordinal_synonym_variant),
+        ("oracle:es-gbp-gender", _spanish_gbp_gender_variant),
         ("variant:fi-compound-spacing", _finnish_compound_spacing_variant),
         ("oracle:fr-cent-overpluralization", _french_cent_oracle_quirk),
+        ("oracle:fr-number-orthography", _french_oracle_orthography_quirk),
         ("variant:it-cento-elision", _italian_cento_elision_variant),
+        ("oracle:it-number-orthography", _italian_number_orthography_variant),
         ("variant:ja-ordinal-notation", _japanese_ordinal_numeric_variant),
+        ("variant:ko-ordinal-spacing", _korean_ordinal_numeric_spacing_variant),
+        ("variant:pt-ordinal-orthography", _portuguese_ordinal_oracle_variant),
         ("oracle:sv-number-orthography", _swedish_oracle_orthography_variant),
+        ("oracle:sv-ordinal-orthography", _swedish_ordinal_oracle_variant),
+        ("variant:th-currency-connector", _thai_currency_connector_variant),
+        ("oracle:vi-negative-cardinal", _vietnamese_negative_oracle_quirk),
     )
 
 
@@ -241,6 +546,8 @@ def accepted_variant(
 ) -> str | None:
     """Return the named equivalence rule when a textual difference is acceptable."""
     if difference_shape in _SAFE_SURFACE_SHAPES:
+        if _explicit_sign(expected) != _explicit_sign(actual):
+            return None
         return f"surface:{difference_shape}"
     for name, predicate in _VARIANT_RULES:
         if predicate(case, expected, actual):

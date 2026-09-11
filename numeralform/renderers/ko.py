@@ -75,7 +75,7 @@ class KoreanRenderer:
                 "Korean cardinal supports integers from -999999999999 through 999999999999"
             )
         if value < 0:
-            return "마이너스" + self._render_cardinal(-value)
+            return "마이너스 " + self._render_cardinal(-value)
         if value == 0:
             return "영"
         if value < 10:
@@ -87,7 +87,7 @@ class KoreanRenderer:
             if value >= scale:
                 quotient, value = divmod(value, scale)
                 if scale >= 1_0000:
-                    parts.append(self._render_cardinal(quotient) + name)
+                    parts.append(("" if scale == 1_0000 and quotient == 1 else self._render_cardinal(quotient)) + name)
                     separated = True
                     large_count += 1
                 else:

@@ -168,7 +168,7 @@ def test_digits_and_precision():
     assert render(DecimalNumber("1", "200"), locale="en") == "one point two zero zero"
     assert (
         render(DecimalNumber("1", "20", True), locale="ru")
-        == "минус один точка два ноль"
+        == "минус одна целая двадцать сотых"
     )
 
 

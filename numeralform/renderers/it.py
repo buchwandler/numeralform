@@ -118,7 +118,9 @@ class ItalianRenderer:
             text, request.locale, request.form, request.style, request.morphology
         )
 
-    def _cardinal(self, value: int) -> str:
+    def _cardinal(
+        self, value: int, *, final: bool = True, accent_final: bool = False
+    ) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
@@ -126,11 +128,11 @@ class ItalianRenderer:
                 "Italian cardinal supports integers up to 999999999999"
             )
         if value < 0:
-            return "meno " + self._cardinal(-value)
+            return "meno " + self._cardinal(-value, final=final, accent_final=accent_final)
         if value < 20:
-            return _UNDER_20[value]
-        if value % 10 == 3:
-            return self._cardinal(value - 3) + "tré"
+            return "tré" if value == 3 and accent_final else _UNDER_20[value]
+        if final and value < 100 and value > 3 and value % 10 == 3:
+            return self._cardinal(value - 3, final=False) + "tré"
         if value < 100:
             tens, units = divmod(value, 10)
             base = _TENS[tens]
@@ -140,22 +142,29 @@ class ItalianRenderer:
         if value < 1_000:
             hundreds, remainder = divmod(value, 100)
             prefix = "cento" if hundreds == 1 else _UNDER_20[hundreds] + "cento"
-            return prefix + (self._cardinal(remainder) if remainder else "")
+            if remainder:
+                suffix = self._cardinal(remainder, final=final, accent_final=final)
+                if prefix.endswith("cento") and suffix.startswith(("otto", "ottant")):
+                    prefix = prefix.removesuffix("o")
+                return prefix + suffix
+            return prefix
         for scale, singular, plural in _SCALES:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if scale == 1_000:
                     prefix = (
-                        "mille" if quotient == 1 else self._cardinal(quotient) + "mila"
+                        "mille"
+                        if quotient == 1
+                        else self._cardinal(quotient, final=False) + "mila"
                     )
-                    return prefix + (self._cardinal(remainder) if remainder else "")
+                    return prefix + (self._cardinal(remainder, final=final, accent_final=final) if remainder else "")
                 scale_name = singular if quotient == 1 else plural
                 prefix = (
                     f"un {scale_name}"
                     if quotient == 1
-                    else f"{self._cardinal(quotient)} {scale_name}"
+                    else f"{self._cardinal(quotient, final=False)} {scale_name}"
                 )
-                return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
+                return prefix + (f" e {self._cardinal(remainder, final=final, accent_final=final)}" if remainder else "")
         raise InvalidValueError("Italian cardinal value is outside the supported range")
 
     def _ordinal(self, value: int) -> str:
@@ -170,6 +179,8 @@ class ItalianRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 if remainder:
+                    if remainder < 10:
+                        return _ordinalize_italian_cardinal(cardinal)
                     return self._cardinal(value - remainder) + self._ordinal(remainder)
                 break
         return _ordinalize_italian_cardinal(cardinal)

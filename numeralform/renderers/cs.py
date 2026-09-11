@@ -114,7 +114,7 @@ class CzechRenderer:
             )
             return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         millions, remainder = divmod(value, 1_000_000)
-        prefix = f"{self._cardinal(millions)} {self._scale_form(millions, 'milion', 'miliony', 'milionů')}"
+        prefix = f"{'jeden' if millions == 1 else self._cardinal(millions)} {self._scale_form(millions, 'milion', 'miliony', 'milionů')}"
         return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
 
     @staticmethod

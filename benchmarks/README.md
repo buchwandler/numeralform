@@ -26,6 +26,12 @@ python -m benchmarks.run num2words
 
 This suite generates reproducible semantic numeral requests, compares canonical Numeralform with the pinned external num2words checkout, and records exact matches, audited accepted variants, true mismatches, and renderer errors. Canonical comparisons report exact parity and semantic parity separately. The compatibility target remains exact. The displayed surface string is diagnostic metadata. Typed values, locale, form, and currency are passed explicitly to both implementations, so strings such as `1.23 $` are never parsed by either renderer.
 
+
+### Variant policy
+
+`variant` means a semantically accepted alternative spelling, terminology, grammar, or presentation that preserves the requested numeric value and locale semantics. It does not mean exact reproduction of num2words. Every non-surface variant uses a stable named equivalence rule, and comparator rules never normalize signs, numeric tokens, malformed morphology, unsupported options, or locale fallback.
+
+The shared profile probes the exact generated currency options against both implementations. Unsupported option profiles and oracle domains without a meaningful form, including configured ordinal-zero cases, are rejected during generation and reported as generation rejections rather than oracle errors.
 Acquire the pinned oracle before running it:
 
 ```bash

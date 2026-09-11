@@ -208,7 +208,15 @@ class PortugueseRenderer:
                     }
                     scale_name = name if quotient == 1 else plural_names[name]
                     prefix = f"{self._cardinal(quotient)} {scale_name}"
-                separator = " e " if remainder < 100 or remainder % 100 == 0 else " "
+                separator = (
+                    " e "
+                    if (
+                        remainder < 100_000
+                        if scale != 1_000
+                        else remainder < 100 or remainder % 100 == 0
+                    )
+                    else " "
+                )
                 return prefix + (separator + self._cardinal(remainder) if remainder else "")
         raise InvalidValueError(
             "Portuguese cardinal value is outside the supported range"

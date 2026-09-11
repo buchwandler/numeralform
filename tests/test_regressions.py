@@ -348,6 +348,21 @@ def test_01_todo_renderer_regressions():
     assert render(1050, locale="vi") == "một nghìn lẻ năm mươi"
 
 
+def test_audited_scale_and_morphology_regressions():
+    assert render(684_012_070, locale="pt") == (
+        "seiscentos e oitenta e quatro milhões e doze mil e setenta"
+    )
+    assert render(-10_000, locale="ko") == "마이너스 만"
+    assert render(104_253_995, locale="ko") == (
+        "일억 사백이십오만 삼천구백구십오"
+    )
+    assert render(Decimal("32.11"), locale="ru", form="decimal") == (
+        "тридцать две целых одиннадцать сотых"
+    )
+    assert render(76, locale="fr", form="ordinal") == "soixante-seizième"
+    assert render(871, locale="fr-BE", form="ordinal") == "huit cent septante et unième"
+    assert render(408, locale="it", form="ordinal") == "quattrocentottesimo"
+
 def test_localized_currency_support_and_morphology():
     assert supports_currency("es", "CAD")
     assert supports_currency("fi", "AUD")
@@ -355,3 +370,49 @@ def test_localized_currency_support_and_morphology():
     assert not supports_currency("fi", "CHF")
     assert "una libra" in render_currency(Decimal("1.00"), locale="es", currency="GBP")
     assert "one paisa" in render_currency(Decimal("1.01"), locale="en", currency="INR")
+
+def test_audited_currency_sign_gender_regional_and_attachment_fixes():
+    assert render_currency(Decimal("-2.01"), locale="de", currency="USD") == (
+        "minus zwei Dollar und ein Cent"
+    )
+    assert render_currency(Decimal("-1.00"), locale="fr", currency="EUR").startswith(
+        "moins un euro"
+    )
+    assert render_currency(Decimal("-99.00"), locale="ko", currency="JPY") == (
+        "마이너스 구십구엔"
+    )
+    assert render_currency(Decimal("992.00"), locale="es", currency="NOK") == (
+        "novecientas noventa y dos coronas noruegas con cero øre"
+    )
+    assert render_currency(Decimal("20.15"), locale="ru", currency="RUB") == (
+        "двадцать рублей и пятнадцать копеек"
+    )
+    assert render_currency(Decimal("1.00"), locale="ja", currency="JPY") == "一円"
+    assert "cêntimo" in render_currency(Decimal("2.01"), locale="pt-PT", currency="AUD")
+    assert "péni" in render_currency(Decimal("1.01"), locale="pt-PT", currency="GBP")
+
+def test_audited_locale_grammar_fixes():
+    assert render(113, locale="en-GB", form="ordinal") == "one hundred and thirteenth"
+    assert render(3048, locale="en-GB", form="ordinal") == "three thousand and forty-eighth"
+    assert render(4685, locale="en-GB", form="ordinal") == (
+        "four thousand six hundred and eighty-fifth"
+    )
+    assert render(1_000_001, locale="en-IN") == "ten lakh and one"
+    assert render(684_012_070, locale="pt") == (
+        "seiscentos e oitenta e quatro milhões e doze mil e setenta"
+    )
+    assert render(684_012_070, locale="pt-BR") == (
+        "seiscentos e oitenta e quatro milhões e doze mil e setenta"
+    )
+    assert render(20, locale="es", form="ordinal", gender="feminine", syntax="attributive") == "vigésima"
+    assert render(13, locale="es", form="ordinal") == "decimotercero"
+    assert render(84, locale="fr", form="ordinal") == "quatre-vingt-quatrième"
+    assert render(101, locale="fr", form="ordinal") == "cent unième"
+    assert render(480_000_000, locale="fr") == "quatre cent quatre-vingts millions"
+    assert render(33, locale="ru", form="ordinal") == "тридцать третий"
+    assert render(103, locale="ru", form="ordinal") == "сто третий"
+    assert render(-400_000_000, locale="ko") == "마이너스 사억"
+    assert render(813, locale="it") == "ottocentotredici"
+    assert "trémila" not in render(273_000, locale="it")
+    assert render(1001, locale="it", form="ordinal") == "milleunesimo"
+    assert render(1_000_000, locale="cs") == "jeden milion"

@@ -50,6 +50,26 @@ class RandomConfig:
     def shared_exclusions(self) -> tuple[dict, ...]:
         return tuple(self.randomized.get("shared_exclusions", ()))
 
+    @property
+    def shared_option_support(self) -> dict:
+        return dict(self.randomized.get("shared_option_support", {}))
+
+    @property
+    def shared_ordinal_zero_excluded_languages(self) -> frozenset[str]:
+        return frozenset(self.randomized.get("shared_ordinal_zero_excluded_languages", ()))
+
+    def currency_variants_for(self, locale: str) -> tuple[dict, ...]:
+        variants = self.currency_variants
+        if self.profile != "shared":
+            return variants
+        language = locale.split("-", 1)[0]
+        currency_support = self.shared_option_support.get(language, {}).get("currency", {})
+        allowed = currency_support.get("variants")
+        if allowed is None:
+            return variants
+        allowed_ids = set(allowed)
+        return tuple(variant for variant in variants if variant.get("id") in allowed_ids)
+
 
     @property
     def compat_variants(self) -> tuple[dict, ...]:
@@ -251,7 +271,7 @@ def _call_support(function, args: tuple, options: dict) -> bool:
     try:
         return bool(function(*args, **options))
     except TypeError:
-        return bool(function(*args))
+        return False
 
 def _canonical_options(rng: random.Random, locale: str, kind: str, config: RandomConfig) -> tuple[dict[str, str | int | bool], str | None]:
     language = locale.split("-", 1)[0]
@@ -329,7 +349,7 @@ def _candidate(
         if target == "compat":
             options, variant_id, call_variant, transport = _compat_options(rng, kind, config)
         else:
-            variants = config.currency_variants or ({"id": "default"},)
+            variants = config.currency_variants_for(locale) or ({"id": "default"},)
             variant = rng.choice(variants)
             options = {key: value for key, value in variant.items() if key != "id"}
             variant_id, call_variant, transport = variant.get("id"), None, "native"
@@ -442,6 +462,14 @@ def generate_cases(
         value, currency, options, variant_id, call_variant, case_transport = _candidate(
             rng, locale, kind, profile_values, selected_currencies, config=config, target=target
         )
+        if (
+            profile == "shared"
+            and _is_ordinal_kind(kind)
+            and value == 0
+            and locale.split("-", 1)[0] in config.shared_ordinal_zero_excluded_languages
+        ):
+            rejected["generation_rejected_semantic_incompatibility"] += 1
+            continue
         if (
             profile == "shared"
             and locale.split("-", 1)[0] == "ru"

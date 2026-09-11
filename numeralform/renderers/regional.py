@@ -24,6 +24,7 @@ class EnglishIndiaRenderer(EnglishRenderer):
     locale = "en-IN"
     default_cardinal_style = "british-and"
     def _render_cardinal(self, value: int, style: str | None = None) -> str:
+        style = self.default_cardinal_style if style in (None, "default") else style
         if value < 0:
             return "minus " + self._render_cardinal(-value, style)
         if value < 1_000:

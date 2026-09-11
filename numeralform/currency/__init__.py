@@ -71,6 +71,7 @@ class CurrencyLocalePolicy:
     major: CurrencyUnitLexeme
     minor: CurrencyUnitLexeme
     connector: str
+    negative_prefix: str = ""
     omit_zero_minor: bool = False
 
 
@@ -98,6 +99,7 @@ _CURRENCIES = {
         "en": ("pound", "pounds", "penny", "pence"),
         "fr": ("livre", "livres", "penny", "pence"),
         "pt": ("libra", "libras", "pence", "pence"),
+        "pt-PT": ("libra", "libras", "péni", "pénis"),
         "fi": ("punta", "puntaa", "penny", "pence"),
         "de": ("Pfund", "Pfund", "Penny", "Pence"),
         "es": ("libra", "libras", "penique", "peniques"),
@@ -109,8 +111,18 @@ _CURRENCIES = {
     },
     "JPY": {"en": ("yen", "yen", "sen", "sen"), "ja": ("円", "円", "銭", "銭"), "fi": ("jeni", "jeniä", "sen", "seniä")},
     "CNY": {"en": ("yuan", "yuan", "fen", "fen"), "zh": ("元", "元", "分", "分")},
-    "CAD": {"en": ("Canadian dollar", "Canadian dollars", "cent", "cents"), "es": ("dólar canadiense", "dólares canadienses", "centavo", "centavos"), "pt": ("dólar canadiano", "dólares canadianos", "centavo", "centavos")},
-    "AUD": {"en": ("Australian dollar", "Australian dollars", "cent", "cents"), "pt": ("dólar australiano", "dólares australianos", "centavo", "centavos"), "fi": ("Australian dollari", "Australian dollaria", "sentti", "senttiä")},
+    "CAD": {
+        "en": ("Canadian dollar", "Canadian dollars", "cent", "cents"),
+        "es": ("dólar canadiense", "dólares canadienses", "centavo", "centavos"),
+        "pt": ("dólar canadiano", "dólares canadianos", "centavo", "centavos"),
+        "pt-PT": ("dólar canadiano", "dólares canadianos", "cêntimo", "cêntimos"),
+    },
+    "AUD": {
+        "en": ("Australian dollar", "Australian dollars", "cent", "cents"),
+        "pt": ("dólar australiano", "dólares australianos", "centavo", "centavos"),
+        "fi": ("Australian dollari", "Australian dollaria", "sentti", "senttiä"),
+        "pt-PT": ("dólar australiano", "dólares australianos", "cêntimo", "cêntimos"),
+    },
     "CHF": {
         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
@@ -178,6 +190,23 @@ _SCRIPT_CURRENCIES = {
 }
 
 
+_CURRENCY_NEGATIVE_PREFIXES = {
+    "en": "minus ",
+    "de": "minus ",
+    "es": "menos ",
+    "pt": "menos ",
+    "ru": "минус ",
+    "fr": "moins ",
+    "it": "meno ",
+    "fi": "miinus ",
+    "cs": "mínus ",
+    "ko": "마이너스 ",
+    "th": "ติดลบ ",
+    "ja": "マイナス ",
+    "vi": "âm ",
+}
+_ATTACHED_CURRENCIES = {("ja", "JPY")}
+
 def _plural_category(language: str, value: int) -> str:
     if language == "ru":
         value = abs(value)
@@ -198,7 +227,8 @@ def _plural_category(language: str, value: int) -> str:
     return "one" if abs(value) == 1 else "other"
 
 
-def _currency_policy(code: str, language: str, *, allow_fallback: bool = True) -> CurrencyLocalePolicy:
+def _currency_policy(code: str, locale: str, *, allow_fallback: bool = True) -> CurrencyLocalePolicy:
+    language = locale.split("-", 1)[0]
     script_names = _SCRIPT_CURRENCIES.get(language, {}).get(code)
     if script_names is not None:
         major_name, minor_name = script_names
@@ -210,13 +240,21 @@ def _currency_policy(code: str, language: str, *, allow_fallback: bool = True) -
                 {"one": minor_name, "other": minor_name}, attach=language in {"ko", "th"}
             ),
             _CONNECTORS[language],
+            negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
         )
     if language == "ru" and code in _RUSSIAN_CURRENCIES:
         major, minor = _RUSSIAN_CURRENCIES[code]
         return CurrencyLocalePolicy(
-            CurrencyUnitLexeme({"one": major[0], "few": major[1], "many": major[2]}),
-            CurrencyUnitLexeme({"one": minor[0], "few": minor[1], "many": minor[2]}),
+            CurrencyUnitLexeme(
+                {"one": major[0], "few": major[1], "many": major[2]},
+                gender="masculine",
+            ),
+            CurrencyUnitLexeme(
+                {"one": minor[0], "few": minor[1], "many": minor[2]},
+                gender="feminine" if code == "RUB" else None,
+            ),
             _CONNECTORS[language],
+            negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
         )
     if language == "cs" and code in _CZECH_CURRENCIES:
         major, minor = _CZECH_CURRENCIES[code]
@@ -224,8 +262,11 @@ def _currency_policy(code: str, language: str, *, allow_fallback: bool = True) -
             CurrencyUnitLexeme({"one": major[0], "few": major[1], "many": major[2]}),
             CurrencyUnitLexeme({"one": minor[0], "few": minor[1], "many": minor[2]}),
             _CONNECTORS[language],
+            negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
         )
-    names = _CURRENCIES.get(code, {}).get(language)
+    names = _CURRENCIES.get(code, {}).get(locale)
+    if names is None:
+        names = _CURRENCIES.get(code, {}).get(language)
     if names is None and allow_fallback:
         names = _CURRENCIES.get(code, {}).get("en")
     if names is None:
@@ -238,15 +279,24 @@ def _currency_policy(code: str, language: str, *, allow_fallback: bool = True) -
     else:
         major_forms = {"one": names[0], "other": names[1]}
         minor_forms = {"one": names[2], "other": names[3]}
-    gender = (
-        "feminine" if language == "es" and code == "GBP" else
-        "masculine" if language == "es" else
-        None
-    )
+    major_gender = None
+    minor_gender = None
+    if language == "es":
+        major_gender = "feminine" if code in {"GBP", "NOK"} else "masculine"
+        minor_gender = "masculine"
     return CurrencyLocalePolicy(
-        CurrencyUnitLexeme(major_forms, gender=gender),
-        CurrencyUnitLexeme(minor_forms, gender=gender),
+        CurrencyUnitLexeme(
+            major_forms,
+            gender=major_gender,
+            attach=(language, code) in _ATTACHED_CURRENCIES,
+        ),
+        CurrencyUnitLexeme(
+            minor_forms,
+            gender=minor_gender,
+            attach=(language, code) in _ATTACHED_CURRENCIES,
+        ),
         _CONNECTORS.get(language, ", "),
+        negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
     )
 
 def supports_currency(locale: str, currency: str, *, allow_fallback: bool = False) -> bool:
@@ -329,7 +379,12 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
         return render(value, locale=locale, style="british-and")
     if language == "es" and gender is not None:
         return render(value, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=gender)
-    text = render(value, locale=locale)
+    if gender is not None:
+        text = render(value, locale=locale, gender=gender)
+    else:
+        text = render(value, locale=locale)
+    if language == "it" and text == "uno":
+        return "un"
     if language == "de" and text.endswith("eins"):
         # A cardinal directly before a currency unit is attributive: eins -> ein.
         return text.removesuffix("eins") + "ein"
@@ -356,7 +411,7 @@ def render_currency(
         raise InvalidRequestError("currency must be a three-letter code")
     amount = _parse_amount(value, code, compatibility=compatibility)
     language = locale.split("-", 1)[0]
-    policy = _currency_policy(code, language)
+    policy = _currency_policy(code, locale)
     major_category = _plural_category(language, amount.major)
     major_name = policy.major.form(major_category)
     major_words = _words(amount.major, locale, gender=policy.major.gender)
@@ -365,15 +420,7 @@ def render_currency(
         if policy.major.attach
         else f"{major_words} {major_name}"
     )
-    sign = (
-        "minus "
-        if amount.negative and language == "en"
-        else "menos "
-        if amount.negative and language in {"es", "pt"}
-        else "минус "
-        if amount.negative and language == "ru"
-        else ""
-    )
+    sign = policy.negative_prefix if amount.negative else ""
     text = sign + major_piece
     if amount.minor_units and not (policy.omit_zero_minor and amount.minor == 0):
         minor_category = _plural_category(language, amount.minor)

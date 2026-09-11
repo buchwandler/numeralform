@@ -81,10 +81,6 @@ _ORDINALS = {
     70: "seventieth",
     80: "eightieth",
     90: "ninetieth",
-    100: "hundredth",
-    1_000: "thousandth",
-    1_000_000: "millionth",
-    1_000_000_000: "billionth",
 }
 _DIGITS = (
     "zero",
@@ -204,7 +200,7 @@ class EnglishRenderer:
                 "English decimal integer part is outside the supported range"
             )
         prefix = "minus " if value.negative else ""
-        integer = self._render_cardinal(int(value.integer))
+        integer = self._render_cardinal(int(value.integer), self.default_cardinal_style)
         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
         return f"{prefix}{integer} point {fraction}"
 
@@ -224,13 +220,19 @@ class EnglishRenderer:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
                 prefix = f"{self._render_cardinal(quotient, style)} {name}"
-                return prefix + (
-                    f" {self._render_ordinal(remainder, style)}" if remainder else "th"
-                )
+                if not remainder:
+                    return prefix + "th"
+                suffix = self._render_ordinal(remainder, style)
+                if style == "british-and" and remainder < 100:
+                    suffix = "and " + suffix
+                return f"{prefix} {suffix}"
         hundreds, remainder = divmod(value, 100)
         prefix = f"{self._render_cardinal(hundreds, style)} hundred"
         if remainder:
-            return prefix + f" {self._render_ordinal(remainder, style)}"
+            suffix = self._render_ordinal(remainder, style)
+            if style == "british-and":
+                suffix = "and " + suffix
+            return prefix + f" {suffix}"
         return prefix + "th"
     def _render_fraction(self, value) -> str:
         if not isinstance(value, FractionNumber):

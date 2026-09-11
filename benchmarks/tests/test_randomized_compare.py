@@ -8,7 +8,7 @@ from benchmarks.randomized.model import (
 )
 
 
-def case(*, locale="en", kind="cardinal", value=1, currency=None):
+def case(*, locale="en", kind="cardinal", value=1, currency=None, options=None):
     return RandomCase(
         1,
         1,
@@ -20,6 +20,7 @@ def case(*, locale="en", kind="cardinal", value=1, currency=None):
         str(value),
         SerializedRandomValue.from_python(value),
         currency,
+        options=options or {},
     )
 
 
@@ -45,6 +46,15 @@ def test_surface_only_differences_are_accepted_variants():
     )
     assert result.status == "variant"
     assert result.equivalence_rule == "surface:hyphenation only"
+
+def test_surface_variant_cannot_drop_an_explicit_sign():
+    result = compare_results(
+        case(value=-1),
+        ExecutionResult.text_result("-1"),
+        ExecutionResult.text_result("1"),
+        accept_variants=True,
+    )
+    assert result.status == "mismatch"
 
 
 def test_english_year_readings_are_accepted_variants():
@@ -197,3 +207,175 @@ def test_named_locale_equivalence_rules_and_negative_controls():
         accept_variants=True,
     )
     assert wrong_value.status == "mismatch"
+
+
+
+def test_audited_oracle_and_language_variants_from_seed_103_report():
+    examples = (
+        (
+            case(locale="de", kind="year", value=3346),
+            "dreiunddreißighundertsechsundvierzig",
+            "dreitausenddreihundertsechsundvierzig",
+            "oracle:de-post-2000-year",
+        ),
+        (
+            case(locale="en-GB", kind="year", value=101),
+            "one oh-one",
+            "one hundred and one",
+            "en-year-reading",
+        ),
+        (
+            case(locale="en-GB", kind="year", value=3005),
+            "three thousand and five",
+            "thirty oh five",
+            "en-year-reading",
+        ),
+        (
+            case(locale="en-GB", kind="currency", value=Decimal("4999.25"), currency="HUF"),
+            "four thousand nine hundred and ninety-nine forint and 25 fillér",
+            "four thousand nine hundred and ninety-nine forints and 25 fillers",
+            "en-huf-currency",
+        ),
+        (
+            case(locale="en-GB", kind="currency", value=Decimal("2780.49"), currency="NOK"),
+            "two thousand seven hundred and eighty kroner, 49 øre",
+            "two thousand seven hundred and eighty Norwegian kroner and 49 øre",
+            "en-nok-currency",
+        ),
+        (
+            case(locale="en-GB", kind="currency", value=Decimal("1.11"), currency="SEK"),
+            "one krona, 11 öre",
+            "one Swedish krona and 11 öre",
+            "en-sek-currency",
+        ),
+        (
+            case(locale="en-GB", kind="currency", value=Decimal("101.01"), currency="SAR"),
+            "one hundred and one saudi riyals and 01 halalah",
+            "one hundred and one riyals and 01 halala",
+            "en-sar-currency",
+        ),
+        (
+            case(locale="es", kind="currency", value=Decimal("2563.10"), currency="GBP"),
+            "dos mil quinientos sesenta y tres libras, diez peniques",
+            "dos mil quinientas sesenta y tres libras y diez peniques",
+            "oracle:es-gbp-gender",
+        ),
+        (
+            case(locale="fi", kind="cardinal", value=2_000_000),
+            "kaksimiljoonaa",
+            "kaksi miljoonaa",
+            "variant:fi-compound-spacing",
+        ),
+        (
+            case(locale="fr", kind="currency", value=Decimal("951.20"), currency="EUR"),
+            "neuf cents cinquante et un euros et vingt centimes",
+            "neuf cent cinquante et un euros et vingt centimes",
+            "oracle:fr-cent-overpluralization",
+        ),
+        (
+            case(locale="fr-BE", value=802_665_181),
+            "huit cents deux millions six cents soixante-cinq mille cent quatre-vingt et un",
+            "huit cent deux millions six cent soixante-cinq mille cent quatre-vingt-un",
+            "oracle:fr-number-orthography",
+        ),
+        (
+            case(locale="it", kind="year", value=7603),
+            "settemilaseicentotre",
+            "settemilaseicentotré",
+            "oracle:it-number-orthography",
+        ),
+        (
+            case(locale="ko", kind="ordinal_num", value=3581),
+            "3581 번째",
+            "3581번째",
+            "variant:ko-ordinal-spacing",
+        ),
+        (
+            case(locale="pt", kind="ordinal", value=400),
+            "quadrigentésimo",
+            "quadringentésimo",
+            "variant:pt-ordinal-orthography",
+        ),
+        (
+            case(locale="ru", kind="currency", value=Decimal("20.15"), currency="RUB"),
+            "двадцать рублей, пятнадцать копеек",
+            "двадцать рублей и пятнадцать копеек",
+            "ru-rub-currency",
+        ),
+        (
+            case(locale="sv", kind="ordinal", value=20),
+            "tjugode",
+            "tjugonde",
+            "oracle:sv-ordinal-orthography",
+        ),
+        (
+            case(locale="th", kind="currency", value=Decimal("12.34"), currency="USD"),
+            "สิบสองดอลลาร์สหรัฐสามสิบสี่เซนต์",
+            "สิบสองดอลลาร์สหรัฐและสามสิบสี่เซนต์",
+            "variant:th-currency-connector",
+        ),
+        (
+            case(locale="vi", value=-19),
+            "một",
+            "âm mười chín",
+            "oracle:vi-negative-cardinal",
+        ),
+    )
+    for local_case, expected, actual, rule in examples:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+
+def test_new_equivalence_rules_do_not_hide_known_numeralform_defects():
+    examples = (
+        (
+            case(locale="de", kind="currency", value=Decimal("-2.01"), currency="USD"),
+            "minus zwei Dollar and ein Cent",
+            "zwei Dollar and ein Cent",
+        ),
+        (
+            case(locale="fr", value=480_000_000),
+            "quatre cent quatre-vingts millions",
+            "quatre cent quatre-vingt millions",
+        ),
+        (
+            case(locale="fr-DZ", value=500_000),
+            "cinq cent mille",
+            "cinq cents mille",
+        ),
+        (
+            case(locale="it", value=457_233_272),
+            "quattrocentocinquantasette milioni e duecentotrentatremiladuecentosettantadue",
+            "quattrocentocinquantasette milioni e duecentotrentatrémiladuecentosettantadue",
+        ),
+        (
+            case(locale="it", value=813),
+            "ottocentotredici",
+            "ottocentodiecitré",
+        ),
+        (
+            case(
+                locale="th",
+                kind="currency",
+                value=Decimal("12.34"),
+                currency="USD",
+                options={"separator": " and"},
+            ),
+            "สิบสองดอลลาร์สหรัฐสามสิบสี่เซนต์",
+            "สิบสองดอลลาร์สหรัฐและสามสิบสี่เซนต์",
+        ),
+    )
+    for local_case, expected, actual in examples:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"

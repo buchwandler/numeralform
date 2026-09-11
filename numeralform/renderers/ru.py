@@ -90,6 +90,22 @@ _DIGITS = (
     "девять",
 )
 
+_DECIMAL_DENOMINATORS = {
+    1: ("десятая", "десятых"),
+    2: ("сотая", "сотых"),
+    3: ("тысячная", "тысячных"),
+    4: ("десятитысячная", "десятитысячных"),
+    5: ("стотысячная", "стотысячных"),
+    6: ("миллионная", "миллионных"),
+}
+
+_ORDINAL_THREE = {
+    "m": ("третий", "третьего", "третьему", ("третьего", "третий"), "третьим", "третьем"),
+    "f": ("третья", "третьей", "третьей", "третью", "третьей", "третьей"),
+    "n": ("третье", "третьего", "третьему", "третье", "третьим", "третьем"),
+    "p": ("третьи", "третьих", "третьим", ("третьих", "третьи"), "третьими", "третьих"),
+}
+
 # Case order is nominative, genitive, dative, accusative, instrumental,
 # prepositional.  The accusative pair is animate/inanimate where needed.
 _ONES = {
@@ -527,6 +543,9 @@ class RussianRenderer:
         )
 
     def _ordinal_word(self, value: int, case: int, gender: str, animate: bool) -> str:
+        if value == 3:
+            result = _ORDINAL_THREE[gender][case]
+            return result[0] if animate else result[1] if isinstance(result, tuple) else result
         stem, ending = _ORD_STEMS.get(value, (str(_UNDER_20[value]), "ый"))
         endings = {
             "m": (ending, "ого", "ому", "ого" if animate else ending, "ым", "ом"),
@@ -620,10 +639,18 @@ class RussianRenderer:
         if not isinstance(value, DecimalNumber):
             raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
         sign = "минус " if value.negative else ""
-        return (
-            f"{sign}{self._integer(int(value.integer), 0, 'm', False)} точка "
-            + " ".join(_DIGITS[int(d)] for d in value.fraction)
-        )
+        integer_value = int(value.integer)
+        if integer_value % 10 == 1 and integer_value % 100 != 11:
+            whole = self._integer(integer_value, 0, "f", False)
+            whole_unit = "целая"
+        else:
+            whole = self._integer(integer_value, 0, "f", False)
+            whole_unit = "целых"
+        fraction_value = int(value.fraction)
+        singular, plural = _DECIMAL_DENOMINATORS[len(value.fraction)]
+        fraction = self._integer(fraction_value, 0, "f", False)
+        denominator = singular if fraction_value == 1 else plural
+        return f"{sign}{whole} {whole_unit} {fraction} {denominator}"
 
     def _fraction(self, value) -> str:
         if not isinstance(value, FractionNumber):

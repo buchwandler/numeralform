@@ -310,10 +310,23 @@ class SpanishRenderer:
             )
         text = _ORDINALS[value]
         if request.morphology.gender is Gender.FEMININE:
-            if text.endswith("primero"):
-                text = text[:-7] + "primera"
-            elif text.endswith("tercero"):
-                text = text[:-7] + "tercera"
+            for masculine, feminine in (
+                ("primero", "primera"),
+                ("tercero", "tercera"),
+                ("undécimo", "undécima"),
+                ("duodécimo", "duodécima"),
+                ("décimo", "décima"),
+                ("vigésimo", "vigésima"),
+                ("cuarto", "cuarta"),
+                ("quinto", "quinta"),
+                ("sexto", "sexta"),
+                ("séptimo", "séptima"),
+                ("octavo", "octava"),
+                ("noveno", "novena"),
+            ):
+                if text.endswith(masculine):
+                    text = text[:-len(masculine)] + feminine
+                    break
         elif (
             request.syntax is Syntax.ATTRIBUTIVE
             and request.morphology.gender is Gender.MASCULINE

@@ -168,3 +168,54 @@ def test_shared_exclusions_skip_incomparable_japanese_years():
             currency_supports=lambda *args: True,
             oracle_supports=lambda *args: True,
         )
+
+def test_support_probe_does_not_retry_without_selected_options():
+    def supports_without_options(locale, kind, value):
+        return True
+
+    with pytest.raises(RuntimeError):
+        generate_cases(
+            seed=17,
+            count=1,
+            profile="shared",
+            canonical_locales=("ru",),
+            external_locales=("ru",),
+            locales=("ru",),
+            kinds=("cardinal",),
+            supports=supports_without_options,
+            currency_supports=lambda *args, **kwargs: True,
+            oracle_supports=lambda *args, **kwargs: True,
+        )
+
+def test_generation_checks_selected_option_values_and_excludes_ordinal_zero():
+    cases, rejected, _ = generate_cases(
+        seed=5,
+        count=50,
+        profile="shared",
+        canonical_locales=("es",),
+        external_locales=("es",),
+        locales=("es",),
+        kinds=("ordinal",),
+        supports=lambda *args, **options: "gender" in options,
+        currency_supports=lambda *args, **kwargs: True,
+        oracle_supports=lambda *args, **kwargs: True,
+    )
+    assert all(case.python_value() != 0 for case in cases)
+    assert all("gender" in case.options for case in cases)
+    assert rejected["generation_rejected_semantic_incompatibility"] > 0
+
+def test_shared_script_currency_profiles_use_only_verified_default_variant():
+    cases, _, _ = generate_cases(
+        seed=23,
+        count=8,
+        profile="shared",
+        canonical_locales=("ko",),
+        external_locales=("ko",),
+        locales=("ko",),
+        kinds=("currency",),
+        currencies=("USD",),
+        supports=lambda *args, **kwargs: True,
+        currency_supports=lambda *args, **kwargs: True,
+        oracle_supports=lambda *args, **kwargs: True,
+    )
+    assert all(case.variant_id == "default" and case.options == {} for case in cases)

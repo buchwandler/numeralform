@@ -4,6 +4,8 @@ generator_version = 3
 default_seed = 20260910
 default_profile = "shared"
 
+shared_ordinal_zero_excluded_languages = ["es", "pt"]
+shared_option_support = { ko = { currency = { variants = ["default"] } }, th = { currency = { variants = ["default"] } } }
 [randomized.weights]
 cardinal = 32
 decimal = 16
