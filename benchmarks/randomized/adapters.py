@@ -73,6 +73,19 @@ def num2words_kwargs(case: RandomCase) -> dict[str, Any]:
         case.call_variant,
     )
 
+def num2words_invocation(case: RandomCase) -> tuple[Any, dict[str, Any]]:
+    """Build the single upstream invocation used by probes and execution."""
+    return case.transport_value(), num2words_kwargs(case)
+
+def oracle_supports_case(case: RandomCase, external_num2words: Callable[..., Any]) -> bool:
+    """Probe the exact value and keyword arguments used for a case."""
+    try:
+        value, kwargs = num2words_invocation(case)
+        external_num2words(value, **kwargs)
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
 
 def canonical_call_kwargs(case: RandomCase) -> dict[str, Any]:
     kwargs: dict[str, Any] = {}
@@ -98,7 +111,8 @@ def canonical_call_kwargs(case: RandomCase) -> dict[str, Any]:
 def run_num2words(case: RandomCase, external_num2words: Callable[..., Any]) -> ExecutionResult:
     """Execute a case against the supplied, already verified oracle function."""
     try:
-        text = external_num2words(case.transport_value(), **num2words_kwargs(case))
+        value, kwargs = num2words_invocation(case)
+        text = external_num2words(value, **kwargs)
         return ExecutionResult.text_result(normalize(text))
     except Exception as exc:  # noqa: BLE001
         return ExecutionResult.exception_result(exc)
@@ -144,7 +158,8 @@ def run_numeralform_compat(
 ) -> ExecutionResult:
     """Execute a case through the num2words-shaped compatibility API."""
     try:
-        text = num2words_function(case.transport_value(), **num2words_kwargs(case))
+        value, kwargs = num2words_invocation(case)
+        text = num2words_function(value, **kwargs)
         return ExecutionResult.text_result(normalize(text))
     except Exception as exc:  # noqa: BLE001
         return ExecutionResult.exception_result(exc)
@@ -161,4 +176,6 @@ __all__ = [
     "run_numeralform",
     "run_numeralform_canonical",
     "run_numeralform_compat",
+    "oracle_supports_case",
+    "num2words_invocation",
 ]

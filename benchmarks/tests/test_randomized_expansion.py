@@ -153,3 +153,18 @@ def test_compatibility_call_variants_are_target_specific():
     )
     assert all(case.call_variant is None and case.transport == "native" for case in canonical)
     assert any(case.call_variant == "ordinal-bool" for case in compat)
+
+
+def test_structured_options_round_trip_and_use_new_profile_name():
+    case = make_case(kind="cardinal", value=1, prefer=("nominative", "partitive"), definite=None)
+    payload = case.to_dict()
+    assert payload["option_profile_id"] is None
+    restored = RandomCase.from_dict(payload)
+    assert restored.options == {"definite": None, "prefer": ("nominative", "partitive")}
+
+
+def test_new_option_profile_payload_is_backward_compatible():
+    payload = make_case().to_dict()
+    payload.pop("variant_id")
+    payload["option_profile_id"] = "profile-1"
+    assert RandomCase.from_dict(payload).variant_id == "profile-1"

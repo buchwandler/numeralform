@@ -25,6 +25,10 @@ python -m benchmarks.run num2words
 ## Randomized num2words differential benchmark
 
 This suite generates reproducible semantic numeral requests, compares canonical Numeralform with the pinned external num2words checkout, and records exact matches, audited accepted variants, true mismatches, and renderer errors. Canonical comparisons report exact parity and semantic parity separately. The compatibility target remains exact. The displayed surface string is diagnostic metadata. Typed values, locale, form, and currency are passed explicitly to both implementations, so strings such as `1.23 $` are never parsed by either renderer.
+The generator uses a deterministic locale/form floor before edge-biased fuzz filling. Coverage is recorded in `summary.json` with expected and covered locales, forms, option profiles, currencies, transports, call variants, numeric boundaries, missing cells, and per-cell min/median/max counts. Pass `--fail-on-coverage-gap` to make missing required dimensions fail the run.
+
+The canonical target uses the shared canonical/oracle intersection. The compatibility target uses the pinned oracle locales supported by the compatibility adapter and independently composes transport, dispatch, and option-profile dimensions. The report calls generated profiles `option_profile_id`; comparator `variant` remains reserved for accepted canonical alternatives.
+The expanded seed-105 audit intentionally surfaces unaccepted morphology differences instead of hiding them. Current findings are Spanish ordinal gender forms and Russian accusative morphology; these remain differential failures requiring either an explicit equivalence rule backed by negative controls or a renderer fix. They are reported in `differences.jsonl` and are not counted as accepted variants.
 
 
 ### Variant policy

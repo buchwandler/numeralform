@@ -15,6 +15,7 @@ import tomllib
 import numeralform
 from benchmarks.validation.oracle.num2words import oracle_locales
 from numeralform import render_currency, supports_currency
+from numeralform.compat._num2words.registry import LEGACY_CONVERTER_KEYS
 
 from .model import CASE_KINDS, RandomCase, SerializedRandomValue
 from .surfaces import surface_for
@@ -74,6 +75,14 @@ class RandomConfig:
     @property
     def compat_variants(self) -> tuple[dict, ...]:
         return tuple(self.randomized.get("compat_variants", ()))
+
+    @property
+    def compat_transports(self) -> tuple[str, ...]:
+        return tuple(self.randomized.get("compat_transports", ("native",)))
+
+    @property
+    def compat_call_variants(self) -> tuple[str, ...]:
+        return tuple(self.randomized.get("compat_call_variants", ("to",)))
 
     @property
     def config_hash(self) -> str:
@@ -141,6 +150,20 @@ def shared_locale_pairs(
             pairs.append(SharedLocale(oracle, oracle))
     return tuple(pairs)
 
+
+def compatibility_locale_pairs(
+    oracle_root: Path | None = None,
+    *,
+    external_locales: Iterable[str] | None = None,
+ ) -> tuple[SharedLocale, ...]:
+    if external_locales is None:
+        if oracle_root is None:
+            raise RuntimeError("a verified oracle checkout is required for locale discovery")
+        external = {normalize_locale(locale) for locale in oracle_locales(oracle_root)}
+    else:
+        external = {normalize_locale(locale) for locale in external_locales}
+    supported = {normalize_locale(locale) for locale in LEGACY_CONVERTER_KEYS}
+    return tuple(SharedLocale(locale, locale) for locale in sorted(external & supported))
 
 def shared_locales(
     oracle_root: Path | None = None,
@@ -297,11 +320,20 @@ def _canonical_options(rng: random.Random, locale: str, kind: str, config: Rando
 
 def _compat_options(rng: random.Random, kind: str, config: RandomConfig) -> tuple[dict, str | None, str | None, str]:
     variants = [variant for variant in config.compat_variants if variant.get("kind") in {None, kind}]
-    if not variants:
-        return {}, None, None, "native"
-    variant = rng.choice(variants)
-    options = {key: value for key, value in variant.items() if key not in {"id", "kind", "transport", "call_variant"}}
-    return options, variant.get("id"), variant.get("call_variant"), variant.get("transport", "native")
+    options = {}
+    variant_id = None
+    if variants:
+        variant = rng.choice(variants)
+        options = {key: value for key, value in variant.items() if key not in {"id", "kind", "transport", "call_variant"}}
+        variant_id = variant.get("id")
+    call_variants = tuple(
+        call_variant
+        for call_variant in config.compat_call_variants
+        if call_variant != "ordinal-bool" or kind == "ordinal"
+    ) or ("to",)
+    call_variant = rng.choice(call_variants)
+    transport = rng.choice(config.compat_transports)
+    return options, variant_id, (None if call_variant == "to" else call_variant), transport
 
 
 def _is_ordinal_kind(kind: str) -> bool:
@@ -366,11 +398,11 @@ def supported_currency_candidates(*, locale: str, oracle_locale: str, configured
         and _call_support(oracle_supports, (oracle_locale, "currency", probe, code), {})
     )
 
-def _default_supports(locale: str, kind: str, value: int | Decimal, options: dict | None = None) -> bool:
+def _default_supports(locale: str, kind: str, value: int | Decimal, **options) -> bool:
     if kind == "decimal":
         from numeralform import DecimalNumber
+
         return numeralform.supports(locale, form="decimal", value=DecimalNumber.from_decimal(value))
-    options = options or {}
     morphology = {
         key: options[key]
         for key in ("gender", "case", "grammatical_number", "animacy")
@@ -384,11 +416,11 @@ def _default_supports(locale: str, kind: str, value: int | Decimal, options: dic
     return numeralform.supports(locale, form=kind, value=value, syntax=syntax, morphology=morphology)
 
 
-def _default_currency_supports(locale: str, value: Decimal, currency: str, options: dict | None = None) -> bool:
+def _default_currency_supports(locale: str, value: Decimal, currency: str, **options) -> bool:
     if not supports_currency(locale, currency):
         return False
     try:
-        render_currency(value, locale=locale, currency=currency, **(options or {}))
+        render_currency(value, locale=locale, currency=currency, **options)
     except Exception:  # noqa: BLE001
         return False
     return True
@@ -408,6 +440,7 @@ def generate_cases(
     supports: Callable[..., bool] | None = None,
     currency_supports: Callable[..., bool] | None = None,
     oracle_supports: Callable[..., bool] | None = None,
+    oracle_supports_case: Callable[[RandomCase], bool] | None = None,
     variant: str | None = None,
     transport: str | None = None,
     target: str = "canonical",
@@ -417,11 +450,20 @@ def generate_cases(
     if target not in {"canonical", "compat"}:
         raise ValueError(f"unknown benchmark target: {target!r}")
     config = load_config(config_path, profile)
-    pairs = shared_locale_pairs(oracle_root, canonical_locales=canonical_locales, external_locales=external_locales)
+    pairs = (
+        compatibility_locale_pairs(oracle_root, external_locales=external_locales)
+        if target == "compat"
+        else shared_locale_pairs(oracle_root, canonical_locales=canonical_locales, external_locales=external_locales)
+    )
     pair_by_canonical = {pair.canonical: pair for pair in pairs}
     available_locales = tuple(sorted(pair_by_canonical))
     requested_locales = {normalize_locale(locale) for locale in locales or available_locales}
-    selected_locales = tuple(sorted(_NUM2WORDS_CANONICAL_LOCALE_MAP.get(locale, locale) if locale not in pair_by_canonical else locale for locale in requested_locales))
+    selected_locales = tuple(
+        sorted(
+            requested if target == "compat" or requested in pair_by_canonical else _NUM2WORDS_CANONICAL_LOCALE_MAP.get(requested, requested)
+            for requested in requested_locales
+        )
+    )
     if not set(selected_locales) <= set(available_locales):
         raise ValueError("requested locales are not shared: " + ", ".join(sorted(set(selected_locales) - set(available_locales))))
     selected_kinds = tuple(kinds or CASE_KINDS)
@@ -450,9 +492,15 @@ def generate_cases(
     attempts = 0
     while len(generated) < count and attempts < max_attempts:
         attempts += 1
-        locale = rng.choice(selected_locales)
+        floor_size = len(selected_locales) * len(selected_kinds) if target == "canonical" else 0
+        if attempts <= floor_size:
+            floor_index = attempts - 1
+            locale = selected_locales[floor_index // len(selected_kinds)]
+            kind = selected_kinds[floor_index % len(selected_kinds)]
+        else:
+            locale = rng.choice(selected_locales)
+            kind = weighted_choice(rng, {key: config.weights[key] for key in selected_kinds})
         oracle_locale = pair_by_canonical[locale].oracle
-        kind = weighted_choice(rng, {key: config.weights[key] for key in selected_kinds})
         if profile == "shared" and any(
             exclusion.get("locale") == locale and exclusion.get("kind") == kind
             for exclusion in config.shared_exclusions
@@ -483,7 +531,7 @@ def generate_cases(
             continue
         if transport is not None and case_transport != transport:
             continue
-        if profile in {"common", "numeralform", "shared"}:
+        if target == "canonical" and profile in {"common", "numeralform", "shared"}:
             supported = (
                 _call_support(currency_supports, (locale, value, currency), options)
                 if kind == "currency"
@@ -492,12 +540,34 @@ def generate_cases(
             if not supported:
                 rejected["generation_rejected_numeralform_unsupported"] += 1
                 continue
-        if profile == "shared" and not _call_support(
-            oracle_supports, (oracle_locale, kind, value, currency), options
-        ):
-            rejected["generation_rejected_oracle_unsupported"] += 1
-            continue
         serialized = SerializedRandomValue.from_python(value)
+        if profile == "shared":
+            if oracle_supports_case is not None:
+                probe_case = RandomCase(
+                    schema_version=SCHEMA_VERSION,
+                    generator_version=GENERATOR_VERSION,
+                    seed=seed,
+                    index=len(generated),
+                    case_id="probe",
+                    locale=locale,
+                    kind=kind,
+                    surface="",
+                    value=serialized,
+                    currency=currency,
+                    oracle_locale=oracle_locale,
+                    options=options,
+                    variant_id=variant_id,
+                    call_variant=call_variant,
+                    transport=case_transport,
+                )
+                supported = oracle_supports_case(probe_case)
+            else:
+                supported = _call_support(
+                    oracle_supports, (oracle_locale, kind, value, currency), options
+                )
+            if not supported:
+                rejected["generation_rejected_oracle_unsupported"] += 1
+                continue
         identity = (locale, kind, serialized.value, currency, json.dumps(options, sort_keys=True), variant_id, call_variant, case_transport)
         if profile in {"common", "numeralform", "shared"} and identity in seen:
             rejected["generation_rejected_duplicate"] += 1
@@ -546,6 +616,7 @@ __all__ = [
     "normalize_locale",
     "random_integer",
     "shared_locale_pairs",
+    "compatibility_locale_pairs",
     "shared_locales",
     "supported_currency_candidates",
     "weighted_choice",

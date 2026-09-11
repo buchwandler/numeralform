@@ -81,3 +81,12 @@ def test_compat_adapter_uses_num2words_call_shape():
     assert calls == [
         (Decimal("1.20"), {"lang": "en", "to": "currency", "currency": "USD"})
     ]
+
+
+def test_num2words_invocation_is_shared_by_execution():
+    from benchmarks.randomized.adapters import num2words_invocation
+
+    case = make_case("ordinal", 3)
+    value, kwargs = num2words_invocation(case)
+    assert value == case.transport_value()
+    assert kwargs == {"lang": "en", "to": "ordinal"}

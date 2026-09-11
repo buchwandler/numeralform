@@ -43,8 +43,21 @@ jobs:
         run: python -m benchmarks.download num2words
       - name: Run randomized differential benchmark
         run: |
-          SEED="$(date -u +%G%V)"
-          python -m benchmarks.randomized --cases 10000 --seed "$SEED"
+          SEED="20260910"
+          python -m benchmarks.randomized \
+            --cases 10000 \
+            --seed "$SEED" \
+            --target canonical \
+            --fail-on-unaccepted \
+            --fail-on-coverage-gap
+      - name: Run exact compatibility randomized benchmark
+        run: |
+          python -m benchmarks.randomized \
+            --cases 10000 \
+            --seed 20260910 \
+            --target compat \
+            --fail-on-diff \
+            --fail-on-coverage-gap
       - name: Upload randomized benchmark report
         if: always()
         uses: actions/upload-artifact@v4

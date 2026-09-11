@@ -220,6 +220,41 @@ def _invocations(
                             },
                         ),
                     )
+        if "options" in profiles:
+            language = locale.split("-", 1)[0]
+            if language == "es":
+                for form in ("ordinal", "ordinal_num"):
+                    if form in forms:
+                        for gender in ("m", "f"):
+                            yield (
+                                locale,
+                                form,
+                                CompatInvocation(
+                                    "num2words",
+                                    (_value(1),),
+                                    {"lang": _value(locale), "to": _value(form), "gender": _value(gender)},
+                                ),
+                            )
+            if language == "ru" and "cardinal" in forms:
+                yield (
+                    locale,
+                    "cardinal",
+                    CompatInvocation(
+                        "num2words",
+                        (_value(1),),
+                        {"lang": _value(locale), "to": _value("cardinal"), "gender": _value("f"), "case": _value("n"), "plural": _value(False), "animate": _value(False)},
+                    ),
+                )
+            if "currency" in forms:
+                yield (
+                    locale,
+                    "currency",
+                    CompatInvocation(
+                        "num2words",
+                        (_value(1.01),),
+                        {"lang": _value(locale), "to": _value("currency"), "currency": _value("USD"), "cents": _value(False), "separator": _value(" and")},
+                    ),
+                )
         if "errors" in profiles:
             yield (
                 locale,

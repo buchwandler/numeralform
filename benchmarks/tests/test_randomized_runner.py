@@ -19,6 +19,7 @@ def test_randomized_cli_options_are_explicit():
             "--record-all",
             "--fail-on-diff",
             "--fail-on-unaccepted",
+            "--fail-on-coverage-gap",
         ]
     )
     assert args.cases == 3
@@ -30,3 +31,4 @@ def test_randomized_cli_options_are_explicit():
     assert args.record_all
     assert args.fail_on_diff
     assert args.fail_on_unaccepted
+    assert args.fail_on_coverage_gap

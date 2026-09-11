@@ -1,0 +1,13 @@
+[oracle]
+repository = "jqueguiner/num2words2"
+commit = "d6d47ec55728bb724eff8277ea683ab4915618bc"
+profile = "num2words2-secondary"
+legacy_oracle = "savoirfairelinux/num2words@07814cb114157f582c40a00119c2e9faba8dcee2"
+
+[suites.overlap]
+forms = ["cardinal", "ordinal", "ordinal_num", "year", "currency"]
+comparison = "separate-byte-or-text-parity"
+
+[suites.extended]
+forms = ["fraction", "cheque", "sentence"]
+comparison = "roadmap-only"

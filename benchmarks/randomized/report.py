@@ -10,6 +10,7 @@ from typing import Any
 
 from .model import DIFFERENTIAL_STATUSES, DifferentialResult, json_dumps
 
+from .coverage import summarize_coverage
 RESULT_FILENAMES = {
     "summary": "summary.json",
     "differences": "differences.jsonl",
@@ -65,7 +66,7 @@ def summarize(
         "options": _breakdown_options(results),
         "options_by_status": dict(sorted(Counter(f"{_option_key(result)}|{result.status}" for result in results).items())),
         "transport": dict(sorted(Counter(result.case.transport for result in results).items())),
-        "variant_id": dict(sorted(Counter(result.case.variant_id or "<default>" for result in results).items())),
+        "option_profile_id": dict(sorted(Counter(result.case.option_profile_id or "<default>" for result in results).items())),
         "differences_by_shape": dict(sorted(Counter(result.difference_shape for result in differences if result.difference_shape).items())),
         "mismatches_by_shape": dict(sorted(Counter(result.difference_shape for result in mismatches if result.difference_shape).items())),
         "variants_by_shape": dict(sorted(Counter(result.difference_shape for result in variants if result.difference_shape).items())),
@@ -80,6 +81,7 @@ def summarize(
     }
     if generation_stats:
         summary["generation"] = dict(sorted(generation_stats.items()))
+    summary["coverage"] = summarize_coverage(results, metadata.get("coverage_expected"))
     return summary
 
 
@@ -165,7 +167,7 @@ def human_report(
         ("cases by kind", summary["breakdowns"]["kind"]),
         ("cases by option profile", summary["breakdowns"]["options"]),
         ("cases by transport", summary["breakdowns"]["transport"]),
-        ("cases by variant profile", summary["breakdowns"]["variant_id"]),
+        ("cases by option profile", summary["breakdowns"]["option_profile_id"]),
         ("accepted variants by locale", summary["breakdowns"]["variants_by_locale"]),
         ("accepted variants by kind", summary["breakdowns"]["variants_by_kind"]),
         ("accepted variants by rule", summary["breakdowns"]["variants_by_rule"]),
@@ -190,7 +192,7 @@ def human_report(
             first = group[0]
             lines.extend((
                 f"  locale={first.case.locale} oracle_locale={first.case.oracle_locale} kind={first.case.kind} currency={first.case.currency or '-'} status={first.status} shape={first.difference_shape or first.status}",
-                f"    options={_format_options(first.case.options)} transport={first.case.transport} variant={first.case.variant_id or '<default>'}",
+                f"    options={_format_options(first.case.options)} transport={first.case.transport} option_profile={first.case.option_profile_id or '<default>'}",
                 f"    count: {len(group)}", "    examples:",
             ))
             for example in group[:5]:

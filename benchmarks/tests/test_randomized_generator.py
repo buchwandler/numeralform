@@ -219,3 +219,100 @@ def test_shared_script_currency_profiles_use_only_verified_default_variant():
         oracle_supports=lambda *args, **kwargs: True,
     )
     assert all(case.variant_id == "default" and case.options == {} for case in cases)
+
+def test_default_support_probe_accepts_selected_spanish_options():
+    from benchmarks.randomized.generator import _call_support, _default_supports
+
+    assert _call_support(_default_supports, ("es", "ordinal", 1), {"gender": "feminine"})
+
+
+def test_default_support_probe_accepts_selected_russian_options():
+    from benchmarks.randomized.generator import _call_support, _default_supports
+
+    assert _call_support(
+        _default_supports,
+        ("ru", "cardinal", 1),
+        {"gender": "feminine", "case": "nominative", "plural": False, "animate": False},
+    )
+
+
+def test_default_currency_support_probe_accepts_nondefault_variant():
+    from benchmarks.randomized.generator import _call_support, _default_currency_supports
+
+    assert _call_support(
+        _default_currency_supports,
+        ("en-GB", Decimal("1.01"), "USD"),
+        {"cents": False},
+    )
+
+def test_canonical_option_profiles_are_reachable():
+    cases, _, _ = generate_cases(
+        seed=105,
+        count=10,
+        canonical_locales=("es",),
+        external_locales=("es",),
+        locales=("es",),
+        kinds=("ordinal",),
+        supports=lambda *args, **kwargs: True,
+        currency_supports=lambda *args, **kwargs: True,
+        oracle_supports=lambda *args, **kwargs: True,
+    )
+    assert {case.option_profile_id for case in cases} >= {"es-ordinal-masculine", "es-ordinal-feminine"}
+
+def test_generation_floor_covers_requested_locale_form_cells():
+    cases, _, _ = generate_cases(
+        seed=41,
+        count=6,
+        canonical_locales=("de", "en"),
+        external_locales=("de", "en"),
+        locales=("de", "en"),
+        kinds=("cardinal", "decimal", "year"),
+        supports=lambda *args, **kwargs: True,
+        currency_supports=lambda *args, **kwargs: True,
+        oracle_supports=lambda *args, **kwargs: True,
+    )
+    assert {(case.locale, case.kind) for case in cases} == {
+        (locale, kind) for locale in ("de", "en") for kind in ("cardinal", "decimal", "year")
+    }
+
+def test_compatibility_locale_inventory_is_not_canonical_intersection():
+    from benchmarks.randomized.generator import compatibility_locale_pairs
+
+    pairs = compatibility_locale_pairs(external_locales=("en", "fr", "am", "unknown"))
+    assert {pair.canonical for pair in pairs} == {"am", "en", "fr"}
+
+
+def test_compatibility_generation_uses_adapter_locale_inventory():
+    cases, _, _ = generate_cases(
+        seed=31,
+        count=1,
+        target="compat",
+        canonical_locales=("en",),
+        external_locales=("en", "fr", "am"),
+        locales=("fr",),
+        kinds=("cardinal",),
+        supports=lambda *args, **kwargs: True,
+        currency_supports=lambda *args, **kwargs: True,
+        oracle_supports=lambda *args, **kwargs: True,
+    )
+    assert cases[0].locale == "fr"
+
+def test_oracle_support_probe_receives_exact_generated_case():
+    probed = []
+    cases, _, _ = generate_cases(
+        seed=29,
+        count=20,
+        profile="shared",
+        target="compat",
+        canonical_locales=("en",),
+        external_locales=("en",),
+        locales=("en",),
+        kinds=("ordinal",),
+        supports=lambda *args, **kwargs: True,
+        currency_supports=lambda *args, **kwargs: True,
+        oracle_supports_case=lambda case: probed.append(case) or True,
+    )
+
+    assert len(probed) == len(cases)
+    assert {case.transport for case in probed} >= {"native", "string", "float"}
+    assert any(case.call_variant == "ordinal-bool" for case in probed)

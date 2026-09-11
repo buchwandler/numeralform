@@ -12,5 +12,5 @@ locales = [
   "th", "tr", "uk", "vi", "zh", "zh-CN", "zh-HK", "zh-TW"
 ]
 forms = ["cardinal", "ordinal", "ordinal_num", "year", "currency"]
-profiles = ["integer", "decimal", "string", "currency", "errors"]
+profiles = ["integer", "decimal", "string", "currency", "options", "errors"]
 values = [0, 1, 2, 3, 10, 11, 19, 20, 21, 42, 99, 100, 101, 999, 1000, 2024]

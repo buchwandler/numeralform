@@ -1,0 +1,53 @@
+[surface]
+schema_version = 1
+oracle_commit = "07814cb114157f582c40a00119c2e9faba8dcee2"
+value_parameters = ["number", "value", "val", "currency", "ordinal", "year"]
+
+[surface.classifications]
+adjective = "covered"
+all_suffixed = "ignored-with-reason"
+animate = "covered"
+case = "covered"
+cents = "covered"
+clazz = "covered"
+construct = "covered"
+counted = "covered"
+counter = "ignored-with-reason"
+definite = "covered"
+era = "covered"
+feminine = "covered"
+gender = "covered"
+informal = "covered"
+kobo = "ignored-with-reason"
+kwargs = "oracle-internal"
+longval = "covered"
+old = "covered"
+ordinal = "oracle-internal"
+prefix = "covered"
+prefer = "covered"
+plural = "covered"
+prefer_singular = "covered"
+prefer_singular_cents = "covered"
+raw = "oracle-internal"
+reading = "covered"
+separator = "covered"
+stuff_zero = "covered"
+suffix = "covered"
+zero = "covered"
+
+[surface.domains]
+gender = ["m", "f", "n"]
+case = ["nominative", "genitive", "dative", "accusative", "instrumental", "prepositional", "partitive", "inessive", "elative", "illative", "adessive", "ablative", "allative", "essive", "translative", "instructive", "abessive", "comitative"]
+plural = [false, true]
+animate = [false, true]
+construct = [false, true]
+definite = [false, true]
+informal = [false, true]
+counted = [false, true]
+longval = [false, true]
+prefer_singular = [false, true]
+prefer_singular_cents = [false, true]
+adjective = [false, true]
+cents = [false, true]
+suffix = ["BCE", "CE"]
+separator = [", ", " and"]

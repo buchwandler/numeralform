@@ -27,16 +27,39 @@ DIFFERENTIAL_STATUSES = (
     "both-error",
 )
 _OPTION_KEYS_BY_KIND = {
-    "cardinal": frozenset({"gender", "case", "plural", "animate", "grammatical_number", "animacy"}),
-    "decimal": frozenset(),
-    "ordinal": frozenset({"gender", "case", "plural", "animate", "grammatical_number", "animacy"}),
-    "ordinal_num": frozenset({"gender"}),
-    "year": frozenset({"suffix"}),
-    "currency": frozenset({"cents", "separator", "adjective"}),
+    "cardinal": frozenset({
+        "gender", "case", "plural", "animate", "grammatical_number", "animacy",
+        "construct", "definite", "definiteness", "noun_class", "clazz", "informal",
+        "counted", "longval", "prefer", "prefer_singular", "prefer_singular_cents",
+        "style", "features", "state", "suffix", "precision",
+    }),
+    "decimal": frozenset({"precision", "style"}),
+    "ordinal": frozenset({
+        "gender", "case", "plural", "animate", "grammatical_number", "animacy",
+        "construct", "definite", "definiteness", "noun_class", "clazz", "informal",
+        "counted", "longval", "prefer", "style", "features",
+    }),
+    "ordinal_num": frozenset({"gender", "definite", "plural", "informal"}),
+    "year": frozenset({"suffix", "longval", "case", "style"}),
+    "currency": frozenset({
+        "cents", "separator", "adjective", "longval", "prefer_singular",
+        "prefer_singular_cents", "precision", "currency",
+    }),
 }
-RandomOptionValue = str | int | bool
-_ALLOWED_OPTION_TYPES = (str, int, bool)
+RandomOptionScalar = str | int | bool | None
+RandomOptionValue = RandomOptionScalar | tuple[RandomOptionScalar, ...]
+_ALLOWED_OPTION_TYPES = (str, int, bool, type(None))
 _ALLOWED_TRANSPORTS = frozenset({"native", "string", "float"})
+
+def _coerce_option_value(value: object) -> RandomOptionValue:
+    if isinstance(value, (tuple, list)):
+        items = tuple(_coerce_option_value(item) for item in value)
+        if any(isinstance(item, (tuple, list)) for item in items):
+            raise TypeError("nested option sequences are not supported")
+        return items
+    if isinstance(value, _ALLOWED_OPTION_TYPES):
+        return value
+    raise TypeError("option values must be JSON-safe scalars or scalar sequences")
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,7 +137,7 @@ class RandomCase:
     currency: str | None = None
     tags: tuple[str, ...] = ()
     oracle_locale: str | None = None
-    options: dict[str, str | int | bool] = field(default_factory=dict)
+    options: dict[str, RandomOptionValue] = field(default_factory=dict)
     variant_id: str | None = None
     call_variant: str | None = None
     transport: str = "native"
@@ -142,9 +165,7 @@ class RandomCase:
         for key, value in options.items():
             if not isinstance(key, str) or key not in allowed:
                 raise ValueError(f"option {key!r} does not apply to {self.kind}")
-            if not isinstance(value, _ALLOWED_OPTION_TYPES):
-                raise TypeError(f"option {key!r} must be a string, integer, or boolean")
-        object.__setattr__(self, "options", options)
+            options[key] = _coerce_option_value(value)
         object.__setattr__(self, "tags", tuple(self.tags))
         if self.oracle_locale is None:
             object.__setattr__(self, "oracle_locale", self.locale)
@@ -184,6 +205,12 @@ class RandomCase:
             self.call_variant,
             self.variant_id or "",
         )
+    @property
+    def option_profile_id(self) -> str | None:
+        """Preferred name for the generated option profile identifier."""
+        return self.variant_id
+
+
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -200,6 +227,7 @@ class RandomCase:
             "currency": self.currency,
             "tags": list(self.tags),
             "options": dict(sorted(self.options.items())),
+            "option_profile_id": self.option_profile_id,
             "variant_id": self.variant_id,
             "call_variant": self.call_variant,
             "transport": self.transport,
@@ -220,8 +248,8 @@ class RandomCase:
             value=SerializedRandomValue.from_dict(payload["value"]),
             currency=payload.get("currency"),
             tags=tuple(payload.get("tags", ())),
-            options=dict(payload.get("options", {})),
-            variant_id=payload.get("variant_id"),
+            options={key: _coerce_option_value(value) for key, value in dict(payload.get("options", {})).items()},
+            variant_id=payload.get("variant_id", payload.get("option_profile_id")),
             call_variant=payload.get("call_variant"),
             transport=str(payload.get("transport", "native")),
         )
@@ -322,6 +350,7 @@ __all__ = [
     "ExecutionResult",
     "RandomCase",
     "RandomOptionValue",
+    "RandomOptionScalar",
     "SerializedRandomValue",
     "json_dumps",
 ]

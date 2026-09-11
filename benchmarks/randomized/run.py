@@ -21,7 +21,8 @@ from benchmarks.validation.oracle.num2words import (
 )
 
 from .adapters import (
-    num2words_call_kwargs,
+    num2words_invocation,
+    oracle_supports_case,
     run_num2words,
     run_numeralform_canonical,
     run_numeralform_compat,
@@ -37,18 +38,14 @@ from .generator import (
 from .model import DIFFERENTIAL_STATUSES, DifferentialResult, RandomCase
 from .report import write_reports
 
+from .coverage import has_coverage_gap, summarize_coverage
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ORACLE_ROOT = BENCHMARK_ROOT / "data" / "oracles" / "num2words"
 DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
 
 
-def _oracle_supports(external_num2words, locale, kind, value, currency, options=None):
-    try:
-        external_num2words(value, **num2words_call_kwargs(locale, kind, currency, options))
-    except Exception:  # noqa: BLE001
-        return False
-    return True
-
+def _oracle_supports_case(case: RandomCase, external_num2words) -> bool:
+    return oracle_supports_case(case, external_num2words)
 
 def execute_case(case: RandomCase, external_num2words, *, target: str = "canonical") -> DifferentialResult:
     if target == "canonical":
@@ -80,16 +77,18 @@ def _seed(value: str) -> int:
     return int(value)
 
 
-def _metadata(seed: int, profile: str, requested_cases: int, config, version: str, target: str) -> dict:
+def _metadata(seed: int, profile: str, requested_cases: int, config, version: str, target: str, coverage_expected: dict | None = None) -> dict:
     return {
         "schema_version": 3,
         "generator_version": GENERATOR_VERSION,
-        "case_option_schema": 1,
+        "case_option_schema": 2,
         "target": target,
         "seed": seed,
         "profile": profile,
         "requested_cases": requested_cases,
         "config_hash": config.config_hash,
+        "coverage_manifest": {"config_hash": config.config_hash, "schema_version": 1},
+        "coverage_expected": coverage_expected or {},
         "currency_minor_units": dict(config.values["currency_minor_units"]),
         "locale_mapping": dict(_NUM2WORDS_CANONICAL_LOCALE_MAP),
         "num2words": {
@@ -101,6 +100,25 @@ def _metadata(seed: int, profile: str, requested_cases: int, config, version: st
         "numeralform_version": numeralform.__version__,
         "python_version": platform.python_version(),
     }
+def _coverage_expected(cases: tuple[RandomCase, ...], target: str, config) -> dict[str, list[str]]:
+    locales = sorted({case.locale for case in cases})
+    kinds = sorted({case.kind for case in cases})
+    expected = {
+        "locales": locales,
+        "kinds": kinds,
+        "locale_kind_cells": sorted({f"{case.locale}|{case.kind}" for case in cases}),
+        "option_profiles": sorted({case.option_profile_id or "<default>" for case in cases}),
+        "currency_cells": sorted({f"{case.locale}|{case.currency}" for case in cases if case.currency}),
+    }
+    if target == "compat":
+        expected["transports"] = list(config.compat_transports)
+        expected["call_variants"] = ["to", "ordinal-bool"] if "ordinal" in kinds else ["to"]
+    else:
+        expected["transports"] = ["native"]
+        expected["call_variants"] = ["to"]
+    return expected
+
+
 
 
 def run_benchmark(
@@ -119,6 +137,7 @@ def run_benchmark(
     record_all: bool = False,
     fail_on_diff: bool = False,
     fail_on_unaccepted: bool = False,
+    fail_on_coverage_gap: bool = False,
 ) -> int:
     external_num2words = load_num2words(oracle_root)
     version = oracle_version(oracle_root)
@@ -137,12 +156,11 @@ def run_benchmark(
         target=target,
         variant=variant,
         transport=transport,
-        oracle_supports=lambda locale, kind, value, currency, options=None: _oracle_supports(
-            external_num2words, locale, kind, value, currency, options
-        ),
+            oracle_supports_case=lambda case: _oracle_supports_case(case, external_num2words),
     )
     results = tuple(execute_case(case, external_num2words, target=target) for case in generated)
-    metadata = _metadata(seed, profile, cases, config, version, target)
+    coverage_expected = _coverage_expected(generated, target, config)
+    metadata = _metadata(seed, profile, cases, config, version, target, coverage_expected)
     paths = write_reports(results, output_dir, metadata=metadata, generation_stats=generation_stats, record_all=record_all)
     counts = {status: sum(result.status == status for result in results) for status in DIFFERENTIAL_STATUSES}
     print("num2words-random benchmark")
@@ -158,6 +176,8 @@ def run_benchmark(
     if fail_on_diff and any(result.status != "match" for result in results):
         return 1
     if fail_on_unaccepted and any(result.status not in {"match", "variant"} for result in results):
+        return 1
+    if fail_on_coverage_gap and has_coverage_gap(summarize_coverage(results, coverage_expected)):
         return 1
     return 0
 
@@ -194,6 +214,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--record-all", action="store_true")
     parser.add_argument("--fail-on-diff", action="store_true")
     parser.add_argument("--fail-on-unaccepted", action="store_true")
+    parser.add_argument("--fail-on-coverage-gap", action="store_true")
     parser.add_argument("--replay", type=Path)
     parser.add_argument("--case-id")
     return parser
@@ -222,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
         record_all=args.record_all,
         fail_on_diff=args.fail_on_diff,
         fail_on_unaccepted=args.fail_on_unaccepted,
+        fail_on_coverage_gap=args.fail_on_coverage_gap,
     )
 
 
