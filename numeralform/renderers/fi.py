@@ -73,6 +73,16 @@ _ORDINAL_TENS = {
     8: "kahdeksaskymmenes",
     9: "yhdeksäskymmenes",
 }
+_ORDINAL_MULTIPLIERS = {
+    2: "kahdes",
+    3: "kolmas",
+    4: "neljäs",
+    5: "viides",
+    6: "kuudes",
+    7: "seitsemäs",
+    8: "kahdeksas",
+    9: "yhdeksäs",
+}
 _CASES = frozenset(
     {
         "nominative",
@@ -266,11 +276,16 @@ class FinnishRenderer:
             text = _ORDINAL_TENS[tens] + (
                 self._ordinal(ones, morphology) if ones else ""
             )
-        else:
+        elif value < 1000:
             hundreds, rest = divmod(value, 100)
-            text = "sadas" if hundreds == 1 else _UNDER_20[hundreds] + "sadas"
+            text = "sadas" if hundreds == 1 else _ORDINAL_MULTIPLIERS[hundreds] + "sadas"
             if rest:
                 text += self._ordinal(rest, morphology)
+        else:
+            thousands, rest = divmod(value, 1000)
+            text = "tuhannes" if thousands == 1 else _ORDINAL_MULTIPLIERS[thousands] + "tuhannes"
+            if rest:
+                text += " " + self._ordinal(rest, morphology)
         return self._inflect(
             text, _case_name(morphology.case), morphology.grammatical_number == "plural"
         )

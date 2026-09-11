@@ -95,6 +95,20 @@ def test_finnish_capabilities_match_reviewed_domain():
         render(10_000, locale="fi")
 
 
+def test_finnish_ordinals_cover_hundreds_and_thousands():
+    assert render(200, locale="fi", form="ordinal") == "kahdessadas"
+    assert render(999, locale="fi", form="ordinal") == (
+        "yhdeksässadasyhdeksäskymmenesyhdeksäs"
+    )
+    assert render(1000, locale="fi", form="ordinal") == "tuhannes"
+    assert render(2024, locale="fi", form="ordinal") == (
+        "kahdestuhannes kahdeskymmenesneljäs"
+    )
+    assert render(9999, locale="fi", form="ordinal") == (
+        "yhdeksästuhannes yhdeksässadasyhdeksäskymmenesyhdeksäs"
+    )
+
+
 @pytest.mark.parametrize(
     ("value", "text"),
     [
