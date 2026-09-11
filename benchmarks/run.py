@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     try:
-        return run(args.target, set(args.mapping or ()) or None)
+        return run(args.target)
     except (CorpusError, RuntimeError, OSError) as exc:
         print(f"BENCHMARK ERROR: {exc}")
         return 2

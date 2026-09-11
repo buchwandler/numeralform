@@ -248,11 +248,11 @@ class Morphology:
 class NumeralRequest:
     value: NumericValue | Decimal | Fraction
     locale: str
-    form: NumeralForm | str | None = None
-    syntax: Syntax | str = Syntax.STANDALONE
+    form: NumeralForm = None  # type: ignore[assignment]
+    syntax: Syntax = Syntax.STANDALONE
     morphology: Morphology = Morphology()
     style: str | None = None
-    features: LocaleFeatures | Mapping[str, FeatureScalar] = LocaleFeatures()
+    features: LocaleFeatures = field(default_factory=LocaleFeatures)
 
     def __post_init__(self) -> None:
         value = coerce_value(self.value)

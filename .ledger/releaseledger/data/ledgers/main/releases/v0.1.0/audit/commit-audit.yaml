@@ -2,14 +2,14 @@ schema_version: 1
 object_type: commit_audit_sheet
 versioning:
   schema_version: 1
-  revision: 3
+  revision: 5
 release_version: v0.1.0
 git_base_ref: 16b83b8
 git_base_sha: 16b83b846c65715dc412c610e18da0e6ab7537f6
 git_head_ref: HEAD
-git_head_sha: e3317bc647a0c6560516220b543797b6f4654d58
-git_range: 16b83b846c65715dc412c610e18da0e6ab7537f6..e3317bc647a0c6560516220b543797b6f4654d58
-commit_count: 8
+git_head_sha: bb266647f610588bbc1341afc1dfe51302f5b784
+git_range: 16b83b846c65715dc412c610e18da0e6ab7537f6..bb266647f610588bbc1341afc1dfe51302f5b784
+commit_count: 25
 rows:
   - sha: 88ffddc6211ce20bf8d2fa586d11ee5a056c1c83
     source_ref: git:88ffddc6211ce20bf8d2fa586d11ee5a056c1c83
@@ -432,3 +432,1071 @@ rows:
     notes:
       Documentation and CI changes are included because they define the supported
       release workflow.
+  - sha: 625121adc083bae51efb43980f22e12c7f5e777f
+    source_ref: git:625121adc083bae51efb43980f22e12c7f5e777f
+    short_sha: 625121a
+    changed_paths:
+      - .ledger/ledger.toml
+      - .ledger/releaseledger/.ledger-project.toml
+      - .ledger/releaseledger/config.toml
+      - .ledger/releaseledger/data/.ledger-project.toml
+      - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/audit/commit-audit.yaml
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0001.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0002.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0003.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0004.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0005.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0006.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/release.md
+      - README.md
+      - docs/changelog.md
+    stats:
+      files_changed: 0
+      insertions: 754
+      deletions: 8
+    inspected: true
+    inspected_paths:
+      - .ledger/ledger.toml
+      - .ledger/releaseledger/.ledger-project.toml
+      - .ledger/releaseledger/config.toml
+      - .ledger/releaseledger/data/.ledger-project.toml
+      - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/audit/commit-audit.yaml
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0001.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0002.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0003.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0004.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0005.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/entries/entry-0006.md
+      - .ledger/releaseledger/data/ledgers/main/releases/v0.1.0/release.md
+      - README.md
+      - docs/changelog.md
+    observed_behavior:
+      Established the initial release changelog and public release
+      context.
+    public_impact: docs
+    decision: accepted
+    stale: false
+    evidence_subject: "doc: changelog"
+    target_entry_id: entry-0005
+    notes: Reviewed against the current docs/changelog.md layout.
+  - sha: 862e708533050ced62ee5079458ffc433abcd8bf
+    source_ref: git:862e708533050ced62ee5079458ffc433abcd8bf
+    short_sha: 862e708
+    changed_paths:
+      - .github/workflows/upstream-num2words.yml
+      - README.md
+      - compatibility.toml
+      - docs/compatibility.md
+      - numeralform/compat/_num2words/__init__.py
+      - numeralform/compat/_num2words/registry.py
+      - numeralform/compat/_num2words/zh.py
+      - numeralform/compat/num2words.py
+      - tests/test_compat_num2words.py
+      - tests/test_external_validation.py
+      - tests/validation/compatibility/exceptions.json
+      - tests/validation/compatibility/manifest.json
+      - tests/validation/compatibility/num2words-git-07814cb.jsonl
+      - tools/validation/README.md
+      - tools/validation/check.py
+      - tools/validation/generate_num2words.py
+      - tools/validation/model.py
+      - tools/validation/report.py
+    stats:
+      files_changed: 0
+      insertions: 7807
+      deletions: 7434
+    inspected: true
+    inspected_paths:
+      - .github/workflows/upstream-num2words.yml
+      - README.md
+      - compatibility.toml
+      - docs/compatibility.md
+      - numeralform/compat/_num2words/__init__.py
+      - numeralform/compat/_num2words/registry.py
+      - numeralform/compat/_num2words/zh.py
+      - numeralform/compat/num2words.py
+      - tests/test_compat_num2words.py
+      - tests/test_external_validation.py
+      - tests/validation/compatibility/exceptions.json
+      - tests/validation/compatibility/manifest.json
+      - tests/validation/compatibility/num2words-git-07814cb.jsonl
+      - tools/validation/README.md
+      - tools/validation/check.py
+      - tools/validation/generate_num2words.py
+      - tools/validation/model.py
+      - tools/validation/report.py
+    observed_behavior:
+      Added and corrected the pinned num2words compatibility adapter
+      and its locale-specific behavior.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: fix upstream num2words"
+    target_entry_id: entry-0003
+    notes:
+      Historical compatibility paths are stale; current package paths are represented
+      by the refreshed entry.
+  - sha: 55aab067feca7a22fea6a742fd386823ae11c091
+    source_ref: git:55aab067feca7a22fea6a742fd386823ae11c091
+    short_sha: 55aab06
+    changed_paths:
+      - .github/workflows/benchmarks.yml
+      - .github/workflows/ci.yml
+      - .github/workflows/upstream-num2words.yml
+      - .gitignore
+      - README.md
+      - benchmarks/README.md
+      - benchmarks/__init__.py
+      - benchmarks/config/cldr.toml
+      - benchmarks/config/num2words.toml
+      - benchmarks/data/corpora/cldr/.gitkeep
+      - benchmarks/data/corpora/num2words/.gitkeep
+      - benchmarks/data/oracles/num2words
+      - benchmarks/data/results/.gitkeep
+      - benchmarks/download.py
+      - benchmarks/provenance/cldr.md
+      - benchmarks/provenance/num2words.md
+      - benchmarks/run.py
+      - benchmarks/tests/__init__.py
+      - benchmarks/tests/test_corpus.py
+      - benchmarks/tests/test_generation.py
+      - benchmarks/tests/test_model.py
+      - benchmarks/tests/test_reports.py
+      - benchmarks/tests/test_runner.py
+      - benchmarks/validation/__init__.py
+      - benchmarks/validation/cases.py
+      - benchmarks/validation/check.py
+      - benchmarks/validation/corpus.py
+      - benchmarks/validation/generate_cldr.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/mapping.py
+      - benchmarks/validation/model.py
+      - benchmarks/validation/normalize.py
+      - benchmarks/validation/oracle/__init__.py
+      - benchmarks/validation/oracle/base.py
+      - benchmarks/validation/oracle/icu.py
+      - benchmarks/validation/report.py
+      - docs/compatibility.md
+      - docs/releasing.md
+      - pyproject.toml
+      - tests/test_api.py
+      - tests/test_api_contract.py
+      - tests/test_capabilities.py
+      - tests/test_capabilities_contract.py
+      - tests/test_compat_num2words.py
+      - tests/test_compatibility.py
+      - tests/test_coverage_paths.py
+      - tests/test_external_validation.py
+      - tests/test_hardening.py
+      - tests/test_numeralform.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+      - tests/test_runtime_isolation.py
+      - tests/validation/cldr/NOTICE.md
+      - tests/validation/cldr/en.jsonl
+      - tests/validation/cldr/es.jsonl
+      - tests/validation/cldr/manifest.json
+      - tests/validation/cldr/ru.jsonl
+      - tests/validation/compatibility/NOTICE.md
+      - tests/validation/compatibility/capabilities.json
+      - tests/validation/compatibility/manifest.json
+      - tests/validation/compatibility/num2words-git-07814cb.jsonl
+      - tests/validation/reviewed/en.jsonl
+      - tests/validation/reviewed/es.jsonl
+      - tests/validation/reviewed/ru.jsonl
+      - tools/validation/README.md
+    stats:
+      files_changed: 0
+      insertions: 1899
+      deletions: 40026
+    inspected: true
+    inspected_paths:
+      - .github/workflows/benchmarks.yml
+      - .github/workflows/ci.yml
+      - .github/workflows/upstream-num2words.yml
+      - .gitignore
+      - README.md
+      - benchmarks/README.md
+      - benchmarks/__init__.py
+      - benchmarks/config/cldr.toml
+      - benchmarks/config/num2words.toml
+      - benchmarks/data/corpora/cldr/.gitkeep
+      - benchmarks/data/corpora/num2words/.gitkeep
+      - benchmarks/data/oracles/num2words
+      - benchmarks/data/results/.gitkeep
+      - benchmarks/download.py
+      - benchmarks/provenance/cldr.md
+      - benchmarks/provenance/num2words.md
+      - benchmarks/run.py
+      - benchmarks/tests/__init__.py
+      - benchmarks/tests/test_corpus.py
+      - benchmarks/tests/test_generation.py
+      - benchmarks/tests/test_model.py
+      - benchmarks/tests/test_reports.py
+      - benchmarks/tests/test_runner.py
+      - benchmarks/validation/__init__.py
+      - benchmarks/validation/cases.py
+      - benchmarks/validation/check.py
+      - benchmarks/validation/corpus.py
+      - benchmarks/validation/generate_cldr.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/mapping.py
+      - benchmarks/validation/model.py
+      - benchmarks/validation/normalize.py
+      - benchmarks/validation/oracle/__init__.py
+      - benchmarks/validation/oracle/base.py
+      - benchmarks/validation/oracle/icu.py
+      - benchmarks/validation/report.py
+      - docs/compatibility.md
+      - docs/releasing.md
+      - pyproject.toml
+      - tests/test_api.py
+      - tests/test_api_contract.py
+      - tests/test_capabilities.py
+      - tests/test_capabilities_contract.py
+      - tests/test_compat_num2words.py
+      - tests/test_compatibility.py
+      - tests/test_coverage_paths.py
+      - tests/test_external_validation.py
+      - tests/test_hardening.py
+      - tests/test_numeralform.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+      - tests/test_runtime_isolation.py
+      - tests/validation/cldr/NOTICE.md
+      - tests/validation/cldr/en.jsonl
+      - tests/validation/cldr/es.jsonl
+      - tests/validation/cldr/manifest.json
+      - tests/validation/cldr/ru.jsonl
+      - tests/validation/compatibility/NOTICE.md
+      - tests/validation/compatibility/capabilities.json
+      - tests/validation/compatibility/manifest.json
+      - tests/validation/compatibility/num2words-git-07814cb.jsonl
+      - tests/validation/reviewed/en.jsonl
+      - tests/validation/reviewed/es.jsonl
+      - tests/validation/reviewed/ru.jsonl
+      - tools/validation/README.md
+    observed_behavior:
+      Separated hermetic product tests from benchmark data and established
+      the current benchmark validation layout.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: seperate pytest and benchmark"
+    target_entry_id: entry-0004
+    notes:
+      Historical validation paths are stale; current benchmark architecture is
+      represented by the refreshed entry.
+  - sha: 5cd19e8b860a36f395938a80b785a9dcbef7bded
+    source_ref: git:5cd19e8b860a36f395938a80b785a9dcbef7bded
+    short_sha: 5cd19e8
+    changed_paths:
+      - .codecrate.toml
+      - .github/workflows/benchmarks.yml
+      - benchmarks/README.md
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/__init__.py
+      - benchmarks/randomized/__main__.py
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/compare.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/randomized/surfaces.py
+      - benchmarks/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_randomized_runner.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/oracle/num2words.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/sv.py
+      - tests/test_rendering.py
+    stats:
+      files_changed: 0
+      insertions: 1606
+      deletions: 76
+    inspected: true
+    inspected_paths:
+      - .codecrate.toml
+      - .github/workflows/benchmarks.yml
+      - benchmarks/README.md
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/__init__.py
+      - benchmarks/randomized/__main__.py
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/compare.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/randomized/surfaces.py
+      - benchmarks/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_randomized_runner.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/oracle/num2words.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/sv.py
+      - tests/test_rendering.py
+    observed_behavior:
+      Added replayable randomized canonical and compatibility differential
+      benchmark infrastructure.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: new randomized benchmark"
+    target_entry_id: entry-0004
+    notes: Current randomized benchmark paths were inspected.
+  - sha: 3ca66a4daf62bf0f0f48ed0e1876b3605149ff54
+    source_ref: git:3ca66a4daf62bf0f0f48ed0e1876b3605149ff54
+    short_sha: 3ca66a4
+    changed_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_randomized_runner.py
+      - docs/api.md
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - tests/test_compatibility.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 1052
+      deletions: 237
+    inspected: true
+    inspected_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_randomized_runner.py
+      - docs/api.md
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - tests/test_compatibility.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Expanded randomized benchmark cases and adjusted canonical and
+      compatibility comparison behavior.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improvements by benchmark results"
+    target_entry_id: entry-0004
+    notes: Current benchmark paths were inspected.
+  - sha: 1fcd9a82cc3225edc624c83c48ba353b20a296ae
+    source_ref: git:1fcd9a82cc3225edc624c83c48ba353b20a296ae
+    short_sha: 1fcd9a8
+    changed_paths:
+      - README.md
+      - benchmarks/README.md
+      - benchmarks/config/cldr.toml
+      - benchmarks/randomized/__init__.py
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/compare.py
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_randomized_runner.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/oracle/num2words.py
+      - docs/locales/README.md
+      - docs/locales/en.md
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - tests/test_api.py
+      - tests/test_compatibility.py
+      - tests/test_english_regional.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+    stats:
+      files_changed: 0
+      insertions: 1150
+      deletions: 166
+    inspected: true
+    inspected_paths:
+      - README.md
+      - benchmarks/README.md
+      - benchmarks/config/cldr.toml
+      - benchmarks/randomized/__init__.py
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/compare.py
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_randomized_runner.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/oracle/num2words.py
+      - docs/locales/README.md
+      - docs/locales/en.md
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - tests/test_api.py
+      - tests/test_compatibility.py
+      - tests/test_english_regional.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+    observed_behavior:
+      Improved randomized benchmark reporting, corpus handling, and
+      compatibility validation documentation.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improve benchmark and output"
+    target_entry_id: entry-0004
+    notes: Current benchmark paths were inspected.
+  - sha: 9983762019d1b11d2739d0b5b0f7dce0aa18e5a8
+    source_ref: git:9983762019d1b11d2739d0b5b0f7dce0aa18e5a8
+    short_sha: "9983762"
+    changed_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - numeralform/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/locale.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/generic.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - tests/test_compatibility.py
+      - tests/test_english_regional.py
+    stats:
+      files_changed: 0
+      insertions: 458
+      deletions: 170
+    inspected: true
+    inspected_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - numeralform/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/locale.py
+      - numeralform/model.py
+      - numeralform/registry.py
+      - numeralform/renderers/base.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/generic.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/th.py
+      - numeralform/renderers/vi.py
+      - tests/test_compatibility.py
+      - tests/test_english_regional.py
+    observed_behavior:
+      Expanded currency scales, locale terminology, and structured
+      currency behavior.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improved currency handling"
+    target_entry_id: entry-0003
+    notes: Current currency paths were inspected.
+  - sha: a8cefc599d18ce14c10a620db179bdd00a04a731
+    source_ref: git:a8cefc599d18ce14c10a620db179bdd00a04a731
+    short_sha: a8cefc5
+    changed_paths:
+      - benchmarks/randomized/generator.py
+      - benchmarks/tests/test_randomized_generator.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - tests/test_compatibility.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 114
+      deletions: 5
+    inspected: true
+    inspected_paths:
+      - benchmarks/randomized/generator.py
+      - benchmarks/tests/test_randomized_generator.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - tests/test_compatibility.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Corrected currency terminology and compatibility behavior for
+      additional locale and currency cases.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: fix Pfund"
+    target_entry_id: entry-0003
+    notes: Current compatibility and currency paths were inspected.
+  - sha: 3234ab289a86789278aa1486342888cc019c560b
+    source_ref: git:3234ab289a86789278aa1486342888cc019c560b
+    short_sha: 3234ab2
+    changed_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/randomized/surfaces.py
+      - benchmarks/tests/test_randomized_expansion.py
+    stats:
+      files_changed: 0
+      insertions: 741
+      deletions: 422
+    inspected: true
+    inspected_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/randomized/surfaces.py
+      - benchmarks/tests/test_randomized_expansion.py
+    observed_behavior: Extended randomized benchmark generation and report coverage.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improve benchmark"
+    target_entry_id: entry-0004
+    notes: Current benchmark paths were inspected.
+  - sha: 71c5dc653b2c870ef1abd9109e4cc34e345afef4
+    source_ref: git:71c5dc653b2c870ef1abd9109e4cc34e345afef4
+    short_sha: 71c5dc6
+    changed_paths:
+      - numeralform/renderers/fi.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 31
+      deletions: 2
+    inspected: true
+    inspected_paths:
+      - numeralform/renderers/fi.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Extended Finnish scale and ordinal rendering behavior with regression
+      coverage.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "fix: fi renderer"
+    target_entry_id: entry-0003
+    notes: Finnish capability truth is finalized by the release-readiness implementation.
+  - sha: a0bf9efe65c3f7839c6244279ee5d5f269144240
+    source_ref: git:a0bf9efe65c3f7839c6244279ee5d5f269144240
+    short_sha: a0bf9ef
+    changed_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/report.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - numeralform/__init__.py
+      - numeralform/currency/__init__.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/vi.py
+      - tests/test_capabilities.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 521
+      deletions: 89
+    inspected: true
+    inspected_paths:
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/report.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - numeralform/__init__.py
+      - numeralform/currency/__init__.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/ordinal.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - numeralform/renderers/vi.py
+      - tests/test_capabilities.py
+      - tests/test_regressions.py
+    observed_behavior: Expanded benchmark cases and renderer capability/regression coverage.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improve benchmark and numeralform"
+    target_entry_id: entry-0004
+    notes: Current benchmark and renderer paths were inspected.
+  - sha: 64afaef1cfcdd36d0ae69459fd2e98479b170337
+    source_ref: git:64afaef1cfcdd36d0ae69459fd2e98479b170337
+    short_sha: 64afaef
+    changed_paths:
+      - benchmarks/README.md
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+    stats:
+      files_changed: 0
+      insertions: 854
+      deletions: 86
+    inspected: true
+    inspected_paths:
+      - benchmarks/README.md
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_generator.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/cs.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+    observed_behavior:
+      Expanded benchmark reporting and corrected locale currency/rendering
+      behavior.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improve benchmark and numeralform"
+    target_entry_id: entry-0004
+    notes: Current benchmark architecture is represented by entry-0004.
+  - sha: e2f040037e05bca4f1392b0ed43d026f8120e5cc
+    source_ref: git:e2f040037e05bca4f1392b0ed43d026f8120e5cc
+    short_sha: e2f0400
+    changed_paths:
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/tests/test_randomized_compare.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 491
+      deletions: 51
+    inspected: true
+    inspected_paths:
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/tests/test_randomized_compare.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+    observed_behavior: Improved randomized benchmark and renderer regression coverage.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improve benchmark and numeralform"
+    target_entry_id: entry-0004
+    notes: Current benchmark paths were inspected.
+  - sha: d38c2ab2e61d900b507dcee3c389dfe855e89cfe
+    source_ref: git:d38c2ab2e61d900b507dcee3c389dfe855e89cfe
+    short_sha: d38c2ab
+    changed_paths:
+      - .github/workflows/benchmarks.yml
+      - benchmarks/README.md
+      - benchmarks/config/num2words.toml
+      - benchmarks/config/num2words2.toml
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/config/num2words_surface.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/coverage.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_num2words2.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_coverage.py
+      - benchmarks/tests/test_randomized_expansion.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_runner.py
+      - benchmarks/tests/test_surface.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/num2words2.py
+      - benchmarks/validation/surface.py
+    stats:
+      files_changed: 0
+      insertions: 725
+      deletions: 55
+    inspected: true
+    inspected_paths:
+      - .github/workflows/benchmarks.yml
+      - benchmarks/README.md
+      - benchmarks/config/num2words.toml
+      - benchmarks/config/num2words2.toml
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/config/num2words_surface.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/coverage.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_num2words2.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_coverage.py
+      - benchmarks/tests/test_randomized_expansion.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_runner.py
+      - benchmarks/tests/test_surface.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/num2words2.py
+      - benchmarks/validation/surface.py
+    observed_behavior: Improved benchmark execution and report handling.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improve benchmark"
+    target_entry_id: entry-0004
+    notes: Current benchmark paths were inspected.
+  - sha: 0f77771f7a8007eb1850d44689cd66c86c7ce15e
+    source_ref: git:0f77771f7a8007eb1850d44689cd66c86c7ce15e
+    short_sha: 0f77771
+    changed_paths:
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/tests/test_randomized_compare.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 287
+      deletions: 24
+    inspected: true
+    inspected_paths:
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/tests/test_randomized_compare.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Expanded benchmark coverage and fixed associated numeral and
+      currency rendering regressions.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: improved benchmark and numeralform"
+    target_entry_id: entry-0004
+    notes: Current benchmark paths were inspected.
+  - sha: 915c10144bca52cbf2903bbc8b46cef6fb0f8ca0
+    source_ref: git:915c10144bca52cbf2903bbc8b46cef6fb0f8ca0
+    short_sha: 915c101
+    changed_paths:
+      - benchmarks/README.md
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/coverage.py
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_num2words2.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_coverage.py
+      - benchmarks/tests/test_randomized_expansion.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_surface.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/num2words2.py
+      - benchmarks/validation/surface.py
+      - numeralform/__init__.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 1675
+      deletions: 407
+    inspected: true
+    inspected_paths:
+      - benchmarks/README.md
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/coverage.py
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/model.py
+      - benchmarks/randomized/report.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_num2words2.py
+      - benchmarks/tests/test_randomized_compare.py
+      - benchmarks/tests/test_randomized_coverage.py
+      - benchmarks/tests/test_randomized_expansion.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_report.py
+      - benchmarks/tests/test_surface.py
+      - benchmarks/validation/generate_num2words.py
+      - benchmarks/validation/num2words2.py
+      - benchmarks/validation/surface.py
+      - numeralform/__init__.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/regional.py
+      - numeralform/renderers/ru.py
+      - tests/test_regressions.py
+    observed_behavior: Added repository quality hooks and static-analysis tooling configuration.
+    public_impact: none
+    decision: internal
+    stale: false
+    evidence_subject: "chore: pre-commit and mypy"
+    target_entry_id: entry-0006
+    notes: Tooling-only historical change.
+  - sha: bb266647f610588bbc1341afc1dfe51302f5b784
+    source_ref: git:bb266647f610588bbc1341afc1dfe51302f5b784
+    short_sha: bb26664
+    changed_paths:
+      - .github/workflows/ci.yml
+      - docs/api.md
+      - docs/currency.md
+      - docs/locales/README.md
+      - docs/locales/capability-matrix.md
+      - docs/morphology.md
+      - docs/releasing.md
+      - numeralform/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/errors.py
+      - numeralform/model.py
+      - numeralform/renderers/fi.py
+      - pyproject.toml
+      - scripts/check_artifact.py
+      - tests/test_api.py
+      - tests/test_capabilities.py
+      - tests/test_compat_hardening.py
+      - tests/test_currency_api.py
+      - tests/test_docs.py
+      - tests/test_regressions.py
+      - tests/typing_consumer.py
+    stats:
+      files_changed: 0
+      insertions: 768
+      deletions: 115
+    inspected: true
+    inspected_paths:
+      - .github/workflows/ci.yml
+      - docs/api.md
+      - docs/currency.md
+      - docs/locales/README.md
+      - docs/locales/capability-matrix.md
+      - docs/morphology.md
+      - docs/releasing.md
+      - numeralform/__init__.py
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/errors.py
+      - numeralform/model.py
+      - numeralform/renderers/fi.py
+      - pyproject.toml
+      - scripts/check_artifact.py
+      - tests/test_api.py
+      - tests/test_capabilities.py
+      - tests/test_compat_hardening.py
+      - tests/test_currency_api.py
+      - tests/test_docs.py
+      - tests/test_regressions.py
+      - tests/typing_consumer.py
+    observed_behavior:
+      Hardened structured currency semantics, capability truth, API
+      boundaries, hermetic coverage, documentation, typing, CI, and package artifact
+      validation for the v0.1.0 candidate.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: Prepare Numeralform v0.1.0 release readiness
+    target_entry_id: entry-0007
+    notes:
+      Release-readiness implementation commit; external oracle gates remain a separate
+      candidate check.
