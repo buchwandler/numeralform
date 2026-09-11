@@ -148,3 +148,52 @@ def test_variant_policy_is_opt_in_for_compatibility_target():
         ExecutionResult.text_result("two thousand three"),
     )
     assert result.status == "mismatch"
+
+
+
+def test_named_locale_equivalence_rules_and_negative_controls():
+    examples = (
+        (case(locale="es", kind="decimal", value=Decimal("1.10")), "uno punto uno", "uno punto uno cero", "decimal-trailing-zero-precision"),
+        (case(locale="es", kind="ordinal", value=20), "vigesimo", "vigésimo", "oracle:es-ordinal-accent"),
+        (case(locale="es", kind="ordinal", value=12), "decimosegundo", "duodécimo", "variant:es-ordinal-synonym"),
+        (case(locale="fr-BE", value=951), "neuf cents cinquante et un", "neuf cent cinquante et un", "oracle:fr-cent-overpluralization"),
+        (case(locale="it", value=180), "centottanta", "centoottanta", "variant:it-cento-elision"),
+        (case(locale="ja", kind="ordinal_num", value=6836), "6836番目", "第6836", "variant:ja-ordinal-notation"),
+        (case(locale="sv", value=40), "förtio", "fyrtio", "oracle:sv-number-orthography"),
+        (case(locale="ru", kind="currency", value=Decimal("1079.24"), currency="EUR"), "одна тысяча семьдесят девять евро, 24 цента", "одна тысяча семьдесят девять евро и 24 цента", "ru-eur-currency"),
+        (case(locale="en", kind="currency", value=Decimal("1.01"), currency="CAD"), "one dollar and 01 cents", "one Canadian dollar and 01 cents", "en-cad-currency"),
+        (case(locale="en", kind="year", value=193), "one ninety-three", "one hundred and ninety-three", "en-year-reading"),
+    )
+    for local_case, expected, actual, rule in examples:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+    negative = compare_results(
+        case(locale="es", kind="ordinal", value=13),
+        ExecutionResult.text_result("decimosegundo"),
+        ExecutionResult.text_result("decimotercero"),
+        accept_variants=True,
+    )
+    assert negative.status == "mismatch"
+
+    malformed = compare_results(
+        case(locale="fr-BE", value=951),
+        ExecutionResult.text_result("neuf cents cinquante et un"),
+        ExecutionResult.text_result("neuf cent troiième"),
+        accept_variants=True,
+    )
+    assert malformed.status == "mismatch"
+
+    wrong_value = compare_results(
+        case(locale="sv", value=41),
+        ExecutionResult.text_result("förtio"),
+        ExecutionResult.text_result("fyrtioett"),
+        accept_variants=True,
+    )
+    assert wrong_value.status == "mismatch"

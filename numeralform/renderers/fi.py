@@ -165,7 +165,7 @@ class FinnishRenderer:
     def capabilities() -> LocaleCapabilities:
         common_cases = frozenset({"nominative"})
         common_numbers = frozenset({"singular"})
-        common_domain = NumericDomain(maximum=9999)
+        common_domain = NumericDomain(maximum=999_999_999_999)
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(
@@ -242,10 +242,13 @@ class FinnishRenderer:
             if rest:
                 text += self._cardinal(rest, morphology)
         else:
-            group, rest = divmod(value, 1000)
-            text = (
-                "tuhat" if group == 1 else self._cardinal(group, morphology) + "tuhatta"
-            )
+            scale, name = self._scale(value)
+            quotient, rest = divmod(value, scale)
+            if scale == 1000:
+                text = "tuhat" if quotient == 1 else self._cardinal(quotient, morphology) + "tuhatta"
+            else:
+                scale_form = name if quotient == 1 else name + "a"
+                text = self._cardinal(quotient, morphology) + " " + scale_form
             if rest:
                 text += " " + self._cardinal(rest, morphology)
         return self._inflect(

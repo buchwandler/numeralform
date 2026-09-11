@@ -1,4 +1,5 @@
 from decimal import Decimal
+import pytest
 
 from benchmarks.randomized.generator import (
     SharedLocale,
@@ -151,3 +152,19 @@ def test_v1_replay_without_oracle_locale_defaults_to_canonical_locale():
         }
     )
     assert case.oracle_locale == "en"
+
+
+def test_shared_exclusions_skip_incomparable_japanese_years():
+    with pytest.raises(RuntimeError):
+        generate_cases(
+            seed=11,
+            count=1,
+            profile="shared",
+            canonical_locales=("ja",),
+            external_locales=("ja",),
+            locales=("ja",),
+            kinds=("year",),
+            supports=lambda *args: True,
+            currency_supports=lambda *args: True,
+            oracle_supports=lambda *args: True,
+        )

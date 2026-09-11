@@ -50,7 +50,7 @@ def test_domains_agree_with_renderer_boundaries():
     assert supports("es", form="ordinal", value=20)
     assert not supports("es", form="ordinal", value=21)
     assert supports("fi", value=9_999)
-    assert not supports("fi", value=10_000)
+    assert supports("fi", value=1_000_000)
 
 
 def test_unsupported_rendering_is_an_explicit_error():

@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 
-from numeralform import DigitSequence, NumeralFormError, render, render_currency
+from numeralform import DigitSequence, NumeralFormError, render, render_currency, supports_currency
 from numeralform.errors import InvalidValueError, UnsupportedMorphologyError
 
 
@@ -91,9 +91,7 @@ def test_finnish_capabilities_match_reviewed_domain():
     )
     with pytest.raises(UnsupportedMorphologyError):
         render(1, locale="fi", case="genitive")
-    with pytest.raises(InvalidValueError):
-        render(10_000, locale="fi")
-
+    assert render(10_000, locale="fi") == "kymmenentuhatta"
 
 def test_finnish_ordinals_cover_hundreds_and_thousands():
     assert render(200, locale="fi", form="ordinal") == "kahdessadas"
@@ -242,7 +240,7 @@ def test_currency_locale_morphology_and_joining():
     assert "centy" in render_currency(Decimal("2.02"), locale="cs", currency="EUR")
     assert (
         render_currency(Decimal("1.20"), locale="ko", currency="USD")
-        == "일 달러 이십 센트"
+        == "일달러 이십센트"
     )
     assert "หนึ่งยูโร" in render_currency(Decimal("1.20"), locale="th", currency="EUR")
     assert " und " in render_currency(Decimal("1.20"), locale="de", currency="EUR")
@@ -312,4 +310,48 @@ def test_canonical_year_policies():
     assert render(1999, locale="de", form="year") == "neunzehnhundertneunundneunzig"
     assert render(2000, locale="de", form="year") == "zweitausend"
     assert render(2024, locale="ko", form="year") == "이천이십사년"
-    assert render(2024, locale="ja", form="year") == "二千二十四"
+    assert render(2024, locale="ja", form="year") == "二千二十四年"
+
+
+def test_finnish_large_scale_cardinals():
+    assert render(1_000, locale="fi") == "tuhat"
+    assert render(2_000, locale="fi") == "kaksituhatta"
+    assert render(1_000_000, locale="fi") == "yksi miljoona"
+    assert render(2_000_000, locale="fi") == "kaksi miljoonaa"
+    assert render(31_000_000, locale="fi") == "kolmekymmentäyksi miljoonaa"
+    assert render(386_130_945, locale="fi") == (
+        "kolmesataakahdeksankymmentäkuusi miljoonaa "
+        "satakolmekymmentätuhatta yhdeksänsataaneljäkymmentäviisi"
+    )
+
+
+def test_01_todo_renderer_regressions():
+    assert render(31_000_000, locale="cs") == "třicet jedna milionů"
+    assert render(19, locale="de", form="ordinal") == "neunzehnte"
+    assert render(21, locale="de", form="ordinal") == "einundzwanzigste"
+    assert render(119, locale="de", form="ordinal") == "einhundertneunzehnte"
+    assert render(5319, locale="de", form="ordinal") == "fünftausenddreihundertneunzehnte"
+    assert render(100, locale="de", form="ordinal") == "einhundertste"
+    assert render(3, locale="fr", form="ordinal") == "troisième"
+    assert render(9, locale="fr", form="ordinal") == "neuvième"
+    assert render(31, locale="fr-BE", form="ordinal") == "trente et unième"
+    assert render(2209, locale="fr", form="ordinal") == "deux mille deux cent neuvième"
+    assert render(23, locale="it") == "ventitré"
+    assert render(3163, locale="it") == "tremilacentosessantatré"
+    assert render(7245, locale="it", form="ordinal") == "settemiladuecentoquarantacinquesimo"
+    assert render(1188, locale="pt", form="ordinal") == "milésimo centésimo octogésimo oitavo"
+    assert render(1800, locale="pt") == "mil e oitocentos"
+    assert render(1801, locale="pt-BR") == "mil oitocentos e um"
+    assert render(578_990_689, locale="ko") == "오억 칠천팔백구십구만 육백팔십구"
+    assert render(5455, locale="ko", form="ordinal_num") == "5455번째"
+    assert render(101, locale="vi") == "một trăm lẻ một"
+    assert render(1050, locale="vi") == "một nghìn lẻ năm mươi"
+
+
+def test_localized_currency_support_and_morphology():
+    assert supports_currency("es", "CAD")
+    assert supports_currency("fi", "AUD")
+    assert supports_currency("pt", "CAD")
+    assert not supports_currency("fi", "CHF")
+    assert "una libra" in render_currency(Decimal("1.00"), locale="es", currency="GBP")
+    assert "one paisa" in render_currency(Decimal("1.01"), locale="en", currency="INR")

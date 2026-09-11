@@ -7,7 +7,7 @@ from benchmarks.randomized.model import (
     SerializedRandomValue,
 )
 from benchmarks.randomized.report import write_reports
-
+from benchmarks.randomized.report import summarize, write_reports
 
 def test_report_outputs_are_replayable(tmp_path):
     case = RandomCase(
@@ -89,3 +89,44 @@ def test_report_outputs_are_replayable(tmp_path):
     assert "semantic parity:" in report
     assert "comparable cases:" in report
     assert "count: 2" in report
+
+
+def test_report_breakdowns_materialize_status_subsets():
+    def result(*, locale, oracle_locale, kind, status, shape):
+        local_case = RandomCase(
+            1,
+            1,
+            42,
+            0,
+            f"case-{locale}-{kind}-{status}",
+            locale,
+            kind,
+            "1.0" if kind == "decimal" else "1",
+            SerializedRandomValue("decimal", "1.0") if kind == "decimal" else SerializedRandomValue("int", "1"),
+            oracle_locale=oracle_locale,
+        )
+        return DifferentialResult(
+            local_case,
+            status,
+            ExecutionResult.text_result("oracle"),
+            ExecutionResult.text_result("canonical"),
+            shape,
+            "variant:test" if status == "variant" else None,
+        )
+
+    results = [
+        result(locale="en", oracle_locale="en-US", kind="decimal", status="variant", shape="lexical difference"),
+        result(locale="es", oracle_locale="es-ES", kind="year", status="variant", shape="whitespace only"),
+        result(locale="en", oracle_locale="en-US", kind="cardinal", status="mismatch", shape="conjunction difference"),
+        result(locale="fr", oracle_locale="fr-FR", kind="ordinal", status="mismatch", shape="lexical difference"),
+    ]
+    summary = summarize(results, metadata={})
+    breakdowns = summary["breakdowns"]
+    assert breakdowns["variants_by_locale"] == {"en": 1, "es": 1}
+    assert breakdowns["variants_by_kind"] == {"decimal": 1, "year": 1}
+    assert breakdowns["mismatches_by_locale"] == {"en": 1, "fr": 1}
+    assert breakdowns["mismatches_by_oracle_locale"] == {"en-US": 1, "fr-FR": 1}
+    assert breakdowns["mismatches_by_kind"] == {"cardinal": 1, "ordinal": 1}
+    assert breakdowns["differences_by_shape"] == {"conjunction difference": 1, "lexical difference": 2, "whitespace only": 1}
+    assert breakdowns["mismatches_by_shape"] == {"conjunction difference": 1, "lexical difference": 1}
+    assert breakdowns["variants_by_shape"] == {"lexical difference": 1, "whitespace only": 1}

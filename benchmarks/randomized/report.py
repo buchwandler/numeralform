@@ -53,9 +53,10 @@ def summarize(
         "exact_parity_rate": counts.get("match", 0) / comparable_cases if comparable_cases else 0.0,
         "semantic_parity_rate": semantic_matches / comparable_cases if comparable_cases else 0.0,
     }
-    mismatches = (result for result in results if result.status == "mismatch")
-    variants = (result for result in results if result.status == "variant")
-    oracle_errors = (result for result in results if result.status == "oracle-error")
+    mismatches = tuple(result for result in results if result.status == "mismatch")
+    variants = tuple(result for result in results if result.status == "variant")
+    oracle_errors = tuple(result for result in results if result.status == "oracle-error")
+    differences = tuple(result for result in results if result.status != "match")
     summary["breakdowns"] = {
         "locale": _breakdown(results, "locale"),
         "oracle_locale": _breakdown(results, "oracle_locale"),
@@ -65,7 +66,9 @@ def summarize(
         "options_by_status": dict(sorted(Counter(f"{_option_key(result)}|{result.status}" for result in results).items())),
         "transport": dict(sorted(Counter(result.case.transport for result in results).items())),
         "variant_id": dict(sorted(Counter(result.case.variant_id or "<default>" for result in results).items())),
-        "difference_shape": dict(sorted(Counter(result.difference_shape for result in results if result.difference_shape).items())),
+        "differences_by_shape": dict(sorted(Counter(result.difference_shape for result in differences if result.difference_shape).items())),
+        "mismatches_by_shape": dict(sorted(Counter(result.difference_shape for result in mismatches if result.difference_shape).items())),
+        "variants_by_shape": dict(sorted(Counter(result.difference_shape for result in variants if result.difference_shape).items())),
         "variants_by_locale": _breakdown(variants, "locale"),
         "variants_by_kind": _breakdown(variants, "kind"),
         "variants_by_rule": dict(sorted(Counter(result.equivalence_rule for result in results if result.status == "variant" and result.equivalence_rule).items())),
@@ -167,10 +170,13 @@ def human_report(
         ("accepted variants by kind", summary["breakdowns"]["variants_by_kind"]),
         ("accepted variants by rule", summary["breakdowns"]["variants_by_rule"]),
         ("mismatches by locale", summary["breakdowns"]["mismatches_by_locale"]),
+        ("mismatches by oracle locale", summary["breakdowns"]["mismatches_by_oracle_locale"]),
         ("mismatches by kind", summary["breakdowns"]["mismatches_by_kind"]),
         ("oracle errors by locale", summary["breakdowns"]["oracle_errors_by_locale"]),
         ("oracle errors by kind", summary["breakdowns"]["oracle_errors_by_kind"]),
-        ("mismatches by difference shape", summary["breakdowns"]["difference_shape"]),
+        ("differences by difference shape", summary["breakdowns"]["differences_by_shape"]),
+        ("mismatches by difference shape", summary["breakdowns"]["mismatches_by_shape"]),
+        ("variants by difference shape", summary["breakdowns"]["variants_by_shape"]),
     ):
         lines.extend(("", label))
         lines.extend(f"  {key}: {value}" for key, value in values.items())

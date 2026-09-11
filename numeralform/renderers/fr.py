@@ -37,6 +37,15 @@ _ORDINALS = {
     4: "quatrième",
     5: "cinquième",
     6: "sixième",
+    11: "onzième",
+    12: "douzième",
+    13: "treizième",
+    14: "quatorzième",
+    15: "quinzième",
+    16: "seizième",
+    17: "dix-septième",
+    18: "dix-huitième",
+    19: "dix-neuvième",
     7: "septième",
     8: "huitième",
     9: "neuvième",
@@ -152,14 +161,28 @@ class FrenchRenderer:
         if value in _ORDINALS:
             return _ORDINALS[value]
         if value < 100:
-            _tens, units = divmod(value, 10)
+            tens, units = divmod(value, 10)
             if units:
-                return f"{self._cardinal(value - units)}-{self._ordinal(units)}"
+                if units == 1:
+                    full = self._cardinal(value)
+                    return full.removesuffix("un") + "unième"
+                prefix = self._cardinal(value - units)
+                return f"{prefix}-{self._ordinal(units)}"
             cardinal = self._cardinal(value)
             return cardinal.removesuffix("s").removesuffix("e") + "ième"
-        cardinal = self._cardinal(value)
-        return cardinal.removesuffix("s").removesuffix("e") + "ième"
-
+        for scale, name in _SCALES:
+            if value >= scale:
+                quotient, remainder = divmod(value, scale)
+                if remainder:
+                    prefix = self._cardinal(value - remainder).removesuffix("s")
+                    return f"{prefix} {self._ordinal(remainder)}"
+                if scale == 1_000 and quotient == 1:
+                    return "millième"
+                cardinal = self._cardinal(value).removesuffix("s")
+                return cardinal.removesuffix("e") + "ième"
+        hundreds, remainder = divmod(value, 100)
+        prefix = self._cardinal(value - remainder).removesuffix("s")
+        return f"{prefix} {self._ordinal(remainder)}" if remainder else prefix + "ième"
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

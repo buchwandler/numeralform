@@ -13,6 +13,7 @@ from .pt import PortugueseRenderer
 from .regional import (
     EnglishGBRenderer,
     EnglishIndiaRenderer,
+    EnglishNigeriaRenderer,
     EnglishUSRenderer,
     FrenchBelgiumRenderer,
     FrenchSwissRenderer,
@@ -27,6 +28,7 @@ __all__ = [
     "CzechRenderer",
     "EnglishGBRenderer",
     "EnglishIndiaRenderer",
+    "EnglishNigeriaRenderer",
     "EnglishRenderer",
     "EnglishUSRenderer",
     "FinnishRenderer",

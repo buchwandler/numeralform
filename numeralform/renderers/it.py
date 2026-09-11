@@ -61,6 +61,27 @@ _SCALES = [
 _MAX_CARDINAL = 999_999_999_999
 
 
+_ITALIAN_ORDINAL_SUFFIXES = (
+    ("tré", "treesimo"),
+    ("tre", "treesimo"),
+    ("uno", "unesimo"),
+    ("due", "duesimo"),
+    ("quattro", "quattresimo"),
+    ("cinque", "cinquesimo"),
+    ("sei", "seiesimo"),
+    ("sette", "settesimo"),
+    ("otto", "ottesimo"),
+    ("nove", "novesimo"),
+ )
+
+
+def _ordinalize_italian_cardinal(text: str) -> str:
+    for suffix, ordinal_suffix in _ITALIAN_ORDINAL_SUFFIXES:
+        if text.endswith(suffix):
+            return text.removesuffix(suffix) + ordinal_suffix
+    return text.rstrip("aeiou") + "esimo"
+
+
 class ItalianRenderer:
     locale = "it"
 
@@ -108,6 +129,8 @@ class ItalianRenderer:
             return "meno " + self._cardinal(-value)
         if value < 20:
             return _UNDER_20[value]
+        if value % 10 == 3:
+            return self._cardinal(value - 3) + "tré"
         if value < 100:
             tens, units = divmod(value, 10)
             base = _TENS[tens]
@@ -141,7 +164,15 @@ class ItalianRenderer:
         if value in _ORDINALS:
             return _ORDINALS[value]
         cardinal = self._cardinal(value)
-        return cardinal.rstrip("aeiou") + "esimo"
+        if value < 100:
+            return _ordinalize_italian_cardinal(cardinal)
+        for scale, _singular, _plural in _SCALES:
+            if value >= scale:
+                quotient, remainder = divmod(value, scale)
+                if remainder:
+                    return self._cardinal(value - remainder) + self._ordinal(remainder)
+                break
+        return _ordinalize_italian_cardinal(cardinal)
 
     def _digits(self, value) -> str:
         from ..model import DigitSequence

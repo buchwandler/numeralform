@@ -122,8 +122,8 @@ class VietnameseRenderer:
                 base = f"{self._render_cardinal(quotient)} {name}"
                 if remainder == 0:
                     return base
-                if remainder < 10:
-                    return f"{base} lẻ {_UNDER_10[remainder]}"
+                if remainder < 100:
+                    return f"{base} lẻ {self._render_cardinal(remainder)}"
                 return f"{base} {self._render_cardinal(remainder)}"
         raise InvalidValueError(
             "Vietnamese cardinal value is outside the supported range"

@@ -12,6 +12,11 @@ ordinal_num = 10
 year = 12
 currency = 18
 
+[[randomized.shared_exclusions]]
+locale = "ja"
+kind = "year"
+reason = "num2words uses Japanese era conversion; canonical Numeralform uses Gregorian year reading"
+
 [randomized.shared]
 edge_probability = 0.30
 negative_probability = 0.10

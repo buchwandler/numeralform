@@ -171,12 +171,22 @@ class GermanRenderer:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value in _ORDINALS:
             return _ORDINALS[value]
-        # German ordinals: cardinal + "ste" or "te"
-        cardinal = self._cardinal(value)
-        if cardinal.endswith("e"):
-            return cardinal + "te"
-        return cardinal + "ste"
-
+        if value < 100:
+            tens, units = divmod(value, 10)
+            if units:
+                cardinal = self._cardinal(value)
+                tens_word = _TENS[tens]
+                return cardinal.removesuffix(tens_word) + tens_word + "ste"
+            cardinal = self._cardinal(value)
+            return cardinal + ("te" if value < 20 else "ste")
+        for scale, name, _plural in _SCALES:
+            if value >= scale:
+                quotient, remainder = divmod(value, scale)
+                if remainder:
+                    return self._cardinal(value - remainder) + self._ordinal(remainder)
+                cardinal = self._cardinal(value)
+                return cardinal + "ste"
+        raise InvalidValueError("German ordinal is outside the supported range")
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

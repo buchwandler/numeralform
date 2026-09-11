@@ -146,7 +146,7 @@ class EnglishRenderer:
         elif request.form is NumeralForm.FRACTION:
             text = self._render_fraction(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._render_ordinal(require_int(value))
+            text = self._render_ordinal(require_int(value), self.default_cardinal_style)
         elif request.form is NumeralForm.YEAR:
             text = self._render_year(require_int(value))
         else:
@@ -208,7 +208,7 @@ class EnglishRenderer:
         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
         return f"{prefix}{integer} point {fraction}"
 
-    def _render_ordinal(self, value: int) -> str:
+    def _render_ordinal(self, value: int, style: str | None = None) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value > _MAX_ORDINAL:
@@ -223,14 +223,15 @@ class EnglishRenderer:
         for scale, name in _SCALES:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
-                prefix = f"{self._render_cardinal(quotient)} {name}"
+                prefix = f"{self._render_cardinal(quotient, style)} {name}"
                 return prefix + (
-                    f" {self._render_ordinal(remainder)}" if remainder else "th"
+                    f" {self._render_ordinal(remainder, style)}" if remainder else "th"
                 )
         hundreds, remainder = divmod(value, 100)
-        prefix = f"{self._render_cardinal(hundreds)} hundred"
-        return prefix + (f" {self._render_ordinal(remainder)}" if remainder else "th")
-
+        prefix = f"{self._render_cardinal(hundreds, style)} hundred"
+        if remainder:
+            return prefix + f" {self._render_ordinal(remainder, style)}"
+        return prefix + "th"
     def _render_fraction(self, value) -> str:
         if not isinstance(value, FractionNumber):
             raise InvalidValueError("fraction form requires FractionNumber or Fraction")
@@ -284,5 +285,7 @@ class EnglishRenderer:
             first, second = divmod(value, 100)
             if second == 0:
                 return f"{self._render_cardinal(first)} hundred"
+            if second < 10:
+                return f"{self._render_cardinal(first)} oh {self._render_cardinal(second)}"
             return f"{self._render_cardinal(first)} {self._render_cardinal(second)}"
         return self._render_cardinal(value)

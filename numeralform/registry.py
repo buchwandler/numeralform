@@ -121,6 +121,7 @@ def _ensure_builtins() -> None:
         CzechRenderer,
         EnglishGBRenderer,
         EnglishIndiaRenderer,
+        EnglishNigeriaRenderer,
         EnglishRenderer,
         EnglishUSRenderer,
         FinnishRenderer,
@@ -162,7 +163,7 @@ def _ensure_builtins() -> None:
     regional: dict[str, type[LocaleRenderer] | LocaleRenderer] = {
         "en-GB": EnglishGBRenderer,
         "en-IN": EnglishIndiaRenderer,
-        "en-NG": EnglishRenderer,
+        "en-NG": EnglishNigeriaRenderer,
         "en-US": EnglishUSRenderer,
         "es-CO": SpanishRenderer,
         "es-CR": SpanishRenderer,

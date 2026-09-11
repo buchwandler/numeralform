@@ -22,7 +22,7 @@ class EnglishGBRenderer(EnglishRenderer):
 
 class EnglishIndiaRenderer(EnglishRenderer):
     locale = "en-IN"
-
+    default_cardinal_style = "british-and"
     def _render_cardinal(self, value: int, style: str | None = None) -> str:
         if value < 0:
             return "minus " + self._render_cardinal(-value, style)
@@ -42,6 +42,11 @@ class EnglishIndiaRenderer(EnglishRenderer):
                     f" {suffix}" if suffix else ""
                 )
         raise ValueError("Indian English cardinal value is outside the supported range")
+
+
+class EnglishNigeriaRenderer(EnglishRenderer):
+    locale = "en-NG"
+    default_cardinal_style = "british-and"
 
 
 class FrenchBelgiumRenderer(FrenchRenderer):

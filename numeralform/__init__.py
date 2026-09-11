@@ -13,6 +13,7 @@ from .currency import (
     MoneyAmount,
     realize_currency,
     render_currency,
+    supports_currency,
 )
 from .errors import (
     InvalidRequestError,
@@ -279,6 +280,7 @@ __all__ = [
     "registered_locales",
     "render",
     "render_currency",
+    "supports_currency",
     "render_request",
     "resolve",
     "resolve_locale",

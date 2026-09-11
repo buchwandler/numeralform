@@ -61,6 +61,8 @@ class OrdinalNotationRenderer:
             text = f"{value}م"
         elif language in {"ja", "zh"}:
             text = f"第{value}"
+        elif language == "ko":
+            text = f"{value}번째"
         elif language == "pt":
             text = f"{value}.ª" if gender is Gender.FEMININE else f"{value}.º"
         else:

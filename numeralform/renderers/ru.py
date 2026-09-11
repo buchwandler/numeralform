@@ -39,6 +39,20 @@ _UNDER_20 = (
     "восемнадцать",
     "девятнадцать",
 )
+_TEEN_CASES = {
+    10: ("десять", "десяти", "десяти", ("десять", "десять"), "десятью", "десяти"),
+    11: ("одиннадцать", "одиннадцати", "одиннадцати", ("одиннадцатого", "одиннадцать"), "одиннадцатью", "одиннадцати"),
+    12: ("двенадцать", "двенадцати", "двенадцати", ("двенадцатого", "двенадцать"), "двенадцатью", "двенадцати"),
+    13: ("тринадцать", "тринадцати", "тринадцати", ("тринадцатого", "тринадцать"), "тринадцатью", "тринадцати"),
+    14: ("четырнадцать", "четырнадцати", "четырнадцати", ("четырнадцатого", "четырнадцать"), "четырнадцатью", "четырнадцати"),
+    15: ("пятнадцать", "пятнадцати", "пятнадцати", ("пятнадцатого", "пятнадцать"), "пятнадцатью", "пятнадцати"),
+    16: ("шестнадцать", "шестнадцати", "шестнадцати", ("шестнадцатого", "шестнадцать"), "шестнадцатью", "шестнадцати"),
+    17: ("семнадцать", "семнадцати", "семнадцати", ("семнадцатого", "семнадцать"), "семнадцатью", "семнадцати"),
+    18: ("восемнадцать", "восемнадцати", "восемнадцати", ("восемнадцатого", "восемнадцать"), "восемнадцатью", "восемнадцати"),
+    19: ("девятнадцать", "девятнадцати", "девятнадцати", ("девятнадцатого", "девятнадцать"), "девятнадцатью", "девятнадцати"),
+}
+
+
 _TENS = (
     "",
     "",
@@ -343,6 +357,7 @@ class RussianRenderer:
             notes=(
                 "Russian case, gender, number, and animacy inventories are explicit.",
                 "Scale support covers thousand through quintillion.",
+                "Russian decimal canonical form is an explicit digit-by-digit technical reading.",
             ),
         )
 
@@ -409,13 +424,8 @@ class RussianRenderer:
     def _under(self, value: int, case: int, gender: str, animate: bool) -> str:
         if value < 20:
             if 10 <= value < 20:
-                if case == 0 or (case == 3 and not animate):
-                    return _UNDER_20[value]
-                if case in (1, 2, 5):
-                    return _UNDER_20[value] + "и" if value != 10 else "десяти"
-                if case == 3:
-                    return _UNDER_20[value] + "и"
-                return _UNDER_20[value] + "ю"
+                item = _TEEN_CASES[value][case]
+                return item[0] if isinstance(item, tuple) and animate else item[1] if isinstance(item, tuple) else item
             entry = _ONES.get(value, _ONES_SIMPLE.get(value))
             if isinstance(entry, dict):
                 entry = entry[gender]

@@ -208,7 +208,8 @@ class PortugueseRenderer:
                     }
                     scale_name = name if quotient == 1 else plural_names[name]
                     prefix = f"{self._cardinal(quotient)} {scale_name}"
-                return prefix + (f" e {self._cardinal(remainder)}" if remainder else "")
+                separator = " e " if remainder < 100 or remainder % 100 == 0 else " "
+                return prefix + (separator + self._cardinal(remainder) if remainder else "")
         raise InvalidValueError(
             "Portuguese cardinal value is outside the supported range"
         )
@@ -222,8 +223,24 @@ class PortugueseRenderer:
             tens, units = divmod(value, 10)
             prefix = _ORDINAL_TENS_PT[tens]
             return prefix if units == 0 else f"{prefix} {self._ordinal(units)}"
-        return self._cardinal(value) + "ésimo"
-
+        if value < 1_000:
+            hundreds, remainder = divmod(value, 100)
+            hundred_ordinals = {
+                1: "centésimo",
+                2: "ducentésimo",
+                3: "trecentésimo",
+                4: "quadringentésimo",
+                5: "quingentésimo",
+                6: "sexcentésimo",
+                7: "septingentésimo",
+                8: "octingentésimo",
+                9: "nongentésimo",
+            }
+            prefix = hundred_ordinals[hundreds]
+            return prefix if remainder == 0 else f"{prefix} {self._ordinal(remainder)}"
+        thousands, remainder = divmod(value, 1_000)
+        prefix = "milésimo" if thousands == 1 else f"{self._ordinal(thousands)} milésimo"
+        return prefix if remainder == 0 else f"{prefix} {self._ordinal(remainder)}"
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

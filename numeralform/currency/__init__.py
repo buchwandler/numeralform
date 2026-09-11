@@ -97,29 +97,34 @@ _CURRENCIES = {
     "GBP": {
         "en": ("pound", "pounds", "penny", "pence"),
         "fr": ("livre", "livres", "penny", "pence"),
+        "pt": ("libra", "libras", "pence", "pence"),
+        "fi": ("punta", "puntaa", "penny", "pence"),
         "de": ("Pfund", "Pfund", "Penny", "Pence"),
+        "es": ("libra", "libras", "penique", "peniques"),
     },
     "RUB": {
         "ru": ("рубль", "рубля", "копейка", "копейки"),
         "en": ("ruble", "rubles", "kopeck", "kopecks"),
+        "fi": ("rupla", "ruplaa", "kopeekka", "kopeekkaa"),
     },
-    "JPY": {"en": ("yen", "yen", "sen", "sen"), "ja": ("円", "円", "銭", "銭")},
+    "JPY": {"en": ("yen", "yen", "sen", "sen"), "ja": ("円", "円", "銭", "銭"), "fi": ("jeni", "jeniä", "sen", "seniä")},
     "CNY": {"en": ("yuan", "yuan", "fen", "fen"), "zh": ("元", "元", "分", "分")},
-    "CAD": {"en": ("Canadian dollar", "Canadian dollars", "cent", "cents")},
-    "AUD": {"en": ("Australian dollar", "Australian dollars", "cent", "cents")},
+    "CAD": {"en": ("Canadian dollar", "Canadian dollars", "cent", "cents"), "es": ("dólar canadiense", "dólares canadienses", "centavo", "centavos"), "pt": ("dólar canadiano", "dólares canadianos", "centavo", "centavos")},
+    "AUD": {"en": ("Australian dollar", "Australian dollars", "cent", "cents"), "pt": ("dólar australiano", "dólares australianos", "centavo", "centavos"), "fi": ("Australian dollari", "Australian dollaria", "sentti", "senttiä")},
     "CHF": {
         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
     },
-    "INR": {"en": ("Indian rupee", "Indian rupees", "paise", "paise")},
+    "INR": {"en": ("Indian rupee", "Indian rupees", "paisa", "paise"), "fi": ("Intian rupia", "Intian rupiaa", "paisa", "paise")},
     "KRW": {"en": ("won", "won", "jeon", "jeon"), "ko": ("원", "원", "전", "전")},
     "BRL": {
         "en": ("Brazilian real", "Brazilian reals", "centavo", "centavos"),
         "pt": ("real", "reais", "centavo", "centavos"),
+        "fr": ("réal", "réaux", "centavo", "centavos"),
     },
     "PLN": {"en": ("zloty", "zlotys", "grosz", "groszy")},
-    "SEK": {"en": ("Swedish krona", "Swedish kronor", "öre", "öre")},
-    "NOK": {"en": ("Norwegian krone", "Norwegian kroner", "øre", "øre")},
+    "SEK": {"en": ("Swedish krona", "Swedish kronor", "öre", "öre"), "fi": ("kruunu", "kruunua", "öre", "öre")},
+    "NOK": {"en": ("Norwegian krone", "Norwegian kroner", "øre", "øre"), "es": ("corona noruega", "coronas noruegas", "øre", "øre")},
     "DKK": {"en": ("Danish krone", "Danish kroner", "øre", "øre")},
     "CZK": {"en": ("Czech koruna", "Czech korunas", "haléř", "haléřů")},
     "HUF": {"en": ("forint", "forints", "filler", "fillers")},
@@ -193,16 +198,16 @@ def _plural_category(language: str, value: int) -> str:
     return "one" if abs(value) == 1 else "other"
 
 
-def _currency_policy(code: str, language: str) -> CurrencyLocalePolicy:
+def _currency_policy(code: str, language: str, *, allow_fallback: bool = True) -> CurrencyLocalePolicy:
     script_names = _SCRIPT_CURRENCIES.get(language, {}).get(code)
     if script_names is not None:
         major_name, minor_name = script_names
         return CurrencyLocalePolicy(
             CurrencyUnitLexeme(
-                {"one": major_name, "other": major_name}, attach=language == "th"
+                {"one": major_name, "other": major_name}, attach=language in {"ko", "th"}
             ),
             CurrencyUnitLexeme(
-                {"one": minor_name, "other": minor_name}, attach=language == "th"
+                {"one": minor_name, "other": minor_name}, attach=language in {"ko", "th"}
             ),
             _CONNECTORS[language],
         )
@@ -220,9 +225,9 @@ def _currency_policy(code: str, language: str) -> CurrencyLocalePolicy:
             CurrencyUnitLexeme({"one": minor[0], "few": minor[1], "many": minor[2]}),
             _CONNECTORS[language],
         )
-    names = _CURRENCIES.get(code, {}).get(language) or _CURRENCIES.get(code, {}).get(
-        "en"
-    )
+    names = _CURRENCIES.get(code, {}).get(language)
+    if names is None and allow_fallback:
+        names = _CURRENCIES.get(code, {}).get("en")
     if names is None:
         raise NotImplementedError(
             f"currency {code!r} is not implemented for locale {language!r}"
@@ -233,12 +238,31 @@ def _currency_policy(code: str, language: str) -> CurrencyLocalePolicy:
     else:
         major_forms = {"one": names[0], "other": names[1]}
         minor_forms = {"one": names[2], "other": names[3]}
-    gender = "masculine" if language == "es" else None
+    gender = (
+        "feminine" if language == "es" and code == "GBP" else
+        "masculine" if language == "es" else
+        None
+    )
     return CurrencyLocalePolicy(
         CurrencyUnitLexeme(major_forms, gender=gender),
         CurrencyUnitLexeme(minor_forms, gender=gender),
         _CONNECTORS.get(language, ", "),
     )
+
+def supports_currency(locale: str, currency: str, *, allow_fallback: bool = False) -> bool:
+    """Return whether a locale has explicit currency terminology."""
+    language = locale.split("-", 1)[0]
+    code = currency.upper()
+    if code in _SCRIPT_CURRENCIES.get(language, {}):
+        return True
+    if language == "ru" and code in _RUSSIAN_CURRENCIES:
+        return True
+    if language == "cs" and code in _CZECH_CURRENCIES:
+        return True
+    if code in _CURRENCIES and language in _CURRENCIES[code]:
+        return True
+    return allow_fallback and code in _CURRENCIES
+
 
 
 _CURRENCY_MINOR_UNITS = {code: 2 for code in _CURRENCIES}

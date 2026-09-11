@@ -81,17 +81,24 @@ class KoreanRenderer:
         if value < 10:
             return _DIGITS[value]
         parts: list[str] = []
+        separated = False
+        large_count = 0
         for scale, name in _SCALES:
             if value >= scale:
                 quotient, value = divmod(value, scale)
                 if scale >= 1_0000:
                     parts.append(self._render_cardinal(quotient) + name)
+                    separated = True
+                    large_count += 1
                 else:
-                    # 천, 백, 십 omit leading 일
-                    parts.append(("" if quotient == 1 else _DIGITS[quotient]) + name)
+                    component = ("" if quotient == 1 else _DIGITS[quotient]) + name
+                    parts.append(component)
         if value > 0:
             parts.append(_DIGITS[value])
-        return "".join(parts)
+        if not separated:
+            return "".join(parts)
+        lower = "".join(parts[large_count:])
+        return " ".join(parts[:large_count] + ([lower] if lower else []))
 
     def _render_digits(self, value) -> str:
         from ..model import DigitSequence

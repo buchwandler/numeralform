@@ -119,10 +119,10 @@ class CzechRenderer:
 
     @staticmethod
     def _scale_form(value: int, one: str, few: str, many: str) -> str:
+        if value == 1:
+            return one
         if value % 100 in (11, 12, 13, 14):
             return many
-        if value % 10 == 1:
-            return one
         if value % 10 in (2, 3, 4):
             return few
         return many

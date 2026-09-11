@@ -14,7 +14,7 @@ import tomllib
 
 import numeralform
 from benchmarks.validation.oracle.num2words import oracle_locales
-from numeralform import render_currency
+from numeralform import render_currency, supports_currency
 
 from .model import CASE_KINDS, RandomCase, SerializedRandomValue
 from .surfaces import surface_for
@@ -45,6 +45,11 @@ class RandomConfig:
     @property
     def currency_variants(self) -> tuple[dict, ...]:
         return tuple(self.randomized.get("currency_variants", ()))
+
+    @property
+    def shared_exclusions(self) -> tuple[dict, ...]:
+        return tuple(self.randomized.get("shared_exclusions", ()))
+
 
     @property
     def compat_variants(self) -> tuple[dict, ...]:
@@ -360,12 +365,13 @@ def _default_supports(locale: str, kind: str, value: int | Decimal, options: dic
 
 
 def _default_currency_supports(locale: str, value: Decimal, currency: str, options: dict | None = None) -> bool:
+    if not supports_currency(locale, currency):
+        return False
     try:
         render_currency(value, locale=locale, currency=currency, **(options or {}))
     except Exception:  # noqa: BLE001
         return False
     return True
-
 
 def generate_cases(
     *,
@@ -427,9 +433,24 @@ def generate_cases(
         locale = rng.choice(selected_locales)
         oracle_locale = pair_by_canonical[locale].oracle
         kind = weighted_choice(rng, {key: config.weights[key] for key in selected_kinds})
+        if profile == "shared" and any(
+            exclusion.get("locale") == locale and exclusion.get("kind") == kind
+            for exclusion in config.shared_exclusions
+        ):
+            rejected["generation_rejected_semantic_incompatibility"] += 1
+            continue
         value, currency, options, variant_id, call_variant, case_transport = _candidate(
             rng, locale, kind, profile_values, selected_currencies, config=config, target=target
         )
+        if (
+            profile == "shared"
+            and locale.split("-", 1)[0] == "ru"
+            and kind in {"cardinal", "ordinal"}
+            and options
+            and abs(value) > 999
+        ):
+            rejected["generation_rejected_semantic_incompatibility"] += 1
+            continue
         if variant is not None and variant_id != variant:
             continue
         if transport is not None and case_transport != transport:
