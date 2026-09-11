@@ -145,7 +145,8 @@ def test_english_scale_overflow_is_rejected():
 def test_custom_registration_does_not_suppress_builtins():
     script = textwrap.dedent(
         """
-        from numeralform import locales, register_locale, render
+        from numeralform import locales, render
+        from numeralform.registry import register_locale
 
         class CustomRenderer:
             locale = "xx"

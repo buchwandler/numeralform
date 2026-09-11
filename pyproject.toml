@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "numeralform"
 version = "0.1.0"
+description = "Typed, locale-aware number-to-words rendering with explicit grammar and deterministic num2words compatibility"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -35,6 +36,7 @@ numeralform = "numeralform.cli:main"
 test = [
     "pytest>=8",
     "coverage>=7",
+    "mypy>=1.11",
 ]
 [tool.setuptools]
 [tool.setuptools.packages.find]

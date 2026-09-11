@@ -19,6 +19,7 @@ from .errors import (
     InvalidRequestError,
     InvalidValueError,
     NumeralFormError,
+    UnsupportedCurrencyError,
     UnsupportedFormError,
     UnsupportedLocaleError,
     UnsupportedMorphologyError,
@@ -56,11 +57,11 @@ from .registry import (
     is_registered,
     known_locales,
     locales,
-    register_locale,
-    registered_locales,
-    resolve,
     resolve_locale,
     supports,
+)
+from .registry import (
+    resolve as _resolve,
 )
 
 try:
@@ -182,7 +183,7 @@ def realize(
             normalized_features,
         )
     resolved_locale = resolve_locale(normalized.locale)
-    result = resolve(normalized.locale).render(normalized)
+    result = _resolve(normalized.locale).render(normalized)
     return replace(
         result,
         locale=resolved_locale,
@@ -262,6 +263,7 @@ __all__ = [
     "NumericInput",
     "NumericValue",
     "Syntax",
+    "UnsupportedCurrencyError",
     "UnsupportedFormError",
     "UnsupportedLocaleError",
     "UnsupportedMorphologyError",
@@ -276,12 +278,9 @@ __all__ = [
     "parse_locale",
     "realize",
     "realize_currency",
-    "register_locale",
-    "registered_locales",
     "render",
     "render_currency",
     "render_request",
-    "resolve",
     "resolve_locale",
     "supports",
     "supports_currency",

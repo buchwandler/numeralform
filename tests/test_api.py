@@ -8,6 +8,14 @@ from numeralform import LocaleFeatures, NumeralRequest, NumeralResult, realize, 
 from numeralform.errors import InvalidRequestError, InvalidValueError
 
 
+def test_provisional_renderer_registry_is_not_top_level_api():
+    import numeralform
+
+    for name in ("register_locale", "registered_locales", "resolve"):
+        assert name not in numeralform.__all__
+        assert not hasattr(numeralform, name)
+
+
 def test_render_has_explicit_keywords():
     parameters = inspect.signature(render).parameters
     assert "form" in parameters

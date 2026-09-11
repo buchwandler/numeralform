@@ -26,3 +26,7 @@ Capability profiles define the supported forms, syntaxes, morphology, styles, an
 ## Compatibility-only registrations
 
 Other upstream locale identifiers remain discoverable through `known_locales()` for compatibility reporting. They have empty canonical capabilities and raise an explicit unsupported error when passed to `render()`.
+
+See the generated [runtime capability matrix](capability-matrix.md) for every canonical locale's forms and advertised integer maxima. Use `capabilities(locale)` for exact syntax, morphology, style, and locale-feature constraints; the matrix is checked against runtime data in the test suite.
+
+Finnish cardinal, ordinal, and numeric-ordinal profiles share the reviewed nominative-singular integer domain `0..999,999,999,999`.

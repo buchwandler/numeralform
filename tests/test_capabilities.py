@@ -11,6 +11,7 @@ from numeralform import (
     capabilities,
     known_locales,
     locales,
+    render,
     supports,
 )
 from numeralform.errors import NumeralFormError
@@ -51,6 +52,18 @@ def test_domains_agree_with_renderer_boundaries():
     assert not supports("es", form="ordinal", value=21)
     assert supports("fi", value=9_999)
     assert supports("fi", value=1_000_000)
+
+
+def test_finnish_reviewed_domain_boundaries():
+    maximum = 999_999_999_999
+    for form in (
+        NumeralForm.CARDINAL,
+        NumeralForm.ORDINAL,
+        NumeralForm.ORDINAL_NUMERIC,
+    ):
+        assert supports("fi", form=form, value=maximum)
+        assert not supports("fi", form=form, value=maximum + 1)
+        assert render(maximum, locale="fi", form=form)
 
 
 def test_unsupported_rendering_is_an_explicit_error():

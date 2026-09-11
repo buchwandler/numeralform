@@ -27,3 +27,7 @@ class UnsupportedMorphologyError(NumeralFormError):
 
 class UnsupportedStyleError(NumeralFormError):
     """A locale cannot realize the requested output style."""
+
+
+class UnsupportedCurrencyError(NumeralFormError):
+    """The requested currency or currency terminology is unsupported."""

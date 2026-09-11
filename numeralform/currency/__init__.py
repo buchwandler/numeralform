@@ -6,7 +6,24 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from ..errors import InvalidRequestError, InvalidValueError
+from ..errors import (
+    InvalidRequestError,
+    InvalidValueError,
+    UnsupportedCurrencyError,
+    UnsupportedLocaleError,
+)
+from ..locale import canonicalize_locale
+
+
+def _normalize_currency_code(currency: str) -> str:
+    if (
+        not isinstance(currency, str)
+        or len(currency) != 3
+        or not currency.isascii()
+        or not currency.isalpha()
+    ):
+        raise InvalidRequestError("currency must be a three-letter code")
+    return currency.upper()
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,22 +38,21 @@ class MoneyAmount:
         if isinstance(self.major, bool) or not isinstance(self.major, int):
             raise InvalidValueError("money major unit must be an integer")
         if (
+            isinstance(self.minor_units, bool)
+            or not isinstance(self.minor_units, int)
+            or not 0 <= self.minor_units <= 6
+        ):
+            raise InvalidRequestError("money minor-unit scale must be between 0 and 6")
+        if (
             isinstance(self.minor, bool)
             or not isinstance(self.minor, int)
             or self.minor < 0
             or self.minor >= 10**self.minor_units
         ):
             raise InvalidValueError("money minor unit is outside its currency scale")
-        if not isinstance(self.currency, str) or len(self.currency) != 3:
-            raise InvalidRequestError("currency must be a three-letter code")
+        object.__setattr__(self, "currency", _normalize_currency_code(self.currency))
         if not isinstance(self.negative, bool):
             raise InvalidRequestError("money negative must be a boolean")
-        if (
-            isinstance(self.minor_units, bool)
-            or not isinstance(self.minor_units, int)
-            or not 0 <= self.minor_units <= 6
-        ):
-            raise InvalidRequestError("money minor-unit scale must be between 0 and 6")
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +61,16 @@ class CurrencyRequest:
     locale: str
     cents: bool = True
     separator: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.amount, MoneyAmount):
+            raise InvalidRequestError("currency request amount must be a MoneyAmount")
+        if not isinstance(self.locale, str) or not self.locale.strip():
+            raise InvalidRequestError("locale must be a non-empty string")
+        if not isinstance(self.cents, bool):
+            raise InvalidRequestError("currency cents must be a boolean")
+        if self.separator is not None and not isinstance(self.separator, str):
+            raise InvalidRequestError("separator must be a string or None")
 
 
 @dataclass(frozen=True, slots=True)
@@ -289,7 +315,7 @@ def _currency_policy(
     if names is None and allow_fallback:
         names = _CURRENCIES.get(code, {}).get("en")
     if names is None:
-        raise NotImplementedError(
+        raise UnsupportedCurrencyError(
             f"currency {code!r} is not implemented for locale {language!r}"
         )
     if language == "ru":
@@ -328,18 +354,17 @@ def _currency_policy(
 def supports_currency(
     locale: str, currency: str, *, allow_fallback: bool = False
 ) -> bool:
-    """Return whether a locale has explicit currency terminology."""
-    language = locale.split("-", 1)[0]
-    code = currency.upper()
-    if code in _SCRIPT_CURRENCIES.get(language, {}):
-        return True
-    if language == "ru" and code in _RUSSIAN_CURRENCIES:
-        return True
-    if language == "cs" and code in _CZECH_CURRENCIES:
-        return True
-    if code in _CURRENCIES and language in _CURRENCIES[code]:
-        return True
-    return allow_fallback and code in _CURRENCIES
+    """Return whether a renderable locale has currency terminology."""
+    try:
+        from ..registry import resolve_locale
+
+        requested_locale = canonicalize_locale(locale)
+        resolved_locale = resolve_locale(requested_locale)
+        code = _normalize_currency_code(currency)
+        _currency_policy(code, resolved_locale, allow_fallback=allow_fallback)
+    except (InvalidRequestError, UnsupportedCurrencyError, UnsupportedLocaleError):
+        return False
+    return True
 
 
 _CURRENCY_MINOR_UNITS = {code: 2 for code in _CURRENCIES}
@@ -350,26 +375,38 @@ def _currency_scale(code: str) -> int:
     try:
         return _CURRENCY_MINOR_UNITS[code]
     except KeyError as exc:
-        raise NotImplementedError(f"currency {code!r} is not implemented") from exc
+        raise UnsupportedCurrencyError(f"currency {code!r} is not implemented") from exc
 
 
 def _parse_amount(
-    value, currency: str = "EUR", *, compatibility: str | None = None
+    value, currency: str | None = None, *, compatibility: str | None = None
 ) -> MoneyAmount:
-    scale = _currency_scale(currency)
-    unit = 10**scale
     if isinstance(value, MoneyAmount):
-        return MoneyAmount(value.major, value.minor, currency, value.negative, scale)
+        code = (
+            value.currency if currency is None else _normalize_currency_code(currency)
+        )
+        if code != value.currency:
+            raise InvalidRequestError(
+                "explicit currency conflicts with the MoneyAmount currency"
+            )
+        scale = _currency_scale(code)
+        if value.minor_units != scale:
+            raise InvalidRequestError(
+                f"currency {code} requires {scale} minor units, got {value.minor_units}"
+            )
+        return value
+
+    code = "EUR" if currency is None else _normalize_currency_code(currency)
+    scale = _currency_scale(code)
+    unit = 10**scale
     if isinstance(value, bool):
-        raise TypeError("currency amount must be numeric")
+        raise InvalidValueError("currency amount must be numeric")
     if isinstance(value, int):
         negative = value < 0
         absolute = abs(value)
         if compatibility == "num2words-0.5.14":
-            return MoneyAmount(
-                absolute // unit, absolute % unit, currency, negative, scale
-            )
-        return MoneyAmount(absolute, 0, currency, negative, scale)
+            return MoneyAmount(absolute // unit, absolute % unit, code, negative, scale)
+        return MoneyAmount(absolute, 0, code, negative, scale)
     from ..model import DecimalNumber
 
     if isinstance(value, DecimalNumber):
@@ -382,19 +419,19 @@ def _parse_amount(
         try:
             decimal = Decimal(value.strip())
         except InvalidOperation as exc:
-            raise TypeError("currency amount must be numeric") from exc
+            raise InvalidValueError("currency amount must be numeric") from exc
     elif isinstance(value, Decimal):
         decimal = value
     else:
-        raise TypeError("currency amount must be numeric")
+        raise InvalidValueError("currency amount must be numeric")
     if not decimal.is_finite():
-        raise TypeError("currency amount must be finite")
+        raise InvalidValueError("currency amount must be finite")
     negative = decimal < 0
     quantizer = Decimal(1).scaleb(-scale)
     rounded = abs(decimal).quantize(quantizer, rounding=ROUND_HALF_UP)
     major = int(rounded)
     minor = int((rounded - major) * unit)
-    return MoneyAmount(major, minor, currency, negative, scale)
+    return MoneyAmount(major, minor, code, negative, scale)
 
 
 def _words(value: int, locale: str, *, gender: str | None = None) -> str:
@@ -423,27 +460,26 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
     return text
 
 
-def render_currency(
+def _render_currency(
     value,
     *,
     locale: str = "en",
-    currency: str = "EUR",
+    currency: str | None = None,
     cents: bool = True,
     separator: str | None = None,
     compatibility: str | None = None,
 ) -> str:
-    """Render a currency amount with locale-owned morphology and joining."""
+    """Render a currency amount, including private compatibility behavior."""
     from ..registry import resolve_locale
 
     locale = resolve_locale(locale)
+    if not isinstance(cents, bool):
+        raise InvalidRequestError("cents must be a boolean")
     if separator is not None and not isinstance(separator, str):
-        raise TypeError("separator must be a string")
-    code = currency.upper() if isinstance(currency, str) else currency
-    if not isinstance(code, str) or len(code) != 3:
-        raise InvalidRequestError("currency must be a three-letter code")
-    amount = _parse_amount(value, code, compatibility=compatibility)
+        raise InvalidRequestError("separator must be a string")
+    amount = _parse_amount(value, currency, compatibility=compatibility)
     language = locale.split("-", 1)[0]
-    policy = _currency_policy(code, locale)
+    policy = _currency_policy(amount.currency, locale)
     major_category = _plural_category(language, amount.major)
     major_name = policy.major.form(major_category)
     major_words = _words(amount.major, locale, gender=policy.major.gender)
@@ -472,21 +508,42 @@ def render_currency(
     return text
 
 
+def render_currency(
+    value,
+    *,
+    locale: str = "en",
+    currency: str | None = None,
+    cents: bool = True,
+    separator: str | None = None,
+) -> str:
+    """Render a canonical currency amount with locale-owned morphology."""
+    return _render_currency(
+        value, locale=locale, currency=currency, cents=cents, separator=separator
+    )
+
+
 def realize_currency(
     request_or_value: CurrencyRequest | MoneyAmount | object,
     *,
     locale: str = "en",
-    currency: str = "EUR",
+    currency: str | None = None,
     cents: bool = True,
     separator: str | None = None,
 ) -> CurrencyResult:
     """Realize a currency request and return structured metadata."""
     if isinstance(request_or_value, CurrencyRequest):
         request = request_or_value
+        if (
+            currency is not None
+            and _normalize_currency_code(currency) != request.amount.currency
+        ):
+            raise InvalidRequestError(
+                "explicit currency conflicts with the CurrencyRequest amount currency"
+            )
     else:
         amount = _parse_amount(request_or_value, currency)
         request = CurrencyRequest(amount, locale, cents, separator)
-    text = render_currency(
+    text = _render_currency(
         request.amount,
         locale=request.locale,
         currency=request.amount.currency,

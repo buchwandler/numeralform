@@ -153,7 +153,9 @@ class LocaleFeatures:
     values: Mapping[str, FeatureScalar] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        values = dict(self.values) if not isinstance(self.values, tuple) else {}
+        if not isinstance(self.values, Mapping):
+            raise InvalidRequestError("locale features must be a mapping")
+        values = dict(self.values)
         for key, value in values.items():
             if not isinstance(key, str) or not key.strip():
                 raise InvalidRequestError(
@@ -246,11 +248,11 @@ class Morphology:
 class NumeralRequest:
     value: NumericValue | Decimal | Fraction
     locale: str
-    form: NumeralForm = field(default=None)  # type: ignore[assignment]
-    syntax: Syntax = Syntax.STANDALONE
+    form: NumeralForm | str | None = None
+    syntax: Syntax | str = Syntax.STANDALONE
     morphology: Morphology = Morphology()
     style: str | None = None
-    features: LocaleFeatures = LocaleFeatures()
+    features: LocaleFeatures | Mapping[str, FeatureScalar] = LocaleFeatures()
 
     def __post_init__(self) -> None:
         value = coerce_value(self.value)

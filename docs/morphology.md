@@ -12,10 +12,10 @@ not coerced into the universal `Case` enum.
   and scale interactions in the reviewed regression matrix.
 - Spanish attributive cardinal forms cover masculine apocopation and compound
   values in the reviewed regression matrix.
-- Finnish is deliberately advertised only for nominative singular values from
-  0 through 9,999. Its broader fifteen-case implementation remains an
-  implementation experiment until native-reviewed compound and scale fixtures
-  are added. Requests outside this domain are rejected rather than advertised.
+- Finnish cardinal, ordinal, and numeric-ordinal forms are reviewed for nominative
+  singular values from 0 through 999,999,999,999. The broader fifteen-case
+  implementation remains an experiment outside the reviewed nominative singular
+  surface. Requests outside this domain are rejected rather than advertised.
 - Currency phrases are validated as a sibling subsystem: numeral realization
   and currency-noun agreement are separate contracts.
 

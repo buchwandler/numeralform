@@ -83,6 +83,14 @@ _ORDINAL_MULTIPLIERS = {
     8: "kahdeksas",
     9: "yhdeksäs",
 }
+
+_ORDINAL_SCALES = {
+    10**6: "miljoonas",
+    10**9: "miljardis",
+    10**12: "biljoonas",
+    10**15: "biljardis",
+    10**18: "triljoonas",
+}
 _CASES = frozenset(
     {
         "nominative",
@@ -192,7 +200,7 @@ class FinnishRenderer:
                 CapabilityProfile(NumeralForm.YEAR),
             ),
             notes=(
-                "Finnish capability is limited to the native-reviewed nominative singular domain through 9,999.",
+                "Finnish cardinal, ordinal, and numeric-ordinal forms are reviewed for nominative singular values through 999,999,999,999.",
             ),
         )
 
@@ -293,12 +301,21 @@ class FinnishRenderer:
             if rest:
                 text += self._ordinal(rest, morphology)
         else:
-            thousands, rest = divmod(value, 1000)
-            text = (
-                "tuhannes"
-                if thousands == 1
-                else _ORDINAL_MULTIPLIERS[thousands] + "tuhannes"
-            )
+            scale, _ = self._scale(value)
+            quotient, rest = divmod(value, scale)
+            if scale == 1000:
+                multiplier = _ORDINAL_MULTIPLIERS.get(
+                    quotient, self._cardinal(quotient, morphology)
+                )
+                text = "tuhannes" if quotient == 1 else multiplier + "tuhannes"
+            else:
+                ordinal_name = _ORDINAL_SCALES[scale]
+                prefix = (
+                    ordinal_name
+                    if quotient == 1
+                    else self._cardinal(quotient, morphology) + " " + ordinal_name
+                )
+                text = prefix
             if rest:
                 text += " " + self._ordinal(rest, morphology)
         return self._inflect(

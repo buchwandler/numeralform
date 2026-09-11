@@ -592,9 +592,9 @@ def _legacy_currency(
         "th",
         "ko",
     }:
-        from ..currency import render_currency
+        from ..currency import _render_currency
 
-        return render_currency(
+        return _render_currency(
             value,
             locale=locale,
             currency=code,
@@ -704,9 +704,9 @@ def _legacy_currency(
     try:
         major_names, minor_names = names[code]
     except KeyError:
-        from ..currency import render_currency
+        from ..currency import _render_currency
 
-        return render_currency(
+        return _render_currency(
             value,
             locale=locale,
             currency=code,
