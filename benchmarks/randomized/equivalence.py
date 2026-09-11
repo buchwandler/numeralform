@@ -131,10 +131,20 @@ _CURRENCY_RULES = {
 }
 
 _ES_ORDINAL_VARIANTS = {
-    11: {"undécimo", "decimoprimero", "décimo primero"},
-    12: {"duodécimo", "decimosegundo", "décimo segundo"},
+    ("masculine", 11): {"undécimo", "decimoprimero", "décimo primero"},
+    ("masculine", 12): {"duodécimo", "decimosegundo", "décimo segundo"},
+    ("feminine", 11): {"undécima", "decimoprimera", "décima primera"},
+    ("feminine", 12): {"duodécima", "decimosegunda", "décima segunda"},
 }
-_ES_ORDINAL_ACCENT_VARIANTS = {20: ("vigesimo", "vigésimo")}
+_ES_ORDINAL_ACCENT_VARIANTS = {
+    ("masculine", 20): ("vigesimo", "vigésimo"),
+    ("feminine", 20): ("vigesimo", "vigésima"),
+}
+_ES_ORDINAL_ATTRIBUTIVE_APOCOPE = {
+    1: ("primero", "primer"),
+    3: ("tercero", "tercer"),
+    13: ("decimotercero", "decimotercer"),
+}
 _FR_CONTINUATION_WORDS = frozenset(
     {
         "un", "une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf",
@@ -379,18 +389,52 @@ def _decimal_trailing_zero_precision_variant(case: RandomCase, expected: str, ac
     return " ".join(candidate) == _surface_key(expected)
 
 
+def _spanish_ordinal_gender(case: RandomCase) -> str:
+    gender = str(case.options.get("gender", "masculine"))
+    return {"m": "masculine", "f": "feminine"}.get(gender, gender)
+
+
 def _spanish_ordinal_accent_oracle_quirk(case: RandomCase, expected: str, actual: str) -> bool:
     if case.locale.split("-", 1)[0] != "es" or case.kind != "ordinal":
         return False
-    pair = _ES_ORDINAL_ACCENT_VARIANTS.get(case.python_value())
-    return pair is not None and _surface_key(expected) == pair[0] and _surface_key(actual) == pair[1]
+    pair = _ES_ORDINAL_ACCENT_VARIANTS.get(
+        (_spanish_ordinal_gender(case), case.python_value())
+    )
+    return (
+        pair is not None
+        and _surface_key(expected) == pair[0]
+        and _surface_key(actual) == pair[1]
+    )
 
 
 def _spanish_ordinal_synonym_variant(case: RandomCase, expected: str, actual: str) -> bool:
     if case.locale.split("-", 1)[0] != "es" or case.kind != "ordinal":
         return False
-    allowed = _ES_ORDINAL_VARIANTS.get(case.python_value())
-    return allowed is not None and _surface_key(expected) in {_surface_key(value) for value in allowed} and _surface_key(actual) in {_surface_key(value) for value in allowed}
+    allowed = _ES_ORDINAL_VARIANTS.get(
+        (_spanish_ordinal_gender(case), case.python_value())
+    )
+    return (
+        allowed is not None
+        and _surface_key(expected) in {_surface_key(value) for value in allowed}
+        and _surface_key(actual) in {_surface_key(value) for value in allowed}
+    )
+
+
+def _spanish_ordinal_attributive_apocope_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if (
+        case.locale.split("-", 1)[0] != "es"
+        or case.kind != "ordinal"
+        or _spanish_ordinal_gender(case) != "masculine"
+    ):
+        return False
+    pair = _ES_ORDINAL_ATTRIBUTIVE_APOCOPE.get(case.python_value())
+    return (
+        pair is not None
+        and _surface_key(expected) == pair[0]
+        and _surface_key(actual) == pair[1]
+    )
 
 
 def _spanish_currency_gender_variant(case: RandomCase, expected: str, actual: str) -> bool:
@@ -458,7 +502,7 @@ def _repair_french_oracle(text: str) -> str:
             and tokens[index + 1] == "vingt"
             and tokens[index + 2] in {
                 "million", "millions", "milliard", "milliards",
-                "penny", "pence", "centime", "centimes",
+                "penny", "pence", "cent", "cents", "centime", "centimes",
                 "euro", "euros", "dollar", "dollars", "livre", "livres",
             }
         ):
@@ -741,6 +785,10 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
         ("decimal-trailing-zero-precision", _decimal_trailing_zero_precision_variant),
         ("oracle:es-ordinal-accent", _spanish_ordinal_accent_oracle_quirk),
         ("variant:es-ordinal-synonym", _spanish_ordinal_synonym_variant),
+        (
+            "variant:es-ordinal-attributive-apocope",
+            _spanish_ordinal_attributive_apocope_variant,
+        ),
         ("oracle:es-gbp-gender", _spanish_gbp_gender_variant),
         ("oracle:es-nok-gender", _spanish_nok_gender_variant),
         ("variant:fi-compound-spacing", _finnish_compound_spacing_variant),

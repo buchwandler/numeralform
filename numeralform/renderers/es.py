@@ -312,6 +312,7 @@ class SpanishRenderer:
         if request.morphology.gender is Gender.FEMININE:
             for masculine, feminine in (
                 ("primero", "primera"),
+                ("segundo", "segunda"),
                 ("tercero", "tercera"),
                 ("undécimo", "undécima"),
                 ("duodécimo", "duodécima"),

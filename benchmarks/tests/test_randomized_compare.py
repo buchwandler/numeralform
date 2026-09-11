@@ -381,6 +381,142 @@ def test_new_equivalence_rules_do_not_hide_known_numeralform_defects():
         assert result.status == "mismatch"
 
 
+
+def test_seed_107_remaining_good_outputs_are_accepted_variants():
+    examples = (
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=11,
+                options={"gender": "feminine"},
+            ),
+            "decimoprimera",
+            "undécima",
+            "variant:es-ordinal-synonym",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=12,
+                options={"gender": "feminine"},
+            ),
+            "decimosegunda",
+            "duodécima",
+            "variant:es-ordinal-synonym",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=20,
+                options={"gender": "feminine"},
+            ),
+            "vigesimo",
+            "vigésima",
+            "oracle:es-ordinal-accent",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=1,
+                options={"gender": "masculine"},
+            ),
+            "primero",
+            "primer",
+            "variant:es-ordinal-attributive-apocope",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=3,
+                options={"gender": "masculine"},
+            ),
+            "tercero",
+            "tercer",
+            "variant:es-ordinal-attributive-apocope",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=13,
+                options={"gender": "masculine"},
+            ),
+            "decimotercero",
+            "decimotercer",
+            "variant:es-ordinal-attributive-apocope",
+        ),
+        (
+            case(
+                locale="fr-BE",
+                kind="currency",
+                value=Decimal("304.80"),
+                currency="USD",
+                options={"separator": " and"},
+            ),
+            "trois cents quatre dollars and quatre-vingt cents",
+            "trois cent quatre dollars and quatre-vingts cents",
+            "oracle:fr-number-orthography",
+        ),
+    )
+    for local_case, expected, actual, rule in examples:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+
+def test_seed_107_spanish_ordinal_equivalence_rules_are_narrow():
+    examples = (
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=2,
+                options={"gender": "feminine"},
+            ),
+            "segunda",
+            "segundo",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=1,
+                options={"gender": "feminine"},
+            ),
+            "primera",
+            "primer",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=4,
+                options={"gender": "masculine"},
+            ),
+            "cuarto",
+            "cuart",
+        ),
+    )
+    for local_case, expected, actual in examples:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"
+
+
 def test_01_todo_equivalence_rules_and_negative_controls():
     def assert_variant(local_case, expected, actual, rule):
         result = compare_results(

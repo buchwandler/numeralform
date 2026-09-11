@@ -457,3 +457,67 @@ def test_audited_locale_grammar_fixes():
     assert "trémila" not in render(273_000, locale="it")
     assert render(1001, locale="it", form="ordinal") == "milleunesimo"
     assert render(1_000_000, locale="cs") == "jeden milion"
+
+
+def test_seed_107_spanish_feminine_second_ordinal():
+    assert (
+        render(
+            2,
+            locale="es",
+            form="ordinal",
+            syntax="attributive",
+            gender="feminine",
+        )
+        == "segunda"
+    )
+
+
+def test_seed_107_russian_accusative_cardinals_preserve_cardinal_forms():
+    for value, expected in (
+        (0, "ноль"),
+        (11, "одиннадцать"),
+        (19, "девятнадцать"),
+        (112, "сто двенадцать"),
+        (119, "сто девятнадцать"),
+    ):
+        assert (
+            render(
+                value,
+                locale="ru",
+                case="accusative",
+                gender="masculine",
+                animacy="animate",
+            )
+            == expected
+        )
+
+
+def test_seed_107_russian_ordinal_accusative_tracks_animacy():
+    for value, inanimate, animate in (
+        (20, "двадцатый", "двадцатого"),
+        (30, "тридцатый", "тридцатого"),
+        (100, "сотый", "сотого"),
+        (1000, "тысячный", "тысячного"),
+    ):
+        assert (
+            render(
+                value,
+                locale="ru",
+                form="ordinal",
+                case="accusative",
+                gender="masculine",
+                animacy="inanimate",
+            )
+            == inanimate
+        )
+        assert (
+            render(
+                value,
+                locale="ru",
+                form="ordinal",
+                case="accusative",
+                gender="masculine",
+                animacy="animate",
+            )
+            == animate
+        )
