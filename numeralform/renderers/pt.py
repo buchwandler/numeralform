@@ -121,6 +121,23 @@ _HUNDREDS: dict[int, str | tuple[str, str]] = {
     900: "novecentos",
 }
 _MAX_CARDINAL = 999_999_999_999
+def _next_expressed_group(remainder: int, scale: int) -> int:
+    divisor = scale // 1000
+    while divisor >= 1:
+        group = (remainder // divisor) % 1000
+        if group:
+            return group
+        divisor //= 1000
+    return 0
+
+
+def _interclass_separator(remainder: int, scale: int) -> str:
+    group = _next_expressed_group(remainder, scale)
+    if group == 0:
+        return ""
+    if scale == 1000:
+        return " e " if group < 100 or group % 100 == 0 else " "
+    return " e " if group < 100 or group == 100 else " "
 
 
 class PortugueseRenderer:
@@ -208,15 +225,7 @@ class PortugueseRenderer:
                     }
                     scale_name = name if quotient == 1 else plural_names[name]
                     prefix = f"{self._cardinal(quotient)} {scale_name}"
-                separator = (
-                    " e "
-                    if (
-                        remainder < 100_000
-                        if scale != 1_000
-                        else remainder < 100 or remainder % 100 == 0
-                    )
-                    else " "
-                )
+                separator = _interclass_separator(remainder, scale)
                 return prefix + (separator + self._cardinal(remainder) if remainder else "")
         raise InvalidValueError(
             "Portuguese cardinal value is outside the supported range"

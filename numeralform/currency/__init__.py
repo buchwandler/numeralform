@@ -100,7 +100,7 @@ _CURRENCIES = {
         "fr": ("livre", "livres", "penny", "pence"),
         "pt": ("libra", "libras", "pence", "pence"),
         "pt-PT": ("libra", "libras", "péni", "pénis"),
-        "fi": ("punta", "puntaa", "penny", "pence"),
+        "fi": ("punta", "puntaa", "penny", "pennyä"),
         "de": ("Pfund", "Pfund", "Penny", "Pence"),
         "es": ("libra", "libras", "penique", "peniques"),
     },
@@ -127,7 +127,7 @@ _CURRENCIES = {
         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
     },
-    "INR": {"en": ("Indian rupee", "Indian rupees", "paisa", "paise"), "fi": ("Intian rupia", "Intian rupiaa", "paisa", "paise")},
+    "INR": {"en": ("Indian rupee", "Indian rupees", "paisa", "paise"), "fi": ("Intian rupia", "Intian rupiaa", "paisa", "paisaa")},
     "KRW": {"en": ("won", "won", "jeon", "jeon"), "ko": ("원", "원", "전", "전")},
     "BRL": {
         "en": ("Brazilian real", "Brazilian reals", "centavo", "centavos"),
@@ -202,7 +202,7 @@ _CURRENCY_NEGATIVE_PREFIXES = {
     "cs": "mínus ",
     "ko": "마이너스 ",
     "th": "ติดลบ ",
-    "ja": "マイナス ",
+    "ja": "マイナス",
     "vi": "âm ",
 }
 _ATTACHED_CURRENCIES = {("ja", "JPY")}
@@ -264,7 +264,8 @@ def _currency_policy(code: str, locale: str, *, allow_fallback: bool = True) -> 
             _CONNECTORS[language],
             negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
         )
-    names = _CURRENCIES.get(code, {}).get(locale)
+    lookup_locale = "pt-PT" if locale == "pt" else locale
+    names = _CURRENCIES.get(code, {}).get(lookup_locale)
     if names is None:
         names = _CURRENCIES.get(code, {}).get(language)
     if names is None and allow_fallback:
@@ -276,6 +277,12 @@ def _currency_policy(code: str, locale: str, *, allow_fallback: bool = True) -> 
     if language == "ru":
         major_forms = {"one": names[0], "few": names[1], "many": names[1]}
         minor_forms = {"one": names[2], "few": names[3], "many": names[3]}
+    elif language == "fi":
+        major_forms = {"one": names[0], "other": names[1]}
+        minor_forms = {
+            "one": names[3] if code == "GBP" else names[2],
+            "other": names[3],
+        }
     else:
         major_forms = {"one": names[0], "other": names[1]}
         minor_forms = {"one": names[2], "other": names[3]}
@@ -383,8 +390,13 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
         text = render(value, locale=locale, gender=gender)
     else:
         text = render(value, locale=locale)
-    if language == "it" and text == "uno":
-        return "un"
+    if (
+        language == "it"
+        and value % 10 == 1
+        and value % 100 != 11
+        and text.endswith("uno")
+    ):
+        return text[:-1]
     if language == "de" and text.endswith("eins"):
         # A cardinal directly before a currency unit is attributive: eins -> ein.
         return text.removesuffix("eins") + "ein"

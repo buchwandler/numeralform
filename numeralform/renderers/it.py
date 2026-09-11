@@ -162,7 +162,7 @@ class ItalianRenderer:
                 prefix = (
                     f"un {scale_name}"
                     if quotient == 1
-                    else f"{self._cardinal(quotient, final=False)} {scale_name}"
+                    else f"{self._cardinal(quotient, final=True)} {scale_name}"
                 )
                 return prefix + (f" e {self._cardinal(remainder, final=final, accent_final=final)}" if remainder else "")
         raise InvalidValueError("Italian cardinal value is outside the supported range")
@@ -177,7 +177,7 @@ class ItalianRenderer:
             return _ordinalize_italian_cardinal(cardinal)
         for scale, _singular, _plural in _SCALES:
             if value >= scale:
-                quotient, remainder = divmod(value, scale)
+                _quotient, remainder = divmod(value, scale)
                 if remainder:
                     if remainder < 10:
                         return _ordinalize_italian_cardinal(cardinal)

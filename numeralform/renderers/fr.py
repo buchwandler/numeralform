@@ -51,6 +51,31 @@ _ORDINALS = {
     9: "neuvième",
     10: "dixième",
 }
+_ORDINAL_TAILS = {
+    "un": "unième",
+    "deux": "deuxième",
+    "trois": "troisième",
+    "quatre": "quatrième",
+    "cinq": "cinquième",
+    "six": "sixième",
+    "sept": "septième",
+    "huit": "huitième",
+    "neuf": "neuvième",
+    "dix": "dixième",
+    "onze": "onzième",
+    "douze": "douzième",
+    "treize": "treizième",
+    "quatorze": "quatorzième",
+    "quinze": "quinzième",
+    "seize": "seizième",
+}
+
+
+def _ordinalize_cardinal_tail(cardinal: str) -> str:
+    prefix, separator, tail = cardinal.rpartition("-")
+    if not separator:
+        prefix, separator, tail = cardinal.rpartition(" ")
+    return f"{prefix}{separator}{_ORDINAL_TAILS[tail]}"
 _SCALES = [(1_000_000_000, "milliard"), (1_000_000, "million"), (1_000, "mille")]
 _MAX_CARDINAL = 999_999_999_999
 
@@ -168,20 +193,9 @@ class FrenchRenderer:
         if value in _ORDINALS:
             return _ORDINALS[value]
         if 60 < value < 100 and value not in (70, 80, 90):
-            cardinal = self._cardinal(value)
-            if cardinal.endswith("un"):
-                return cardinal.removesuffix("un") + "unième"
-            if cardinal.endswith("onze"):
-                return cardinal.removesuffix("onze") + "onzième"
-            separator = "-" if "-" in cardinal else " "
-            prefix, _, _ = cardinal.rpartition(separator)
-            if cardinal.startswith("septante") or cardinal.startswith("nonante"):
-                suffix_value = value - (70 if cardinal.startswith("septante") else 90)
-            else:
-                suffix_value = value - (60 if value < 80 else 80)
-            return f"{prefix}{separator}{self._ordinal(suffix_value)}"
+            return _ordinalize_cardinal_tail(self._cardinal(value))
         if value < 100:
-            tens, units = divmod(value, 10)
+            _tens, units = divmod(value, 10)
             if units:
                 if units == 1:
                     full = self._cardinal(value)
@@ -202,7 +216,7 @@ class FrenchRenderer:
                     return "millième"
                 cardinal = self._cardinal(value).removesuffix("s")
                 return cardinal.removesuffix("e") + "ième"
-        hundreds, remainder = divmod(value, 100)
+        _hundreds, remainder = divmod(value, 100)
         prefix = self._cardinal(value - remainder).removesuffix("s")
         return f"{prefix} {self._ordinal_component(remainder)}" if remainder else prefix + "ième"
     def _digits(self, value) -> str:

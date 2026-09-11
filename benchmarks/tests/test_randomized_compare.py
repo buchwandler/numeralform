@@ -379,3 +379,130 @@ def test_new_equivalence_rules_do_not_hide_known_numeralform_defects():
             accept_variants=True,
         )
         assert result.status == "mismatch"
+
+
+def test_01_todo_equivalence_rules_and_negative_controls():
+    def assert_variant(local_case, expected, actual, rule):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+    assert_variant(
+        case(locale="cs", value=1_000_001),
+        "milion jedna",
+        "jeden milion jedna",
+        "variant:cs-optional-one-million",
+    )
+    assert_variant(
+        case(locale="de", kind="ordinal", value=100),
+        "hundertste",
+        "einhundertste",
+        "variant:de-optional-ein-ordinal",
+    )
+    assert_variant(
+        case(locale="de", kind="year", value=4137),
+        "einundvierzighundertsiebenunddreißig",
+        "viertausendeinhundertsiebenunddreißig",
+        "oracle:de-post-2000-year",
+    )
+    assert_variant(
+        case(locale="es", kind="currency", value=Decimal("569.69"), currency="NOK"),
+        "quinientos sesenta y nueve coronas con sesenta y nueve øre",
+        "quinientas sesenta y nueve coronas noruegas con sesenta y nueve øre",
+        "oracle:es-nok-gender",
+    )
+    assert_variant(
+        case(locale="fr-BE", kind="currency", value=Decimal("7360.00"), currency="EUR"),
+        "sept mille trois cents soixantième",
+        "sept mille trois cent soixantième",
+        "oracle:fr-number-orthography",
+    )
+    assert_variant(
+        case(locale="it", kind="ordinal", value=2010),
+        "duemiladiecesimo",
+        "duemiladecimo",
+        "oracle:it-ordinal-orthography",
+    )
+    assert_variant(
+        case(locale="fi", kind="currency", value=Decimal("1.21"), currency="INR"),
+        "rupiaa ja kaksikymmentäyksi paisaa",
+        "Intian rupiaa ja kaksikymmentäyksi paisaa",
+        "fi-inr-currency",
+    )
+    assert_variant(
+        case(locale="pt", kind="currency", value=Decimal("1.01"), currency="AUD"),
+        "um dólar e um cêntimo",
+        "um dólar australiano e um cêntimo",
+        "pt-aud-currency",
+    )
+    assert_variant(
+        case(locale="pt", kind="currency", value=Decimal("14.00"), currency="EUR"),
+        "catorze euros",
+        "catorze euros e zero cêntimos",
+        "variant:pt-zero-minor-omission",
+    )
+    assert_variant(
+        case(locale="ru", kind="decimal", value=Decimal("-958721.5")),
+        "минус девятьсот пятьдесят восемь тысяч семьсот двадцать одна целых пять десятых",
+        "минус девятьсот пятьдесят восемь тысяч семьсот двадцать одна целая пять десятых",
+        "oracle:ru-decimal-whole-agreement",
+    )
+    assert_variant(
+        case(locale="sv", kind="ordinal", value=100),
+        "hundrade",
+        "etthundrade",
+        "variant:sv-optional-ett-ordinal",
+    )
+    assert_variant(
+        case(locale="th", kind="currency", value=Decimal("0.11"), currency="EUR"),
+        "สิบเอ็ดเซนต์",
+        "ศูนย์ยูโร และ สิบเอ็ดเซนต์",
+        "variant:th-zero-currency-component",
+    )
+    assert_variant(
+        case(locale="vi", value=-20),
+        "không",
+        "âm hai mươi",
+        "oracle:vi-negative-cardinal",
+    )
+
+    negative_cases = (
+        (case(locale="cs", value=2_000_001), "dva miliony", "jeden milion jedna"),
+        (case(locale="de", kind="ordinal", value=101), "hundertste", "einhundertste"),
+        (
+            case(locale="es", kind="currency", value=Decimal("569.69"), currency="NOK"),
+            "quinientos sesenta y nueve coronas con sesenta y nueve øre",
+            "cuatrocientas sesenta y nueve coronas noruegas con sesenta y nueve øre",
+        ),
+        (
+            case(locale="pt", kind="currency", value=Decimal("14.01"), currency="EUR"),
+            "catorze euros e um cêntimo",
+            "catorze euros e zero cêntimos",
+        ),
+        (
+            case(
+                locale="th", kind="currency", value=Decimal("0.11"), currency="EUR",
+                options={"separator": " and"},
+            ),
+            "สิบเอ็ดเซนต์",
+            "ศูนย์ยูโร และ สิบเอ็ดเซนต์",
+        ),
+        (
+            case(locale="vi", value=-20),
+            "hai mươi",
+            "âm hai mươi",
+        ),
+    )
+    for local_case, expected, actual in negative_cases:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"

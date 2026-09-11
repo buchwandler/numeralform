@@ -42,7 +42,7 @@ _TENS = (
     "yhdeksänkymmentä",
 )
 _ORDINALS = {
-    0: "nolla",
+    0: "nollas",
     1: "ensimmäinen",
     2: "toinen",
     3: "kolmas",
@@ -247,8 +247,10 @@ class FinnishRenderer:
             if scale == 1000:
                 text = "tuhat" if quotient == 1 else self._cardinal(quotient, morphology) + "tuhatta"
             else:
-                scale_form = name if quotient == 1 else name + "a"
-                text = self._cardinal(quotient, morphology) + " " + scale_form
+                if quotient == 1:
+                    text = name
+                else:
+                    text = self._cardinal(quotient, morphology) + " " + name + "a"
             if rest:
                 text += " " + self._cardinal(rest, morphology)
         return self._inflect(

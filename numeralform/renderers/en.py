@@ -279,6 +279,8 @@ class EnglishRenderer:
             return f"{self._render_cardinal(first)} {self._render_cardinal(second)}"
         if value == 2000:
             return "two thousand"
+        if value >= 1000 and value % 1000 == 0:
+            return self._render_cardinal(value)
         if 2001 <= value <= 2009:
             return f"two thousand {self._render_cardinal(value % 1000)}"
         if 2010 <= value <= 2099:

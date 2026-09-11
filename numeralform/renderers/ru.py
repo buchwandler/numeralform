@@ -649,7 +649,11 @@ class RussianRenderer:
         fraction_value = int(value.fraction)
         singular, plural = _DECIMAL_DENOMINATORS[len(value.fraction)]
         fraction = self._integer(fraction_value, 0, "f", False)
-        denominator = singular if fraction_value == 1 else plural
+        denominator = (
+            singular
+            if fraction_value % 10 == 1 and fraction_value % 100 != 11
+            else plural
+        )
         return f"{sign}{whole} {whole_unit} {fraction} {denominator}"
 
     def _fraction(self, value) -> str:

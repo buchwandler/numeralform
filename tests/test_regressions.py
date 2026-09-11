@@ -7,7 +7,13 @@ from decimal import Decimal
 
 import pytest
 
-from numeralform import DigitSequence, NumeralFormError, render, render_currency, supports_currency
+from numeralform import (
+    DigitSequence,
+    NumeralFormError,
+    render,
+    render_currency,
+    supports_currency,
+)
 from numeralform.errors import InvalidValueError, UnsupportedMorphologyError
 
 
@@ -316,7 +322,7 @@ def test_canonical_year_policies():
 def test_finnish_large_scale_cardinals():
     assert render(1_000, locale="fi") == "tuhat"
     assert render(2_000, locale="fi") == "kaksituhatta"
-    assert render(1_000_000, locale="fi") == "yksi miljoona"
+    assert render(1_000_000, locale="fi") == "miljoona"
     assert render(2_000_000, locale="fi") == "kaksi miljoonaa"
     assert render(31_000_000, locale="fi") == "kolmekymmentäyksi miljoonaa"
     assert render(386_130_945, locale="fi") == (
@@ -363,6 +369,41 @@ def test_audited_scale_and_morphology_regressions():
     assert render(871, locale="fr-BE", form="ordinal") == "huit cent septante et unième"
     assert render(408, locale="it", form="ordinal") == "quattrocentottesimo"
 
+
+
+def test_01_todo_runtime_examples():
+    assert render(3000, locale="en-GB", form="year") == "three thousand"
+    assert render(5000, locale="en-NG", form="year") == "five thousand"
+    assert render(1_000_000, locale="fi") == "miljoona"
+    assert render(0, locale="fi", form="ordinal") == "nollas"
+    assert render_currency(Decimal("1.01"), locale="fi", currency="GBP").endswith(
+        "yksi pennyä"
+    )
+    assert render_currency(Decimal("1.21"), locale="fi", currency="INR").endswith(
+        "kaksikymmentäyksi paisaa"
+    )
+    assert render(77, locale="fr", form="ordinal") == "soixante-dix-septième"
+    assert render(99, locale="fr", form="ordinal") == "quatre-vingt-dix-neuvième"
+    assert render(653_000_000, locale="it").startswith(
+        "seicentocinquantatré milioni"
+    )
+    assert "trémila" not in render(273_000, locale="it")
+    assert render_currency(Decimal("0.61"), locale="it", currency="EUR").endswith(
+        "sessantun centesimi"
+    )
+    assert render_currency(-100, locale="ja", currency="JPY") == "マイナス百円"
+    assert render(812_000_864, locale="pt") == (
+        "oitocentos e doze milhões oitocentos e sessenta e quatro"
+    )
+    assert render(935_100_674, locale="pt") == (
+        "novecentos e trinta e cinco milhões e cem mil "
+        "seiscentos e setenta e quatro"
+    )
+    assert "cêntimo" in render_currency(Decimal("1.01"), locale="pt", currency="AUD")
+    assert "péni" in render_currency(Decimal("1.01"), locale="pt", currency="GBP")
+    assert render(Decimal("722124.81"), locale="ru", form="decimal").endswith(
+        "восемьдесят одна сотая"
+    )
 def test_localized_currency_support_and_morphology():
     assert supports_currency("es", "CAD")
     assert supports_currency("fi", "AUD")
