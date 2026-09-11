@@ -30,7 +30,6 @@ The generator uses a deterministic locale/form floor before edge-biased fuzz fil
 The canonical target uses the shared canonical/oracle intersection. The compatibility target uses the pinned oracle locales supported by the compatibility adapter and independently composes transport, dispatch, and option-profile dimensions. The report calls generated profiles `option_profile_id`; comparator `variant` remains reserved for accepted canonical alternatives.
 The expanded seed-105 audit intentionally surfaces unaccepted morphology differences instead of hiding them. Current findings are Spanish ordinal gender forms and Russian accusative morphology; these remain differential failures requiring either an explicit equivalence rule backed by negative controls or a renderer fix. They are reported in `differences.jsonl` and are not counted as accepted variants.
 
-
 ### Variant policy
 
 `variant` means a semantically accepted alternative spelling, terminology, grammar, or presentation that preserves the requested numeric value and locale semantics. It does not mean exact reproduction of num2words. Every non-surface variant uses a stable named equivalence rule, and comparator rules never normalize signs, numeric tokens, malformed morphology, unsupported options, or locale fallback.

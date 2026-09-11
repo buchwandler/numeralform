@@ -245,7 +245,11 @@ class FinnishRenderer:
             scale, name = self._scale(value)
             quotient, rest = divmod(value, scale)
             if scale == 1000:
-                text = "tuhat" if quotient == 1 else self._cardinal(quotient, morphology) + "tuhatta"
+                text = (
+                    "tuhat"
+                    if quotient == 1
+                    else self._cardinal(quotient, morphology) + "tuhatta"
+                )
             else:
                 if quotient == 1:
                     text = name
@@ -283,12 +287,18 @@ class FinnishRenderer:
             )
         elif value < 1000:
             hundreds, rest = divmod(value, 100)
-            text = "sadas" if hundreds == 1 else _ORDINAL_MULTIPLIERS[hundreds] + "sadas"
+            text = (
+                "sadas" if hundreds == 1 else _ORDINAL_MULTIPLIERS[hundreds] + "sadas"
+            )
             if rest:
                 text += self._ordinal(rest, morphology)
         else:
             thousands, rest = divmod(value, 1000)
-            text = "tuhannes" if thousands == 1 else _ORDINAL_MULTIPLIERS[thousands] + "tuhannes"
+            text = (
+                "tuhannes"
+                if thousands == 1
+                else _ORDINAL_MULTIPLIERS[thousands] + "tuhannes"
+            )
             if rest:
                 text += " " + self._ordinal(rest, morphology)
         return self._inflect(

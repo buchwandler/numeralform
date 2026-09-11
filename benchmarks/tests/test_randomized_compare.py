@@ -47,6 +47,7 @@ def test_surface_only_differences_are_accepted_variants():
     assert result.status == "variant"
     assert result.equivalence_rule == "surface:hyphenation only"
 
+
 def test_surface_variant_cannot_drop_an_explicit_sign():
     result = compare_results(
         case(value=-1),
@@ -160,19 +161,70 @@ def test_variant_policy_is_opt_in_for_compatibility_target():
     assert result.status == "mismatch"
 
 
-
 def test_named_locale_equivalence_rules_and_negative_controls():
     examples = (
-        (case(locale="es", kind="decimal", value=Decimal("1.10")), "uno punto uno", "uno punto uno cero", "decimal-trailing-zero-precision"),
-        (case(locale="es", kind="ordinal", value=20), "vigesimo", "vigésimo", "oracle:es-ordinal-accent"),
-        (case(locale="es", kind="ordinal", value=12), "decimosegundo", "duodécimo", "variant:es-ordinal-synonym"),
-        (case(locale="fr-BE", value=951), "neuf cents cinquante et un", "neuf cent cinquante et un", "oracle:fr-cent-overpluralization"),
-        (case(locale="it", value=180), "centottanta", "centoottanta", "variant:it-cento-elision"),
-        (case(locale="ja", kind="ordinal_num", value=6836), "6836番目", "第6836", "variant:ja-ordinal-notation"),
-        (case(locale="sv", value=40), "förtio", "fyrtio", "oracle:sv-number-orthography"),
-        (case(locale="ru", kind="currency", value=Decimal("1079.24"), currency="EUR"), "одна тысяча семьдесят девять евро, 24 цента", "одна тысяча семьдесят девять евро и 24 цента", "ru-eur-currency"),
-        (case(locale="en", kind="currency", value=Decimal("1.01"), currency="CAD"), "one dollar and 01 cents", "one Canadian dollar and 01 cents", "en-cad-currency"),
-        (case(locale="en", kind="year", value=193), "one ninety-three", "one hundred and ninety-three", "en-year-reading"),
+        (
+            case(locale="es", kind="decimal", value=Decimal("1.10")),
+            "uno punto uno",
+            "uno punto uno cero",
+            "decimal-trailing-zero-precision",
+        ),
+        (
+            case(locale="es", kind="ordinal", value=20),
+            "vigesimo",
+            "vigésimo",
+            "oracle:es-ordinal-accent",
+        ),
+        (
+            case(locale="es", kind="ordinal", value=12),
+            "decimosegundo",
+            "duodécimo",
+            "variant:es-ordinal-synonym",
+        ),
+        (
+            case(locale="fr-BE", value=951),
+            "neuf cents cinquante et un",
+            "neuf cent cinquante et un",
+            "oracle:fr-cent-overpluralization",
+        ),
+        (
+            case(locale="it", value=180),
+            "centottanta",
+            "centoottanta",
+            "variant:it-cento-elision",
+        ),
+        (
+            case(locale="ja", kind="ordinal_num", value=6836),
+            "6836番目",
+            "第6836",
+            "variant:ja-ordinal-notation",
+        ),
+        (
+            case(locale="sv", value=40),
+            "förtio",
+            "fyrtio",
+            "oracle:sv-number-orthography",
+        ),
+        (
+            case(
+                locale="ru", kind="currency", value=Decimal("1079.24"), currency="EUR"
+            ),
+            "одна тысяча семьдесят девять евро, 24 цента",
+            "одна тысяча семьдесят девять евро и 24 цента",
+            "ru-eur-currency",
+        ),
+        (
+            case(locale="en", kind="currency", value=Decimal("1.01"), currency="CAD"),
+            "one dollar and 01 cents",
+            "one Canadian dollar and 01 cents",
+            "en-cad-currency",
+        ),
+        (
+            case(locale="en", kind="year", value=193),
+            "one ninety-three",
+            "one hundred and ninety-three",
+            "en-year-reading",
+        ),
     )
     for local_case, expected, actual, rule in examples:
         result = compare_results(
@@ -209,7 +261,6 @@ def test_named_locale_equivalence_rules_and_negative_controls():
     assert wrong_value.status == "mismatch"
 
 
-
 def test_audited_oracle_and_language_variants_from_seed_103_report():
     examples = (
         (
@@ -231,31 +282,47 @@ def test_audited_oracle_and_language_variants_from_seed_103_report():
             "en-year-reading",
         ),
         (
-            case(locale="en-GB", kind="currency", value=Decimal("4999.25"), currency="HUF"),
+            case(
+                locale="en-GB",
+                kind="currency",
+                value=Decimal("4999.25"),
+                currency="HUF",
+            ),
             "four thousand nine hundred and ninety-nine forint and 25 fillér",
             "four thousand nine hundred and ninety-nine forints and 25 fillers",
             "en-huf-currency",
         ),
         (
-            case(locale="en-GB", kind="currency", value=Decimal("2780.49"), currency="NOK"),
+            case(
+                locale="en-GB",
+                kind="currency",
+                value=Decimal("2780.49"),
+                currency="NOK",
+            ),
             "two thousand seven hundred and eighty kroner, 49 øre",
             "two thousand seven hundred and eighty Norwegian kroner and 49 øre",
             "en-nok-currency",
         ),
         (
-            case(locale="en-GB", kind="currency", value=Decimal("1.11"), currency="SEK"),
+            case(
+                locale="en-GB", kind="currency", value=Decimal("1.11"), currency="SEK"
+            ),
             "one krona, 11 öre",
             "one Swedish krona and 11 öre",
             "en-sek-currency",
         ),
         (
-            case(locale="en-GB", kind="currency", value=Decimal("101.01"), currency="SAR"),
+            case(
+                locale="en-GB", kind="currency", value=Decimal("101.01"), currency="SAR"
+            ),
             "one hundred and one saudi riyals and 01 halalah",
             "one hundred and one riyals and 01 halala",
             "en-sar-currency",
         ),
         (
-            case(locale="es", kind="currency", value=Decimal("2563.10"), currency="GBP"),
+            case(
+                locale="es", kind="currency", value=Decimal("2563.10"), currency="GBP"
+            ),
             "dos mil quinientos sesenta y tres libras, diez peniques",
             "dos mil quinientas sesenta y tres libras y diez peniques",
             "oracle:es-gbp-gender",
@@ -379,7 +446,6 @@ def test_new_equivalence_rules_do_not_hide_known_numeralform_defects():
             accept_variants=True,
         )
         assert result.status == "mismatch"
-
 
 
 def test_seed_107_remaining_good_outputs_are_accepted_variants():
@@ -622,7 +688,10 @@ def test_01_todo_equivalence_rules_and_negative_controls():
         ),
         (
             case(
-                locale="th", kind="currency", value=Decimal("0.11"), currency="EUR",
+                locale="th",
+                kind="currency",
+                value=Decimal("0.11"),
+                currency="EUR",
                 options={"separator": " and"},
             ),
             "สิบเอ็ดเซนต์",

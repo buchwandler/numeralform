@@ -232,7 +232,11 @@ def _invocations(
                                 CompatInvocation(
                                     "num2words",
                                     (_value(1),),
-                                    {"lang": _value(locale), "to": _value(form), "gender": _value(gender)},
+                                    {
+                                        "lang": _value(locale),
+                                        "to": _value(form),
+                                        "gender": _value(gender),
+                                    },
                                 ),
                             )
             if language == "ru" and "cardinal" in forms:
@@ -242,7 +246,14 @@ def _invocations(
                     CompatInvocation(
                         "num2words",
                         (_value(1),),
-                        {"lang": _value(locale), "to": _value("cardinal"), "gender": _value("f"), "case": _value("n"), "plural": _value(False), "animate": _value(False)},
+                        {
+                            "lang": _value(locale),
+                            "to": _value("cardinal"),
+                            "gender": _value("f"),
+                            "case": _value("n"),
+                            "plural": _value(False),
+                            "animate": _value(False),
+                        },
                     ),
                 )
             if "currency" in forms:
@@ -252,7 +263,13 @@ def _invocations(
                     CompatInvocation(
                         "num2words",
                         (_value(1.01),),
-                        {"lang": _value(locale), "to": _value("currency"), "currency": _value("USD"), "cents": _value(False), "separator": _value(" and")},
+                        {
+                            "lang": _value(locale),
+                            "to": _value("currency"),
+                            "currency": _value("USD"),
+                            "cents": _value(False),
+                            "separator": _value(" and"),
+                        },
                     ),
                 )
         if "errors" in profiles:

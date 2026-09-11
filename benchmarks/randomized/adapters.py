@@ -52,12 +52,20 @@ def num2words_call_kwargs(
     language = locale.split("-", 1)[0]
     if "gender" in oracle_options:
         gender = str(oracle_options["gender"])
-        oracle_options["gender"] = _GENDER_ORACLE_MAP.get(gender, gender) if language in {"es", "ru"} else gender
+        oracle_options["gender"] = (
+            _GENDER_ORACLE_MAP.get(gender, gender)
+            if language in {"es", "ru"}
+            else gender
+        )
     if language == "ru":
         if "case" in oracle_options:
-            oracle_options["case"] = _RU_CASE_ORACLE_MAP.get(str(oracle_options["case"]), oracle_options["case"])
+            oracle_options["case"] = _RU_CASE_ORACLE_MAP.get(
+                str(oracle_options["case"]), oracle_options["case"]
+            )
         if "grammatical_number" in oracle_options and "plural" not in oracle_options:
-            oracle_options["plural"] = oracle_options.pop("grammatical_number") == "plural"
+            oracle_options["plural"] = (
+                oracle_options.pop("grammatical_number") == "plural"
+            )
         if "animacy" in oracle_options and "animate" not in oracle_options:
             oracle_options["animate"] = oracle_options.pop("animacy") == "animate"
     kwargs.update(oracle_options)
@@ -73,11 +81,15 @@ def num2words_kwargs(case: RandomCase) -> dict[str, Any]:
         case.call_variant,
     )
 
+
 def num2words_invocation(case: RandomCase) -> tuple[Any, dict[str, Any]]:
     """Build the single upstream invocation used by probes and execution."""
     return case.transport_value(), num2words_kwargs(case)
 
-def oracle_supports_case(case: RandomCase, external_num2words: Callable[..., Any]) -> bool:
+
+def oracle_supports_case(
+    case: RandomCase, external_num2words: Callable[..., Any]
+) -> bool:
     """Probe the exact value and keyword arguments used for a case."""
     try:
         value, kwargs = num2words_invocation(case)
@@ -89,16 +101,24 @@ def oracle_supports_case(case: RandomCase, external_num2words: Callable[..., Any
 
 def canonical_call_kwargs(case: RandomCase) -> dict[str, Any]:
     kwargs: dict[str, Any] = {}
-    if case.locale.split("-", 1)[0] == "es" and case.kind == "ordinal" and "gender" in case.options:
+    if (
+        case.locale.split("-", 1)[0] == "es"
+        and case.kind == "ordinal"
+        and "gender" in case.options
+    ):
         kwargs["syntax"] = "attributive"
     if "gender" in case.options:
         gender = case.options["gender"]
-        kwargs["gender"] = {"m": "masculine", "f": "feminine", "n": "neuter"}.get(str(gender), gender)
+        kwargs["gender"] = {"m": "masculine", "f": "feminine", "n": "neuter"}.get(
+            str(gender), gender
+        )
     if "case" in case.options:
         value = str(case.options["case"]).lower()
         kwargs["case"] = _RU_CASE_MAP.get(value, value)
     if "plural" in case.options:
-        kwargs["grammatical_number"] = "plural" if case.options["plural"] else "singular"
+        kwargs["grammatical_number"] = (
+            "plural" if case.options["plural"] else "singular"
+        )
     if "grammatical_number" in case.options:
         kwargs["grammatical_number"] = case.options["grammatical_number"]
     if "animate" in case.options:
@@ -108,7 +128,9 @@ def canonical_call_kwargs(case: RandomCase) -> dict[str, Any]:
     return kwargs
 
 
-def run_num2words(case: RandomCase, external_num2words: Callable[..., Any]) -> ExecutionResult:
+def run_num2words(
+    case: RandomCase, external_num2words: Callable[..., Any]
+) -> ExecutionResult:
     """Execute a case against the supplied, already verified oracle function."""
     try:
         value, kwargs = num2words_invocation(case)
@@ -171,11 +193,11 @@ __all__ = [
     "canonical_call_kwargs",
     "normalize",
     "num2words_call_kwargs",
+    "num2words_invocation",
     "num2words_kwargs",
+    "oracle_supports_case",
     "run_num2words",
     "run_numeralform",
     "run_numeralform_canonical",
     "run_numeralform_compat",
-    "oracle_supports_case",
-    "num2words_invocation",
 ]

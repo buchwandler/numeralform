@@ -326,7 +326,7 @@ class SpanishRenderer:
                 ("noveno", "novena"),
             ):
                 if text.endswith(masculine):
-                    text = text[:-len(masculine)] + feminine
+                    text = text[: -len(masculine)] + feminine
                     break
         elif (
             request.syntax is Syntax.ATTRIBUTIVE

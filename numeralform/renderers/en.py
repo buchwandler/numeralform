@@ -234,6 +234,7 @@ class EnglishRenderer:
                 suffix = "and " + suffix
             return prefix + f" {suffix}"
         return prefix + "th"
+
     def _render_fraction(self, value) -> str:
         if not isinstance(value, FractionNumber):
             raise InvalidValueError("fraction form requires FractionNumber or Fraction")
@@ -290,6 +291,8 @@ class EnglishRenderer:
             if second == 0:
                 return f"{self._render_cardinal(first)} hundred"
             if second < 10:
-                return f"{self._render_cardinal(first)} oh {self._render_cardinal(second)}"
+                return (
+                    f"{self._render_cardinal(first)} oh {self._render_cardinal(second)}"
+                )
             return f"{self._render_cardinal(first)} {self._render_cardinal(second)}"
         return self._render_cardinal(value)

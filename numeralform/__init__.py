@@ -280,9 +280,9 @@ __all__ = [
     "registered_locales",
     "render",
     "render_currency",
-    "supports_currency",
     "render_request",
     "resolve",
     "resolve_locale",
     "supports",
+    "supports_currency",
 ]

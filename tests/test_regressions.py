@@ -99,6 +99,7 @@ def test_finnish_capabilities_match_reviewed_domain():
         render(1, locale="fi", case="genitive")
     assert render(10_000, locale="fi") == "kymmenentuhatta"
 
+
 def test_finnish_ordinals_cover_hundreds_and_thousands():
     assert render(200, locale="fi", form="ordinal") == "kahdessadas"
     assert render(999, locale="fi", form="ordinal") == (
@@ -336,7 +337,9 @@ def test_01_todo_renderer_regressions():
     assert render(19, locale="de", form="ordinal") == "neunzehnte"
     assert render(21, locale="de", form="ordinal") == "einundzwanzigste"
     assert render(119, locale="de", form="ordinal") == "einhundertneunzehnte"
-    assert render(5319, locale="de", form="ordinal") == "fünftausenddreihundertneunzehnte"
+    assert (
+        render(5319, locale="de", form="ordinal") == "fünftausenddreihundertneunzehnte"
+    )
     assert render(100, locale="de", form="ordinal") == "einhundertste"
     assert render(3, locale="fr", form="ordinal") == "troisième"
     assert render(9, locale="fr", form="ordinal") == "neuvième"
@@ -344,8 +347,14 @@ def test_01_todo_renderer_regressions():
     assert render(2209, locale="fr", form="ordinal") == "deux mille deux cent neuvième"
     assert render(23, locale="it") == "ventitré"
     assert render(3163, locale="it") == "tremilacentosessantatré"
-    assert render(7245, locale="it", form="ordinal") == "settemiladuecentoquarantacinquesimo"
-    assert render(1188, locale="pt", form="ordinal") == "milésimo centésimo octogésimo oitavo"
+    assert (
+        render(7245, locale="it", form="ordinal")
+        == "settemiladuecentoquarantacinquesimo"
+    )
+    assert (
+        render(1188, locale="pt", form="ordinal")
+        == "milésimo centésimo octogésimo oitavo"
+    )
     assert render(1800, locale="pt") == "mil e oitocentos"
     assert render(1801, locale="pt-BR") == "mil oitocentos e um"
     assert render(578_990_689, locale="ko") == "오억 칠천팔백구십구만 육백팔십구"
@@ -359,16 +368,13 @@ def test_audited_scale_and_morphology_regressions():
         "seiscentos e oitenta e quatro milhões e doze mil e setenta"
     )
     assert render(-10_000, locale="ko") == "마이너스 만"
-    assert render(104_253_995, locale="ko") == (
-        "일억 사백이십오만 삼천구백구십오"
-    )
+    assert render(104_253_995, locale="ko") == ("일억 사백이십오만 삼천구백구십오")
     assert render(Decimal("32.11"), locale="ru", form="decimal") == (
         "тридцать две целых одиннадцать сотых"
     )
     assert render(76, locale="fr", form="ordinal") == "soixante-seizième"
     assert render(871, locale="fr-BE", form="ordinal") == "huit cent septante et unième"
     assert render(408, locale="it", form="ordinal") == "quattrocentottesimo"
-
 
 
 def test_01_todo_runtime_examples():
@@ -384,9 +390,7 @@ def test_01_todo_runtime_examples():
     )
     assert render(77, locale="fr", form="ordinal") == "soixante-dix-septième"
     assert render(99, locale="fr", form="ordinal") == "quatre-vingt-dix-neuvième"
-    assert render(653_000_000, locale="it").startswith(
-        "seicentocinquantatré milioni"
-    )
+    assert render(653_000_000, locale="it").startswith("seicentocinquantatré milioni")
     assert "trémila" not in render(273_000, locale="it")
     assert render_currency(Decimal("0.61"), locale="it", currency="EUR").endswith(
         "sessantun centesimi"
@@ -396,14 +400,15 @@ def test_01_todo_runtime_examples():
         "oitocentos e doze milhões oitocentos e sessenta e quatro"
     )
     assert render(935_100_674, locale="pt") == (
-        "novecentos e trinta e cinco milhões e cem mil "
-        "seiscentos e setenta e quatro"
+        "novecentos e trinta e cinco milhões e cem mil seiscentos e setenta e quatro"
     )
     assert "cêntimo" in render_currency(Decimal("1.01"), locale="pt", currency="AUD")
     assert "péni" in render_currency(Decimal("1.01"), locale="pt", currency="GBP")
     assert render(Decimal("722124.81"), locale="ru", form="decimal").endswith(
         "восемьдесят одна сотая"
     )
+
+
 def test_localized_currency_support_and_morphology():
     assert supports_currency("es", "CAD")
     assert supports_currency("fi", "AUD")
@@ -411,6 +416,7 @@ def test_localized_currency_support_and_morphology():
     assert not supports_currency("fi", "CHF")
     assert "una libra" in render_currency(Decimal("1.00"), locale="es", currency="GBP")
     assert "one paisa" in render_currency(Decimal("1.01"), locale="en", currency="INR")
+
 
 def test_audited_currency_sign_gender_regional_and_attachment_fixes():
     assert render_currency(Decimal("-2.01"), locale="de", currency="USD") == (
@@ -432,9 +438,13 @@ def test_audited_currency_sign_gender_regional_and_attachment_fixes():
     assert "cêntimo" in render_currency(Decimal("2.01"), locale="pt-PT", currency="AUD")
     assert "péni" in render_currency(Decimal("1.01"), locale="pt-PT", currency="GBP")
 
+
 def test_audited_locale_grammar_fixes():
     assert render(113, locale="en-GB", form="ordinal") == "one hundred and thirteenth"
-    assert render(3048, locale="en-GB", form="ordinal") == "three thousand and forty-eighth"
+    assert (
+        render(3048, locale="en-GB", form="ordinal")
+        == "three thousand and forty-eighth"
+    )
     assert render(4685, locale="en-GB", form="ordinal") == (
         "four thousand six hundred and eighty-fifth"
     )
@@ -445,7 +455,10 @@ def test_audited_locale_grammar_fixes():
     assert render(684_012_070, locale="pt-BR") == (
         "seiscentos e oitenta e quatro milhões e doze mil e setenta"
     )
-    assert render(20, locale="es", form="ordinal", gender="feminine", syntax="attributive") == "vigésima"
+    assert (
+        render(20, locale="es", form="ordinal", gender="feminine", syntax="attributive")
+        == "vigésima"
+    )
     assert render(13, locale="es", form="ordinal") == "decimotercero"
     assert render(84, locale="fr", form="ordinal") == "quatre-vingt-quatrième"
     assert render(101, locale="fr", form="ordinal") == "cent unième"

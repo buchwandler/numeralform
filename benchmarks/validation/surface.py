@@ -5,9 +5,10 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
-import tomllib
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 from .oracle.num2words import NUM2WORDS_COMMIT, oracle_module
 
@@ -29,7 +30,9 @@ def discover_surface(root: Path) -> dict[str, dict[str, dict[str, Any]]]:
                 "parameters": {
                     name: {
                         "kind": parameter.kind.name,
-                        "default": None if parameter.default is inspect.Parameter.empty else repr(parameter.default),
+                        "default": None
+                        if parameter.default is inspect.Parameter.empty
+                        else repr(parameter.default),
                     }
                     for name, parameter in signature.parameters.items()
                 }
@@ -43,7 +46,9 @@ def load_surface_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         return tomllib.load(stream)["surface"]
 
 
-def unclassified_parameters(surface: dict[str, dict[str, dict[str, Any]]], config: dict[str, Any]) -> set[str]:
+def unclassified_parameters(
+    surface: dict[str, dict[str, dict[str, Any]]], config: dict[str, Any]
+) -> set[str]:
     ignored = set(config.get("value_parameters", ())) | {"self"}
     classifications = set(config.get("classifications", {}))
     discovered = {
@@ -56,15 +61,25 @@ def unclassified_parameters(surface: dict[str, dict[str, dict[str, Any]]], confi
     return discovered - classifications
 
 
-def validate_surface(surface: dict[str, dict[str, dict[str, Any]]], config: dict[str, Any]) -> None:
+def validate_surface(
+    surface: dict[str, dict[str, dict[str, Any]]], config: dict[str, Any]
+) -> None:
     missing = unclassified_parameters(surface, config)
     if missing:
-        raise ValueError("unclassified num2words parameters: " + ", ".join(sorted(missing)))
+        raise ValueError(
+            "unclassified num2words parameters: " + ", ".join(sorted(missing))
+        )
     invalid = set(config.get("classifications", {}).values()) - {
-        "covered", "ignored-with-reason", "unsupported-by-numeralform", "oracle-internal", "free-form-sampled"
+        "covered",
+        "ignored-with-reason",
+        "unsupported-by-numeralform",
+        "oracle-internal",
+        "free-form-sampled",
     }
     if invalid:
-        raise ValueError("unknown surface classifications: " + ", ".join(sorted(invalid)))
+        raise ValueError(
+            "unknown surface classifications: " + ", ".join(sorted(invalid))
+        )
 
 
 def surface_manifest(root: Path, config_path: Path = CONFIG_PATH) -> dict[str, Any]:
@@ -81,4 +96,11 @@ def surface_manifest(root: Path, config_path: Path = CONFIG_PATH) -> dict[str, A
     }
 
 
-__all__ = ["CONFIG_PATH", "discover_surface", "load_surface_config", "surface_manifest", "unclassified_parameters", "validate_surface"]
+__all__ = [
+    "CONFIG_PATH",
+    "discover_surface",
+    "load_surface_config",
+    "surface_manifest",
+    "unclassified_parameters",
+    "validate_surface",
+]

@@ -10,4 +10,6 @@ def test_num2words2_is_a_separate_pinned_secondary_suite():
 
 def test_secondary_overlap_counts_do_not_change_legacy_metrics():
     cases = [(1, {"lang": "en", "to": "cardinal"})]
-    assert compare_overlap(cases, lambda value, **kwargs: "one", lambda value, **kwargs: "one") == {"match": 1, "mismatch": 0}
+    assert compare_overlap(
+        cases, lambda value, **kwargs: "one", lambda value, **kwargs: "one"
+    ) == {"match": 1, "mismatch": 0}

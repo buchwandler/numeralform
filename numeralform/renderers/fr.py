@@ -76,6 +76,8 @@ def _ordinalize_cardinal_tail(cardinal: str) -> str:
     if not separator:
         prefix, separator, tail = cardinal.rpartition(" ")
     return f"{prefix}{separator}{_ORDINAL_TAILS[tail]}"
+
+
 _SCALES = [(1_000_000_000, "milliard"), (1_000_000, "million"), (1_000, "mille")]
 _MAX_CARDINAL = 999_999_999_999
 
@@ -120,15 +122,11 @@ class FrenchRenderer:
 
     @staticmethod
     def _scale_quotient(value: str) -> str:
-        return (
-            value[:-1]
-            if value.endswith(("quatre-vingts", "cents"))
-            else value
-        )
-
+        return value[:-1] if value.endswith(("quatre-vingts", "cents")) else value
 
     def _ordinal_component(self, value: int) -> str:
         return "unième" if value == 1 else self._ordinal(value)
+
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):
             raise InvalidValueError("cardinal form requires an integer")
@@ -181,9 +179,7 @@ class FrenchRenderer:
                     if quotient == 1:
                         prefix = f"un {name}"
                     else:
-                        prefix = (
-                            f"{self._cardinal(quotient)} {name}s"
-                        )
+                        prefix = f"{self._cardinal(quotient)} {name}s"
                 return prefix + (f" {self._cardinal(remainder)}" if remainder else "")
         raise InvalidValueError("French cardinal value is outside the supported range")
 
@@ -218,7 +214,12 @@ class FrenchRenderer:
                 return cardinal.removesuffix("e") + "ième"
         _hundreds, remainder = divmod(value, 100)
         prefix = self._cardinal(value - remainder).removesuffix("s")
-        return f"{prefix} {self._ordinal_component(remainder)}" if remainder else prefix + "ième"
+        return (
+            f"{prefix} {self._ordinal_component(remainder)}"
+            if remainder
+            else prefix + "ième"
+        )
+
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

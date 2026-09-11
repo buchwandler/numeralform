@@ -7,7 +7,6 @@ from benchmarks.validation.surface import (
     validate_surface,
 )
 
-
 ORACLE_ROOT = Path(__file__).parents[1] / "data" / "oracles" / "num2words"
 
 

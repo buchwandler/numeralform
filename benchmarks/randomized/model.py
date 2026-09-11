@@ -27,29 +27,74 @@ DIFFERENTIAL_STATUSES = (
     "both-error",
 )
 _OPTION_KEYS_BY_KIND = {
-    "cardinal": frozenset({
-        "gender", "case", "plural", "animate", "grammatical_number", "animacy",
-        "construct", "definite", "definiteness", "noun_class", "clazz", "informal",
-        "counted", "longval", "prefer", "prefer_singular", "prefer_singular_cents",
-        "style", "features", "state", "suffix", "precision",
-    }),
+    "cardinal": frozenset(
+        {
+            "gender",
+            "case",
+            "plural",
+            "animate",
+            "grammatical_number",
+            "animacy",
+            "construct",
+            "definite",
+            "definiteness",
+            "noun_class",
+            "clazz",
+            "informal",
+            "counted",
+            "longval",
+            "prefer",
+            "prefer_singular",
+            "prefer_singular_cents",
+            "style",
+            "features",
+            "state",
+            "suffix",
+            "precision",
+        }
+    ),
     "decimal": frozenset({"precision", "style"}),
-    "ordinal": frozenset({
-        "gender", "case", "plural", "animate", "grammatical_number", "animacy",
-        "construct", "definite", "definiteness", "noun_class", "clazz", "informal",
-        "counted", "longval", "prefer", "style", "features",
-    }),
+    "ordinal": frozenset(
+        {
+            "gender",
+            "case",
+            "plural",
+            "animate",
+            "grammatical_number",
+            "animacy",
+            "construct",
+            "definite",
+            "definiteness",
+            "noun_class",
+            "clazz",
+            "informal",
+            "counted",
+            "longval",
+            "prefer",
+            "style",
+            "features",
+        }
+    ),
     "ordinal_num": frozenset({"gender", "definite", "plural", "informal"}),
     "year": frozenset({"suffix", "longval", "case", "style"}),
-    "currency": frozenset({
-        "cents", "separator", "adjective", "longval", "prefer_singular",
-        "prefer_singular_cents", "precision", "currency",
-    }),
+    "currency": frozenset(
+        {
+            "cents",
+            "separator",
+            "adjective",
+            "longval",
+            "prefer_singular",
+            "prefer_singular_cents",
+            "precision",
+            "currency",
+        }
+    ),
 }
 RandomOptionScalar = str | int | bool | None
 RandomOptionValue = RandomOptionScalar | tuple[RandomOptionScalar, ...]
 _ALLOWED_OPTION_TYPES = (str, int, bool, type(None))
 _ALLOWED_TRANSPORTS = frozenset({"native", "string", "float"})
+
 
 def _coerce_option_value(value: object) -> RandomOptionValue:
     if isinstance(value, (tuple, list)):
@@ -205,12 +250,11 @@ class RandomCase:
             self.call_variant,
             self.variant_id or "",
         )
+
     @property
     def option_profile_id(self) -> str | None:
         """Preferred name for the generated option profile identifier."""
         return self.variant_id
-
-
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -248,7 +292,10 @@ class RandomCase:
             value=SerializedRandomValue.from_dict(payload["value"]),
             currency=payload.get("currency"),
             tags=tuple(payload.get("tags", ())),
-            options={key: _coerce_option_value(value) for key, value in dict(payload.get("options", {})).items()},
+            options={
+                key: _coerce_option_value(value)
+                for key, value in dict(payload.get("options", {})).items()
+            },
             variant_id=payload.get("variant_id", payload.get("option_profile_id")),
             call_variant=payload.get("call_variant"),
             transport=str(payload.get("transport", "native")),
@@ -276,7 +323,9 @@ class ExecutionResult:
 
     @classmethod
     def exception_result(cls, exc: Exception) -> ExecutionResult:
-        return cls("exception", exception_type=type(exc).__name__, exception_message=str(exc))
+        return cls(
+            "exception", exception_type=type(exc).__name__, exception_message=str(exc)
+        )
 
     def to_dict(self) -> dict[str, str | None]:
         return {
@@ -308,7 +357,9 @@ class DifferentialResult:
     def __post_init__(self) -> None:
         if self.status not in DIFFERENTIAL_STATUSES:
             raise ValueError(f"unknown differential status: {self.status!r}")
-        if self.status == "match" and (self.difference_shape is not None or self.equivalence_rule is not None):
+        if self.status == "match" and (
+            self.difference_shape is not None or self.equivalence_rule is not None
+        ):
             raise ValueError("matches cannot have difference metadata")
         if self.status == "variant" and not self.equivalence_rule:
             raise ValueError("variants require an equivalence rule")
@@ -349,8 +400,8 @@ __all__ = [
     "DifferentialResult",
     "ExecutionResult",
     "RandomCase",
-    "RandomOptionValue",
     "RandomOptionScalar",
+    "RandomOptionValue",
     "SerializedRandomValue",
     "json_dumps",
 ]

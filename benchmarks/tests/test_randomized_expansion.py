@@ -112,7 +112,10 @@ def test_currency_edges_are_scale_aware():
 
 
 def test_ordinal_num_adapter_dispatches_to_upstream_form():
-    assert num2words_call_kwargs("en", "ordinal_num") == {"lang": "en", "to": "ordinal_num"}
+    assert num2words_call_kwargs("en", "ordinal_num") == {
+        "lang": "en",
+        "to": "ordinal_num",
+    }
 
 
 def test_currency_options_are_passed_without_normalization():
@@ -120,10 +123,17 @@ def test_currency_options_are_passed_without_normalization():
     seen = []
     result = run_numeralform_canonical(
         case,
-        render_currency_function=lambda value, **kwargs: seen.append((value, kwargs)) or "ok",
+        render_currency_function=lambda value, **kwargs: (
+            seen.append((value, kwargs)) or "ok"
+        ),
     )
     assert result.text == "ok"
-    assert seen == [(Decimal("1.20"), {"locale": "en-GB", "currency": "USD", "cents": False, "separator": " +"})]
+    assert seen == [
+        (
+            Decimal("1.20"),
+            {"locale": "en-GB", "currency": "USD", "cents": False, "separator": " +"},
+        )
+    ]
 
 
 def test_compatibility_call_variants_are_target_specific():
@@ -151,12 +161,16 @@ def test_compatibility_call_variants_are_target_specific():
         oracle_supports=lambda *args, **kwargs: True,
         target="compat",
     )
-    assert all(case.call_variant is None and case.transport == "native" for case in canonical)
+    assert all(
+        case.call_variant is None and case.transport == "native" for case in canonical
+    )
     assert any(case.call_variant == "ordinal-bool" for case in compat)
 
 
 def test_structured_options_round_trip_and_use_new_profile_name():
-    case = make_case(kind="cardinal", value=1, prefer=("nominative", "partitive"), definite=None)
+    case = make_case(
+        kind="cardinal", value=1, prefer=("nominative", "partitive"), definite=None
+    )
     payload = case.to_dict()
     assert payload["option_profile_id"] is None
     restored = RandomCase.from_dict(payload)

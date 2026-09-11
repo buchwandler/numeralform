@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import tomllib
 
@@ -19,13 +20,21 @@ def load_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
 def verify_checkout(root: Path, config_path: Path = CONFIG_PATH) -> Path:
     root = root.resolve()
     expected = load_config(config_path)["oracle"]["commit"]
-    actual = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+    actual = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+    ).strip()
     if actual != expected:
-        raise RuntimeError(f"num2words2 checkout SHA mismatch: expected {expected}, got {actual}")
+        raise RuntimeError(
+            f"num2words2 checkout SHA mismatch: expected {expected}, got {actual}"
+        )
     return root
 
 
-def compare_overlap(cases: list[tuple[object, dict[str, Any]]], oracle: Callable[..., Any], secondary: Callable[..., Any]) -> dict[str, int]:
+def compare_overlap(
+    cases: list[tuple[object, dict[str, Any]]],
+    oracle: Callable[..., Any],
+    secondary: Callable[..., Any],
+) -> dict[str, int]:
     counts = {"match": 0, "mismatch": 0}
     for value, kwargs in cases:
         if oracle(value, **kwargs) == secondary(value, **kwargs):

@@ -121,6 +121,8 @@ _HUNDREDS: dict[int, str | tuple[str, str]] = {
     900: "novecentos",
 }
 _MAX_CARDINAL = 999_999_999_999
+
+
 def _next_expressed_group(remainder: int, scale: int) -> int:
     divisor = scale // 1000
     while divisor >= 1:
@@ -226,7 +228,9 @@ class PortugueseRenderer:
                     scale_name = name if quotient == 1 else plural_names[name]
                     prefix = f"{self._cardinal(quotient)} {scale_name}"
                 separator = _interclass_separator(remainder, scale)
-                return prefix + (separator + self._cardinal(remainder) if remainder else "")
+                return prefix + (
+                    separator + self._cardinal(remainder) if remainder else ""
+                )
         raise InvalidValueError(
             "Portuguese cardinal value is outside the supported range"
         )
@@ -256,8 +260,11 @@ class PortugueseRenderer:
             prefix = hundred_ordinals[hundreds]
             return prefix if remainder == 0 else f"{prefix} {self._ordinal(remainder)}"
         thousands, remainder = divmod(value, 1_000)
-        prefix = "milésimo" if thousands == 1 else f"{self._ordinal(thousands)} milésimo"
+        prefix = (
+            "milésimo" if thousands == 1 else f"{self._ordinal(thousands)} milésimo"
+        )
         return prefix if remainder == 0 else f"{prefix} {self._ordinal(remainder)}"
+
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

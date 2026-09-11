@@ -181,12 +181,13 @@ class GermanRenderer:
             return cardinal + ("te" if value < 20 else "ste")
         for scale, name, _plural in _SCALES:
             if value >= scale:
-                quotient, remainder = divmod(value, scale)
+                _quotient, remainder = divmod(value, scale)
                 if remainder:
                     return self._cardinal(value - remainder) + self._ordinal(remainder)
                 cardinal = self._cardinal(value)
                 return cardinal + "ste"
         raise InvalidValueError("German ordinal is outside the supported range")
+
     def _digits(self, value) -> str:
         from ..model import DigitSequence
 

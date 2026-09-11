@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 import pytest
 
 from benchmarks.randomized.generator import (
@@ -169,6 +170,7 @@ def test_shared_exclusions_skip_incomparable_japanese_years():
             oracle_supports=lambda *args: True,
         )
 
+
 def test_support_probe_does_not_retry_without_selected_options():
     def supports_without_options(locale, kind, value):
         return True
@@ -187,6 +189,7 @@ def test_support_probe_does_not_retry_without_selected_options():
             oracle_supports=lambda *args, **kwargs: True,
         )
 
+
 def test_generation_checks_selected_option_values_and_excludes_ordinal_zero():
     cases, rejected, _ = generate_cases(
         seed=5,
@@ -204,6 +207,7 @@ def test_generation_checks_selected_option_values_and_excludes_ordinal_zero():
     assert all("gender" in case.options for case in cases)
     assert rejected["generation_rejected_semantic_incompatibility"] > 0
 
+
 def test_shared_script_currency_profiles_use_only_verified_default_variant():
     cases, _, _ = generate_cases(
         seed=23,
@@ -220,10 +224,13 @@ def test_shared_script_currency_profiles_use_only_verified_default_variant():
     )
     assert all(case.variant_id == "default" and case.options == {} for case in cases)
 
+
 def test_default_support_probe_accepts_selected_spanish_options():
     from benchmarks.randomized.generator import _call_support, _default_supports
 
-    assert _call_support(_default_supports, ("es", "ordinal", 1), {"gender": "feminine"})
+    assert _call_support(
+        _default_supports, ("es", "ordinal", 1), {"gender": "feminine"}
+    )
 
 
 def test_default_support_probe_accepts_selected_russian_options():
@@ -237,13 +244,17 @@ def test_default_support_probe_accepts_selected_russian_options():
 
 
 def test_default_currency_support_probe_accepts_nondefault_variant():
-    from benchmarks.randomized.generator import _call_support, _default_currency_supports
+    from benchmarks.randomized.generator import (
+        _call_support,
+        _default_currency_supports,
+    )
 
     assert _call_support(
         _default_currency_supports,
         ("en-GB", Decimal("1.01"), "USD"),
         {"cents": False},
     )
+
 
 def test_canonical_option_profiles_are_reachable():
     cases, _, _ = generate_cases(
@@ -257,7 +268,11 @@ def test_canonical_option_profiles_are_reachable():
         currency_supports=lambda *args, **kwargs: True,
         oracle_supports=lambda *args, **kwargs: True,
     )
-    assert {case.option_profile_id for case in cases} >= {"es-ordinal-masculine", "es-ordinal-feminine"}
+    assert {case.option_profile_id for case in cases} >= {
+        "es-ordinal-masculine",
+        "es-ordinal-feminine",
+    }
+
 
 def test_generation_floor_covers_requested_locale_form_cells():
     cases, _, _ = generate_cases(
@@ -272,8 +287,11 @@ def test_generation_floor_covers_requested_locale_form_cells():
         oracle_supports=lambda *args, **kwargs: True,
     )
     assert {(case.locale, case.kind) for case in cases} == {
-        (locale, kind) for locale in ("de", "en") for kind in ("cardinal", "decimal", "year")
+        (locale, kind)
+        for locale in ("de", "en")
+        for kind in ("cardinal", "decimal", "year")
     }
+
 
 def test_compatibility_locale_inventory_is_not_canonical_intersection():
     from benchmarks.randomized.generator import compatibility_locale_pairs
@@ -296,6 +314,7 @@ def test_compatibility_generation_uses_adapter_locale_inventory():
         oracle_supports=lambda *args, **kwargs: True,
     )
     assert cases[0].locale == "fr"
+
 
 def test_oracle_support_probe_receives_exact_generated_case():
     probed = []

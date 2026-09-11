@@ -21,13 +21,13 @@ from benchmarks.validation.oracle.num2words import (
 )
 
 from .adapters import (
-    num2words_invocation,
     oracle_supports_case,
     run_num2words,
     run_numeralform_canonical,
     run_numeralform_compat,
 )
 from .compare import compare_results
+from .coverage import has_coverage_gap, summarize_coverage
 from .generator import (
     _NUM2WORDS_CANONICAL_LOCALE_MAP,
     CONFIG_PATH,
@@ -38,7 +38,6 @@ from .generator import (
 from .model import DIFFERENTIAL_STATUSES, DifferentialResult, RandomCase
 from .report import write_reports
 
-from .coverage import has_coverage_gap, summarize_coverage
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ORACLE_ROOT = BENCHMARK_ROOT / "data" / "oracles" / "num2words"
 DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
@@ -47,7 +46,10 @@ DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
 def _oracle_supports_case(case: RandomCase, external_num2words) -> bool:
     return oracle_supports_case(case, external_num2words)
 
-def execute_case(case: RandomCase, external_num2words, *, target: str = "canonical") -> DifferentialResult:
+
+def execute_case(
+    case: RandomCase, external_num2words, *, target: str = "canonical"
+) -> DifferentialResult:
     if target == "canonical":
         numeralform_result = run_numeralform_canonical(case)
     elif target == "compat":
@@ -77,7 +79,15 @@ def _seed(value: str) -> int:
     return int(value)
 
 
-def _metadata(seed: int, profile: str, requested_cases: int, config, version: str, target: str, coverage_expected: dict | None = None) -> dict:
+def _metadata(
+    seed: int,
+    profile: str,
+    requested_cases: int,
+    config,
+    version: str,
+    target: str,
+    coverage_expected: dict | None = None,
+) -> dict:
     return {
         "schema_version": 3,
         "generator_version": GENERATOR_VERSION,
@@ -100,25 +110,33 @@ def _metadata(seed: int, profile: str, requested_cases: int, config, version: st
         "numeralform_version": numeralform.__version__,
         "python_version": platform.python_version(),
     }
-def _coverage_expected(cases: tuple[RandomCase, ...], target: str, config) -> dict[str, list[str]]:
+
+
+def _coverage_expected(
+    cases: tuple[RandomCase, ...], target: str, config
+) -> dict[str, list[str]]:
     locales = sorted({case.locale for case in cases})
     kinds = sorted({case.kind for case in cases})
     expected = {
         "locales": locales,
         "kinds": kinds,
         "locale_kind_cells": sorted({f"{case.locale}|{case.kind}" for case in cases}),
-        "option_profiles": sorted({case.option_profile_id or "<default>" for case in cases}),
-        "currency_cells": sorted({f"{case.locale}|{case.currency}" for case in cases if case.currency}),
+        "option_profiles": sorted(
+            {case.option_profile_id or "<default>" for case in cases}
+        ),
+        "currency_cells": sorted(
+            {f"{case.locale}|{case.currency}" for case in cases if case.currency}
+        ),
     }
     if target == "compat":
         expected["transports"] = list(config.compat_transports)
-        expected["call_variants"] = ["to", "ordinal-bool"] if "ordinal" in kinds else ["to"]
+        expected["call_variants"] = (
+            ["to", "ordinal-bool"] if "ordinal" in kinds else ["to"]
+        )
     else:
         expected["transports"] = ["native"]
         expected["call_variants"] = ["to"]
     return expected
-
-
 
 
 def run_benchmark(
@@ -142,7 +160,9 @@ def run_benchmark(
     external_num2words = load_num2words(oracle_root)
     version = oracle_version(oracle_root)
     if version != NUM2WORDS_VERSION:
-        raise RuntimeError(f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}")
+        raise RuntimeError(
+            f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}"
+        )
     config = load_config(CONFIG_PATH, profile)
     generated, generation_stats, _ = generate_cases(
         seed=seed,
@@ -156,13 +176,28 @@ def run_benchmark(
         target=target,
         variant=variant,
         transport=transport,
-            oracle_supports_case=lambda case: _oracle_supports_case(case, external_num2words),
+        oracle_supports_case=lambda case: _oracle_supports_case(
+            case, external_num2words
+        ),
     )
-    results = tuple(execute_case(case, external_num2words, target=target) for case in generated)
+    results = tuple(
+        execute_case(case, external_num2words, target=target) for case in generated
+    )
     coverage_expected = _coverage_expected(generated, target, config)
-    metadata = _metadata(seed, profile, cases, config, version, target, coverage_expected)
-    paths = write_reports(results, output_dir, metadata=metadata, generation_stats=generation_stats, record_all=record_all)
-    counts = {status: sum(result.status == status for result in results) for status in DIFFERENTIAL_STATUSES}
+    metadata = _metadata(
+        seed, profile, cases, config, version, target, coverage_expected
+    )
+    paths = write_reports(
+        results,
+        output_dir,
+        metadata=metadata,
+        generation_stats=generation_stats,
+        record_all=record_all,
+    )
+    counts = {
+        status: sum(result.status == status for result in results)
+        for status in DIFFERENTIAL_STATUSES
+    }
     print("num2words-random benchmark")
     print(f"oracle: {NUM2WORDS_COMMIT}")
     print(f"seed: {seed}")
@@ -175,9 +210,13 @@ def run_benchmark(
     print(f"differences: {paths['differences']}")
     if fail_on_diff and any(result.status != "match" for result in results):
         return 1
-    if fail_on_unaccepted and any(result.status not in {"match", "variant"} for result in results):
+    if fail_on_unaccepted and any(
+        result.status not in {"match", "variant"} for result in results
+    ):
         return 1
-    if fail_on_coverage_gap and has_coverage_gap(summarize_coverage(results, coverage_expected)):
+    if fail_on_coverage_gap and has_coverage_gap(
+        summarize_coverage(results, coverage_expected)
+    ):
         return 1
     return 0
 
@@ -187,13 +226,21 @@ def _replay_target(path: Path, target: str | None) -> str:
         return target
     summary_path = path.with_name("summary.json")
     if summary_path.exists():
-        return str(json.loads(summary_path.read_text(encoding="utf-8")).get("target", "canonical"))
+        return str(
+            json.loads(summary_path.read_text(encoding="utf-8")).get(
+                "target", "canonical"
+            )
+        )
     return "canonical"
 
 
-def run_replay(path: Path, case_id: str, oracle_root: Path, target: str | None = None) -> int:
+def run_replay(
+    path: Path, case_id: str, oracle_root: Path, target: str | None = None
+) -> int:
     case = _load_replay(path, case_id)
-    result = execute_case(case, load_num2words(oracle_root), target=_replay_target(path, target))
+    result = execute_case(
+        case, load_num2words(oracle_root), target=_replay_target(path, target)
+    )
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
     return 1 if result.status != "match" else 0
 
@@ -202,7 +249,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=int, default=10000)
     parser.add_argument("--seed", default="20260910", type=_seed)
-    parser.add_argument("--profile", choices=("shared", "numeralform", "common", "stress"), default="shared")
+    parser.add_argument(
+        "--profile",
+        choices=("shared", "numeralform", "common", "stress"),
+        default="shared",
+    )
     parser.add_argument("--target", choices=("canonical", "compat"), default=None)
     parser.add_argument("--locale", action="append", dest="locales", default=[])
     parser.add_argument("--kind", action="append", dest="kinds", default=[])

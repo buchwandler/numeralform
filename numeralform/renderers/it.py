@@ -72,7 +72,7 @@ _ITALIAN_ORDINAL_SUFFIXES = (
     ("sette", "settesimo"),
     ("otto", "ottesimo"),
     ("nove", "novesimo"),
- )
+)
 
 
 def _ordinalize_italian_cardinal(text: str) -> str:
@@ -128,7 +128,9 @@ class ItalianRenderer:
                 "Italian cardinal supports integers up to 999999999999"
             )
         if value < 0:
-            return "meno " + self._cardinal(-value, final=final, accent_final=accent_final)
+            return "meno " + self._cardinal(
+                -value, final=final, accent_final=accent_final
+            )
         if value < 20:
             return "tré" if value == 3 and accent_final else _UNDER_20[value]
         if final and value < 100 and value > 3 and value % 10 == 3:
@@ -157,14 +159,22 @@ class ItalianRenderer:
                         if quotient == 1
                         else self._cardinal(quotient, final=False) + "mila"
                     )
-                    return prefix + (self._cardinal(remainder, final=final, accent_final=final) if remainder else "")
+                    return prefix + (
+                        self._cardinal(remainder, final=final, accent_final=final)
+                        if remainder
+                        else ""
+                    )
                 scale_name = singular if quotient == 1 else plural
                 prefix = (
                     f"un {scale_name}"
                     if quotient == 1
                     else f"{self._cardinal(quotient, final=True)} {scale_name}"
                 )
-                return prefix + (f" e {self._cardinal(remainder, final=final, accent_final=final)}" if remainder else "")
+                return prefix + (
+                    f" e {self._cardinal(remainder, final=final, accent_final=final)}"
+                    if remainder
+                    else ""
+                )
         raise InvalidValueError("Italian cardinal value is outside the supported range")
 
     def _ordinal(self, value: int) -> str:

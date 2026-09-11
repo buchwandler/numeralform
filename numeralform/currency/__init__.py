@@ -109,7 +109,11 @@ _CURRENCIES = {
         "en": ("ruble", "rubles", "kopeck", "kopecks"),
         "fi": ("rupla", "ruplaa", "kopeekka", "kopeekkaa"),
     },
-    "JPY": {"en": ("yen", "yen", "sen", "sen"), "ja": ("円", "円", "銭", "銭"), "fi": ("jeni", "jeniä", "sen", "seniä")},
+    "JPY": {
+        "en": ("yen", "yen", "sen", "sen"),
+        "ja": ("円", "円", "銭", "銭"),
+        "fi": ("jeni", "jeniä", "sen", "seniä"),
+    },
     "CNY": {"en": ("yuan", "yuan", "fen", "fen"), "zh": ("元", "元", "分", "分")},
     "CAD": {
         "en": ("Canadian dollar", "Canadian dollars", "cent", "cents"),
@@ -127,7 +131,10 @@ _CURRENCIES = {
         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
     },
-    "INR": {"en": ("Indian rupee", "Indian rupees", "paisa", "paise"), "fi": ("Intian rupia", "Intian rupiaa", "paisa", "paisaa")},
+    "INR": {
+        "en": ("Indian rupee", "Indian rupees", "paisa", "paise"),
+        "fi": ("Intian rupia", "Intian rupiaa", "paisa", "paisaa"),
+    },
     "KRW": {"en": ("won", "won", "jeon", "jeon"), "ko": ("원", "원", "전", "전")},
     "BRL": {
         "en": ("Brazilian real", "Brazilian reals", "centavo", "centavos"),
@@ -135,8 +142,14 @@ _CURRENCIES = {
         "fr": ("réal", "réaux", "centavo", "centavos"),
     },
     "PLN": {"en": ("zloty", "zlotys", "grosz", "groszy")},
-    "SEK": {"en": ("Swedish krona", "Swedish kronor", "öre", "öre"), "fi": ("kruunu", "kruunua", "öre", "öre")},
-    "NOK": {"en": ("Norwegian krone", "Norwegian kroner", "øre", "øre"), "es": ("corona noruega", "coronas noruegas", "øre", "øre")},
+    "SEK": {
+        "en": ("Swedish krona", "Swedish kronor", "öre", "öre"),
+        "fi": ("kruunu", "kruunua", "öre", "öre"),
+    },
+    "NOK": {
+        "en": ("Norwegian krone", "Norwegian kroner", "øre", "øre"),
+        "es": ("corona noruega", "coronas noruegas", "øre", "øre"),
+    },
     "DKK": {"en": ("Danish krone", "Danish kroner", "øre", "øre")},
     "CZK": {"en": ("Czech koruna", "Czech korunas", "haléř", "haléřů")},
     "HUF": {"en": ("forint", "forints", "filler", "fillers")},
@@ -207,6 +220,7 @@ _CURRENCY_NEGATIVE_PREFIXES = {
 }
 _ATTACHED_CURRENCIES = {("ja", "JPY")}
 
+
 def _plural_category(language: str, value: int) -> str:
     if language == "ru":
         value = abs(value)
@@ -227,17 +241,21 @@ def _plural_category(language: str, value: int) -> str:
     return "one" if abs(value) == 1 else "other"
 
 
-def _currency_policy(code: str, locale: str, *, allow_fallback: bool = True) -> CurrencyLocalePolicy:
+def _currency_policy(
+    code: str, locale: str, *, allow_fallback: bool = True
+) -> CurrencyLocalePolicy:
     language = locale.split("-", 1)[0]
     script_names = _SCRIPT_CURRENCIES.get(language, {}).get(code)
     if script_names is not None:
         major_name, minor_name = script_names
         return CurrencyLocalePolicy(
             CurrencyUnitLexeme(
-                {"one": major_name, "other": major_name}, attach=language in {"ko", "th"}
+                {"one": major_name, "other": major_name},
+                attach=language in {"ko", "th"},
             ),
             CurrencyUnitLexeme(
-                {"one": minor_name, "other": minor_name}, attach=language in {"ko", "th"}
+                {"one": minor_name, "other": minor_name},
+                attach=language in {"ko", "th"},
             ),
             _CONNECTORS[language],
             negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
@@ -306,7 +324,10 @@ def _currency_policy(code: str, locale: str, *, allow_fallback: bool = True) -> 
         negative_prefix=_CURRENCY_NEGATIVE_PREFIXES.get(language, ""),
     )
 
-def supports_currency(locale: str, currency: str, *, allow_fallback: bool = False) -> bool:
+
+def supports_currency(
+    locale: str, currency: str, *, allow_fallback: bool = False
+) -> bool:
     """Return whether a locale has explicit currency terminology."""
     language = locale.split("-", 1)[0]
     code = currency.upper()
@@ -319,7 +340,6 @@ def supports_currency(locale: str, currency: str, *, allow_fallback: bool = Fals
     if code in _CURRENCIES and language in _CURRENCIES[code]:
         return True
     return allow_fallback and code in _CURRENCIES
-
 
 
 _CURRENCY_MINOR_UNITS = {code: 2 for code in _CURRENCIES}
