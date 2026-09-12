@@ -4,70 +4,128 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - run: python -m pip install -e ".[test]" ruff
-      - run: ruff check .
-      - run: ruff format --check .
-      - run: test ! -d tools/validation
-      - run: test -z "$(find tests -type f ! -name '*.py' ! -name '__init__.py' -print -quit)"
-      - run: '! rg -n "(^|[[:space:]])(from|import)[[:space:]]+(benchmarks|tools\.validation|num2words|icu)" tests'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install quality dependencies
+        run: python -m pip install -e ".[test]" "ruff==0.15.12" pre-commit
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+      - name: Validate GitHub Actions workflows
+        run: "$HOME/go/bin/actionlint"
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format
+        run: ruff format --check .
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
+      - name: Verify generated capability matrix
+        run: python scripts/generate_capability_matrix.py --check
+      - name: Reject obsolete validation tree
+        run: test ! -d tools/validation
+      - name: Keep unit-test tree code-only
+        run: test -z "$(find tests -type f ! -name '*.py' ! -name '__init__.py' -print -quit)"
+      - name: Keep external oracles out of unit tests
+        run: '! rg -n "(^|[[:space:]])(from|import)[[:space:]]+(benchmarks|tools\.validation|num2words|icu)" tests'
 
   unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m pip install -e ".[test]"
-      - run: python -m pytest
-      - run: python -c "import sys; import numeralform; assert 'num2words' not in sys.modules; assert 'icu' not in sys.modules"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Run unit tests
+        run: python -m pytest
+      - name: Verify runtime isolation
+        run: >-
+          python -c "import sys; import numeralform;
+          assert 'num2words' not in sys.modules;
+          assert 'icu' not in sys.modules"
 
   typing:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - run: python -m pip install -e ".[test]"
-      - run: python -m mypy tests/typing_consumer.py --strict --follow-imports=skip
-
+      - name: Run strict consumer typing check
+        run: python -m mypy tests/typing_consumer.py --strict --follow-imports=skip
 
   coverage:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - run: python -m pip install -e ".[test]"
-      - run: python -m coverage run -m pytest
-      - run: python -m coverage report
+      - name: Run coverage
+        run: python -m coverage run -m pytest
+      - name: Enforce coverage threshold
+        run: python -m coverage report
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - run: python -m pip install build twine
-      - run: python -m build --sdist --wheel --no-isolation
-      - run: python -c "import pathlib, zipfile; assert any('numeralform-0.1.0' in p.name for p in pathlib.Path('dist').iterdir()); wheel = next(p for p in pathlib.Path('dist').glob('*.whl')); assert any(n.endswith('numeralform/py.typed') for n in zipfile.ZipFile(wheel).namelist())"
-      - run: python scripts/check_artifact.py dist
-      - run: twine check dist/*
-      - run: python -m pip install dist/*.whl
-      - run: python -c "import numeralform; assert numeralform.__version__ == '0.1.0'; assert numeralform.render(42, locale='en') == 'forty-two'"
-      - run: python -I -c "import numeralform; assert numeralform.__version__ == '0.1.0'; assert numeralform.render(42, locale='en') == 'forty-two'"
-      - run: numeralform --version
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install build tooling
+        run: python -m pip install build twine
+      - name: Build isolated artifacts
+        run: python -m build --sdist --wheel
+      - name: Check artifact contents
+        run: python scripts/check_artifact.py dist
+      - name: Check package metadata
+        run: twine check dist/*
+      - name: Install built wheel
+        run: python -m pip install --force-reinstall --no-deps dist/*.whl
+      - name: Verify installed artifact
+        run: |
+          python -I -c "
+          import importlib.metadata
+          import numeralform
+          assert numeralform.__version__ == importlib.metadata.version('numeralform')
+          assert numeralform.render(42, locale='en') == 'forty-two'
+          "
+      - name: Verify dependency state
+        run: python -m pip check
+      - name: Verify CLI
+        run: numeralform --version

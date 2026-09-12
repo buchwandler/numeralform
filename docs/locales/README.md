@@ -27,6 +27,20 @@ Capability profiles define the supported forms, syntaxes, morphology, styles, an
 
 Other upstream locale identifiers remain discoverable through `known_locales()` for compatibility reporting. They have empty canonical capabilities and raise an explicit unsupported error when passed to `render()`.
 
+## Regenerating the matrix
+
+Regenerate the checked-in table after changing runtime capability profiles:
+
+```bash
+python scripts/generate_capability_matrix.py
+```
+
+CI verifies that the committed output is current with:
+
+```bash
+python scripts/generate_capability_matrix.py --check
+```
+
 See the generated [runtime capability matrix](capability-matrix.md) for every canonical locale's forms and advertised integer maxima. Use `capabilities(locale)` for exact syntax, morphology, style, and locale-feature constraints; the matrix is checked against runtime data in the test suite.
 
 Finnish cardinal, ordinal, and numeric-ordinal profiles share the reviewed nominative-singular integer domain `0..999,999,999,999`.
