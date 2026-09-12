@@ -603,7 +603,10 @@ def _legacy_currency(
             compatibility="num2words-0.5.14",
         )
     if language == "en":
-        words = lambda number: _legacy_english_cardinal(number, locale)
+
+        def words(number):
+            return _legacy_english_cardinal(number, locale)
+
         names = {
             "EUR": (("euro", "euro"), ("cent", "cents")),
             "GBP": (("pound sterling", "pounds sterling"), ("penny", "pence")),
@@ -611,7 +614,10 @@ def _legacy_currency(
             "JPY": (("yen", "yen"), ("sen", "sen")),
         }
     elif language == "cs":
-        words = lambda number: render(number, locale="cs")
+
+        def words(number):
+            return render(number, locale="cs")
+
         names = {"EUR": (("euro", "euro"), ("cent", "centů"))}
     elif language == "es":
         from ..model import Syntax
@@ -623,9 +629,12 @@ def _legacy_currency(
             if code == "GBP"
             else "masculine"
         )
-        words = lambda number: render(
-            number, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=currency_gender
-        )
+
+        def words(number):
+            return render(
+                number, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=currency_gender
+            )
+
         names = {
             "EUR": (("euro", "euros"), ("céntimo", "céntimos")),
             "USD": (("dólar", "dólares"), ("centavo", "centavos")),
@@ -633,7 +642,10 @@ def _legacy_currency(
             "JPY": (("yen", "yenes"), ("sen", "sen")),
         }
     elif language == "fi":
-        words = lambda number: render(number, locale="fi")
+
+        def words(number):
+            return render(number, locale="fi")
+
         names = {
             "EUR": (("euro", "euroa"), ("sentti", "senttiä")),
             "USD": (("dollari", "dollaria"), ("sentti", "senttiä")),
@@ -652,21 +664,30 @@ def _legacy_currency(
             "USD": (("Dollar", "Dollar"), ("Cent", "Cent")),
         }
     elif language == "pt":
-        words = lambda number: _legacy_cardinal(number, locale)
+
+        def words(number):
+            return _legacy_cardinal(number, locale)
+
         names = {
             "EUR": (("euro", "euros"), ("cêntimo", "cêntimos")),
             "GBP": (("libra", "libras"), ("pence", "pence")),
             "USD": (("dólar", "dólares"), ("cêntimo", "cêntimos")),
         }
     elif language == "fr":
-        words = lambda number: _legacy_cardinal(number, locale)
+
+        def words(number):
+            return _legacy_cardinal(number, locale)
+
         names = {
             "EUR": (("euro", "euros"), ("centime", "centimes")),
             "GBP": (("livre", "livres"), ("penny", "pence")),
             "USD": (("dollar", "dollars"), ("cent", "cents")),
         }
     elif language == "ru":
-        words = lambda number: render(number, locale="ru")
+
+        def words(number):
+            return render(number, locale="ru")
+
         names = {
             "EUR": (("евро", "евро"), ("цент", "центов")),
             "USD": (("доллар", "долларов"), ("цент", "центов")),
@@ -686,7 +707,10 @@ def _legacy_currency(
             "USD": (("dollaro", "dollari"), ("centesimo", "centesimi")),
         }
     else:
-        words = lambda number: render(number, locale=locale).replace(" ", "")
+
+        def words(number):
+            return render(number, locale=locale).replace(" ", "")
+
         names = (
             {
                 "EUR": (("ยูโร", "ยูโร"), ("เซนต์", "เซนต์")),

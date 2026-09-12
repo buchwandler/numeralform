@@ -7,8 +7,6 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
 
-from numeralform import capabilities, locales
-
 OUTPUT = ROOT / "docs" / "locales" / "capability-matrix.md"
 
 PREAMBLE = """<!-- Generated from numeralform.capabilities(); do not edit by hand. -->
@@ -24,6 +22,8 @@ morphology, style, and feature constraints.
 
 
 def _rows() -> list[tuple[str, str, str]]:
+    from numeralform import capabilities, locales
+
     rows: list[tuple[str, str, str]] = []
     for locale in locales():
         locale_capabilities = capabilities(locale)
