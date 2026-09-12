@@ -68,7 +68,7 @@ jobs:
             --fail-on-coverage-gap
       - name: Upload randomized benchmark report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: num2words-random
           path: benchmarks/data/results/num2words-random/
