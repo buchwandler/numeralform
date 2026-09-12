@@ -341,7 +341,7 @@ def test_public_request_and_registry_error_paths():
     assert is_registered("en")
     assert not is_registered("not a locale")
     with pytest.raises(Exception):
-        resolve_locale("am")
+        resolve_locale("xx")
 
 
 def test_cli_and_compatibility_error_paths():

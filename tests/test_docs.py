@@ -54,3 +54,9 @@ def test_documented_locale_parser_subset():
     assert "BCP-47-style" in documented
     assert "en-u-nu-latn" in documented
     assert "x-private" in documented
+
+
+def test_base_locales_are_documented() -> None:
+    documented = (ROOT / "docs" / "locales" / "README.md").read_text(encoding="utf-8")
+    for locale in locales():
+        assert f"`{locale}`" in documented

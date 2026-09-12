@@ -88,7 +88,7 @@ LEGACY_CONVERTER_KEYS = frozenset(
         "zh_TW",
     }
 )
-
+_CANONICAL_LOCALE_OVERRIDES = {"kz": "kk"}
 COMPAT_RENDERERS: dict[str, Callable[..., str]] = {
     "zh": render_zh,
 }
@@ -100,9 +100,11 @@ def resolve_compat_locale(lang: str) -> CompatLocale:
     upstream_key = lang if lang in LEGACY_CONVERTER_KEYS else lang[:2]
     if upstream_key not in LEGACY_CONVERTER_KEYS:
         raise NotImplementedError()
-    resolution = LegacyLocaleResolution(
-        lang, upstream_key, upstream_key.replace("_", "-")
+    numeralform_locale = _CANONICAL_LOCALE_OVERRIDES.get(
+        upstream_key,
+        upstream_key.replace("_", "-"),
     )
+    resolution = LegacyLocaleResolution(lang, upstream_key, numeralform_locale)
     return CompatLocale(resolution, COMPAT_RENDERERS.get(upstream_key.split("_", 1)[0]))
 
 

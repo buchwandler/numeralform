@@ -179,7 +179,7 @@ def test_registration_and_executable_support_are_distinct():
     from numeralform.model import NumeralForm
 
     assert is_registered("ar")
-    assert not supports("ar")
+    assert supports("ar", form=NumeralForm.CARDINAL, value=42)
     assert supports("en")
     assert supports("en", form=NumeralForm.CARDINAL, value=42)
     assert supports("en", form=NumeralForm.ORDINAL_NUMERIC)

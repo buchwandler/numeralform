@@ -1,46 +1,13 @@
-# Locale capability inventory
+# Locale inventory
 
-The canonical inventory is generated from runtime capabilities. `locales()` lists only independently reviewed renderers. `known_locales()` also includes compatibility registrations that intentionally expose no canonical forms.
+Numeralform exposes executable canonical forms for the 49 Spokenform base language families and exact regional variants. The runtime registry and generated capability matrix are authoritative.
 
-## Reviewed canonical locales
+## Base languages
 
-The current executable renderers cover:
+`am` `ar` `az` `be` `bn` `ca` `ce` `cs` `cy` `da` `de` `en` `eo` `es` `fa` `fi` `fr` `he` `hi` `hu` `hy` `id` `is` `it` `ja` `kk` `kn` `ko` `lt` `lv` `mn` `nl` `no` `pl` `pt` `ro` `ru` `sk` `sl` `sr` `sv` `te` `tet` `tg` `th` `tr` `uk` `vi` `zh`
 
-- Czech: `cs`
-- English and regional English: `en`, `en-US`, `en-GB`, `en-IN`, `en-NG`
-- Finnish: `fi`
-- French and regional French: `fr`, `fr-BE`, `fr-CH`, `fr-DZ`
-- German: `de`
-- Italian: `it`
-- Japanese: `ja`
-- Korean: `ko`
-- Portuguese: `pt`, `pt-BR`, `pt-PT`
-- Russian: `ru`
-- Spanish regional variants: `es`, `es-CO`, `es-CR`, `es-GT`, `es-NI`, `es-VE`
-- Swedish: `sv`
-- Thai: `th`
-- Vietnamese: `vi`
+## Regional variants
 
-Capability profiles define the supported forms, syntaxes, morphology, styles, and numeric domains. They are the source of truth for `supports()` and the CLI capability report.
+`en-GB` `en-IN` `en-NG` `en-US`, `es-CO` `es-CR` `es-GT` `es-MX` `es-NI` `es-VE`, `fr-BE` `fr-CH` `fr-DZ`, `pt-BR`, and `zh-CN` `zh-HK` `zh-TW`. Numeralform also retains native `pt-PT`.
 
-## Compatibility-only registrations
-
-Other upstream locale identifiers remain discoverable through `known_locales()` for compatibility reporting. They have empty canonical capabilities and raise an explicit unsupported error when passed to `render()`.
-
-## Regenerating the matrix
-
-Regenerate the checked-in table after changing runtime capability profiles:
-
-```bash
-python scripts/generate_capability_matrix.py
-```
-
-CI verifies that the committed output is current with:
-
-```bash
-python scripts/generate_capability_matrix.py --check
-```
-
-See the generated [runtime capability matrix](capability-matrix.md) for every canonical locale's forms and advertised integer maxima. Use `capabilities(locale)` for exact syntax, morphology, style, and locale-feature constraints; the matrix is checked against runtime data in the test suite.
-
-Finnish cardinal, ordinal, and numeric-ordinal profiles share the reviewed nominative-singular integer domain `0..999,999,999,999`.
+See [the generated capability matrix](capability-matrix.md) and the per-locale documents in this directory.

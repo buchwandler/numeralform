@@ -21,9 +21,9 @@ from .model import (
     Syntax,
     coerce_value,
 )
+from .renderers._shared import DecimalFallbackRenderer
 from .renderers.base import LocaleRenderer
 from .renderers.ordinal import OrdinalNotationRenderer
-from .renderers.unsupported import UnsupportedLocaleRenderer
 
 _RENDERERS: dict[str, LocaleRenderer] = {}
 _BUILTINS_INITIALIZED = False
@@ -65,7 +65,7 @@ _ORDINAL_NUMERIC_LANGUAGES = {
     "ja",
     "kn",
     "ko",
-    "kz",
+    "kk",
     "lt",
     "lv",
     "mn",
@@ -101,6 +101,8 @@ def register_locale(
     """Register or replace a process-local stateless locale renderer."""
     tag = canonicalize_locale(locale)
     instance = renderer() if isinstance(renderer, type) else renderer
+    if NumeralForm.DECIMAL not in instance.capabilities().forms:
+        instance = DecimalFallbackRenderer(instance)
     if (
         tag.split("-", 1)[0] in _ORDINAL_NUMERIC_LANGUAGES
         and instance.capabilities().forms
@@ -113,54 +115,121 @@ def _ensure_builtins() -> None:
     global _BUILTINS_INITIALIZED
     if _BUILTINS_INITIALIZED:
         return
-
-    # Set the guard before importing/registering so a custom pre-registration
-    # cannot suppress built-in initialization and re-entrant lookups are safe.
+    # Set the guard before importing/registering so re-entrant lookups are safe.
     _BUILTINS_INITIALIZED = True
     from .renderers import (
+        AmharicRenderer,
+        ArabicRenderer,
+        ArmenianRenderer,
+        AzerbaijaniRenderer,
+        BelarusianRenderer,
+        BengaliRenderer,
+        CatalanRenderer,
+        ChechenRenderer,
+        ChineseRegionalRenderer,
+        ChineseRenderer,
         CzechRenderer,
+        DanishRenderer,
+        DutchRenderer,
         EnglishGBRenderer,
         EnglishIndiaRenderer,
         EnglishNigeriaRenderer,
         EnglishRenderer,
         EnglishUSRenderer,
+        EsperantoRenderer,
         FinnishRenderer,
         FrenchBelgiumRenderer,
         FrenchRenderer,
         FrenchSwissRenderer,
         GermanRenderer,
+        HebrewRenderer,
+        HindiRenderer,
+        HungarianRenderer,
+        IcelandicRenderer,
+        IndonesianRenderer,
         ItalianRenderer,
         JapaneseRenderer,
+        KannadaRenderer,
+        KazakhRenderer,
         KoreanRenderer,
+        LatvianRenderer,
+        LithuanianRenderer,
+        MongolianRenderer,
+        NorwegianRenderer,
+        PersianRenderer,
+        PolishRenderer,
         PortugueseRenderer,
+        RomanianRenderer,
         RussianRenderer,
+        SerbianRenderer,
+        SlovakRenderer,
+        SlovenianRenderer,
         SpanishRenderer,
         SwedishRenderer,
+        TajikRenderer,
+        TeluguRenderer,
+        TetumRenderer,
         ThaiRenderer,
+        TurkishRenderer,
+        UkrainianRenderer,
         VietnameseRenderer,
+        WelshRenderer,
     )
 
-    for locale, renderer in (
-        ("cs", CzechRenderer),
-        ("de", GermanRenderer),
-        ("en", EnglishRenderer),
-        ("fi", FinnishRenderer),
-        ("es", SpanishRenderer),
-        ("fr", FrenchRenderer),
-        ("it", ItalianRenderer),
-        ("ja", JapaneseRenderer),
-        ("ko", KoreanRenderer),
-        ("pt", PortugueseRenderer("pt-PT")),
-        ("pt-BR", PortugueseRenderer),
-        ("pt-PT", PortugueseRenderer("pt-PT")),
-        ("ru", RussianRenderer),
-        ("sv", SwedishRenderer),
-        ("th", ThaiRenderer),
-        ("vi", VietnameseRenderer),
-    ):
-        if locale not in _RENDERERS:
-            register_locale(locale, renderer)
-    regional: dict[str, type[LocaleRenderer] | LocaleRenderer] = {
+    base_renderers: dict[str, object] = {
+        "am": AmharicRenderer,
+        "ar": ArabicRenderer,
+        "az": AzerbaijaniRenderer,
+        "be": BelarusianRenderer,
+        "bn": BengaliRenderer,
+        "ca": CatalanRenderer,
+        "ce": ChechenRenderer,
+        "cs": CzechRenderer,
+        "cy": WelshRenderer,
+        "da": DanishRenderer,
+        "de": GermanRenderer,
+        "en": EnglishRenderer,
+        "eo": EsperantoRenderer,
+        "es": SpanishRenderer,
+        "fa": PersianRenderer,
+        "fi": FinnishRenderer,
+        "fr": FrenchRenderer,
+        "he": HebrewRenderer,
+        "hi": HindiRenderer,
+        "hu": HungarianRenderer,
+        "hy": ArmenianRenderer,
+        "id": IndonesianRenderer,
+        "is": IcelandicRenderer,
+        "it": ItalianRenderer,
+        "ja": JapaneseRenderer,
+        "kk": KazakhRenderer,
+        "kn": KannadaRenderer,
+        "ko": KoreanRenderer,
+        "lt": LithuanianRenderer,
+        "lv": LatvianRenderer,
+        "mn": MongolianRenderer,
+        "nl": DutchRenderer,
+        "no": NorwegianRenderer,
+        "pl": PolishRenderer,
+        "pt": PortugueseRenderer("pt-PT"),
+        "ro": RomanianRenderer,
+        "ru": RussianRenderer,
+        "sk": SlovakRenderer,
+        "sl": SlovenianRenderer,
+        "sr": SerbianRenderer,
+        "sv": SwedishRenderer,
+        "te": TeluguRenderer,
+        "tet": TetumRenderer,
+        "tg": TajikRenderer,
+        "th": ThaiRenderer,
+        "tr": TurkishRenderer,
+        "uk": UkrainianRenderer,
+        "vi": VietnameseRenderer,
+        "zh": ChineseRenderer,
+        "pt-BR": PortugueseRenderer,
+        "pt-PT": PortugueseRenderer("pt-PT"),
+    }
+    regional_renderers: dict[str, object] = {
         "en-GB": EnglishGBRenderer,
         "en-IN": EnglishIndiaRenderer,
         "en-NG": EnglishNigeriaRenderer,
@@ -168,67 +237,21 @@ def _ensure_builtins() -> None:
         "es-CO": SpanishRenderer,
         "es-CR": SpanishRenderer,
         "es-GT": SpanishRenderer,
+        "es-MX": SpanishRenderer,
         "es-NI": SpanishRenderer,
         "es-VE": SpanishRenderer,
         "fr-BE": FrenchBelgiumRenderer,
         "fr-CH": FrenchSwissRenderer,
         "fr-DZ": FrenchRenderer,
+        "zh-CN": ChineseRegionalRenderer("zh-CN"),
+        "zh-HK": ChineseRegionalRenderer("zh-HK"),
+        "zh-TW": ChineseRegionalRenderer("zh-TW"),
     }
-    for locale in (
-        "am",
-        "ar",
-        "az",
-        "be",
-        "bn",
-        "ca",
-        "ce",
-        "cy",
-        "da",
-        "en-IN",
-        "en-GB",
-        "en-US",
-        "en-NG",
-        "eo",
-        "es-CO",
-        "es-CR",
-        "es-GT",
-        "es-NI",
-        "es-VE",
-        "fa",
-        "fr-BE",
-        "fr-CH",
-        "fr-DZ",
-        "he",
-        "hi",
-        "hu",
-        "hy",
-        "id",
-        "is",
-        "kn",
-        "kz",
-        "lt",
-        "lv",
-        "mn",
-        "nl",
-        "no",
-        "pl",
-        "ro",
-        "sk",
-        "sl",
-        "sr",
-        "te",
-        "tet",
-        "tg",
-        "tr",
-        "uk",
-        "zh",
-        "zh-CN",
-        "zh-HK",
-        "zh-TW",
-    ):
+    for locale, renderer in {**base_renderers, **regional_renderers}.items():
         if locale not in _RENDERERS:
-            regional_renderer = regional.get(locale, UnsupportedLocaleRenderer(locale))
-            register_locale(locale, regional_renderer)
+            register_locale(
+                locale, cast(type[LocaleRenderer] | LocaleRenderer, renderer)
+            )
 
 
 def registered_locales() -> tuple[str, ...]:

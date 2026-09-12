@@ -9,7 +9,6 @@ from numeralform import (
     DigitSequence,
     NumeralForm,
     capabilities,
-    known_locales,
     locales,
     render,
     supports,
@@ -37,12 +36,60 @@ def test_supported_locales_have_executable_profiles(locale):
         )
 
 
-def test_baseline_locales_are_registered_but_not_supported():
-    baseline = set(known_locales()) - set(locales())
-    assert "am" in baseline
-    for locale in baseline:
-        assert not capabilities(locale).forms
-        assert not supports(locale, form="cardinal", value=0)
+def test_spokenform_base_inventory_is_canonical():
+    expected = {
+        "am",
+        "ar",
+        "az",
+        "be",
+        "bn",
+        "ca",
+        "ce",
+        "cs",
+        "cy",
+        "da",
+        "de",
+        "en",
+        "eo",
+        "es",
+        "fa",
+        "fi",
+        "fr",
+        "he",
+        "hi",
+        "hu",
+        "hy",
+        "id",
+        "is",
+        "it",
+        "ja",
+        "kk",
+        "kn",
+        "ko",
+        "lt",
+        "lv",
+        "mn",
+        "nl",
+        "no",
+        "pl",
+        "pt",
+        "ro",
+        "ru",
+        "sk",
+        "sl",
+        "sr",
+        "sv",
+        "te",
+        "tet",
+        "tg",
+        "th",
+        "tr",
+        "uk",
+        "vi",
+        "zh",
+    }
+    assert expected <= set(locales())
+    assert "kz" not in locales()
 
 
 def test_domains_agree_with_renderer_boundaries():
@@ -67,7 +114,5 @@ def test_finnish_reviewed_domain_boundaries():
 
 
 def test_unsupported_rendering_is_an_explicit_error():
-    from numeralform import render
-
     with pytest.raises(NumeralFormError):
-        render(1, locale="am")
+        render(1, locale="xx")

@@ -21,6 +21,22 @@ def _resolve_legacy_lang(lang: str):
     return resolve_compat_locale(lang).resolution
 
 
+_LEGACY_CURRENCY_EXCEPTIONS = {
+    "am": NotImplementedError,
+    "az": NotImplementedError,
+    "bn": TypeError,
+    "da": TypeError,
+    "fa": TypeError,
+    "hi": NotImplementedError,
+    "hy": NotImplementedError,
+    "id": TypeError,
+    "is": TypeError,
+    "mn": NotImplementedError,
+    "no": NotImplementedError,
+    "sl": TypeError,
+    "tr": TypeError,
+}
+
 _FORM_MAP = {
     "cardinal": "cardinal",
     "ordinal": "ordinal",
@@ -100,6 +116,7 @@ def _legacy_english_cardinal(value: int, locale: str) -> str:
 
 
 def _legacy_cardinal(value: int, locale: str) -> str:
+    locale = "kk" if locale == "kz" else locale
     language = locale.split("-", 1)[0]
     if language == "en":
         return _legacy_english_cardinal(value, locale)
@@ -388,6 +405,7 @@ def _legacy_spanish_ordinal(value: int) -> str:
 
 
 def _legacy_year(value: int, locale: str) -> str:
+    locale = "kk" if locale == "kz" else locale
     language = locale.split("-", 1)[0]
     if language == "ja":
         return _legacy_japanese_year(value)
@@ -430,7 +448,8 @@ def _legacy_year(value: int, locale: str) -> str:
 
 
 def _ordinal_numeric(value: int, locale: str, options: dict) -> str:
-    language = canonicalize_locale(locale).split("-", 1)[0]
+    locale = canonicalize_locale(locale)
+    language = locale.split("-", 1)[0]
     gender = options.get("gender")
     if language == "en":
         suffix = (
@@ -449,9 +468,52 @@ def _ordinal_numeric(value: int, locale: str, options: dict) -> str:
         return f"{value}م"
     if language in {"ja", "zh"}:
         return f"第{value}"
+    if language == "am":
+        return f"{value}ኛ"
+    if language == "az":
+        return f"{value}{'cı' if value % 10 in {0, 4, 5, 6, 7, 8, 9} else 'ci' if value % 10 in {1, 2} else 'cü'}"
+        suffix = {1: "r", 2: "n", 3: "r"}.get(value % 10, "è")
+        return f"{value}{suffix}"
+    if language == "ce":
+        return f"{value}-й"
+    if language == "da":
+        suffix = (
+            "te"
+            if value % 10 in {0, 1, 4, 5, 6, 7, 8, 9}
+            else "en"
+            if value % 10 == 2
+            else "ende"
+        )
+        return f"{value}{suffix}"
+    if language == "id":
+        return f"ke-{value}"
+    if language == "nl":
+        return f"{value}e"
+    if language == "ro":
+        return f"{value}-lea" if value == 1 else f"al {value}-lea"
+    if language == "te":
+        return f"{value}వ"
+    if language == "tet":
+        return f"{value}º"
+    if language == "tg":
+        return f"{value}{'ум' if value % 10 in {0, 1, 2, 4, 5, 6, 7, 8, 9} else 'юм'}"
+    if language == "tr":
+        suffix = {
+            1: "inci",
+            2: "inci",
+            3: "üncü",
+            4: "üncü",
+            5: "inci",
+            6: "ıncı",
+            7: "inci",
+            8: "inci",
+            9: "uncu",
+            0: "ıncı",
+        }[value % 10]
+        return f"{value}{suffix}"
     if language in {"pt"}:
         return f"{value}.ª" if gender == "feminine" else f"{value}.º"
-    if language in {"de", "es", "it", "nl", "ru", "uk", "be", "sr", "cs", "sk", "pl"}:
+    if language in {"de", "es", "it", "ru", "uk", "be", "sr", "cs", "sk", "pl"}:
         return f"{value}."
     return f"{value}."
 
@@ -525,6 +587,7 @@ def _legacy_decimal(value: DecimalNumber, locale: str) -> str:
 
 
 def _compat_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
+    locale = "kk" if locale == "kz" else locale
     language = locale.split("-", 1)[0]
     if language == "en" and options in ({}, {"style": "british-and"}):
         return _legacy_decimal(value, locale)
@@ -538,7 +601,13 @@ def _compat_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
                 integer = -integer
             return render(integer, locale=locale, form="cardinal", **options)
         value = DecimalNumber(value.integer, fraction, value.negative)
-    return _render_decimal(value, locale, options)
+    fraction = value.fraction.rstrip("0")
+    if not fraction:
+        integer = -int(value.integer) if value.negative else int(value.integer)
+        return render(integer, locale=locale, form="cardinal", **options)
+    return _render_decimal(
+        DecimalNumber(value.integer, fraction, value.negative), locale, options
+    )
 
 
 def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
@@ -853,6 +922,11 @@ def _num2words_impl(
     value = _coerce_legacy_number(number)
     if "precision" in options:
         value = _apply_precision(value, options.pop("precision"))
+    if to == "currency":
+        exception = _LEGACY_CURRENCY_EXCEPTIONS.get(locale.split("-", 1)[0])
+        if exception is not None:
+            raise exception()
+
     if compat_locale.renderer is not None:
         return render_compat(compat_locale, to, value, options)
     if (

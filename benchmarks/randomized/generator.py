@@ -225,6 +225,22 @@ def random_integer(
     return rng.randint(minimum, maximum)
 
 
+LOCALE_EDGE_VALUES: dict[str, tuple[int, ...]] = {
+    "zh": (9, 10, 99, 100, 999, 1000, 9999, 10000, 100000000),
+    "bn": (99, 100, 999, 1000, 99999, 100000),
+    "hi": (99, 100, 999, 1000, 99999, 100000),
+    "kn": (99, 100, 999, 1000, 99999, 100000),
+    "te": (99, 100, 999, 1000, 99999, 100000),
+}
+
+
+def locale_edge_values(locale: str, kind: str = "cardinal") -> tuple[int, ...]:
+    """Return reviewed locale boundaries for deterministic random probing."""
+    if kind not in {"cardinal", "ordinal", "year"}:
+        return ()
+    return LOCALE_EDGE_VALUES.get(locale.split("-", 1)[0], ())
+
+
 def _edge_values() -> tuple[int, ...]:
     return (
         0,

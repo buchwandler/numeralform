@@ -5,7 +5,7 @@
 
 # Numeralform
 
-Numeralform is a typed, locale-aware number-to-words engine for Python. It preserves semantic values, supports explicit syntax and reviewed morphology, exposes capability discovery, and provides a deterministic `num2words` compatibility adapter.
+Numeralform is a typed, locale-aware number-to-words engine for Python. It provides canonical executable support for all 49 Spokenform base language families plus reviewed regional variants. It preserves semantic values, supports explicit syntax and reviewed morphology, exposes capability discovery, and provides a deterministic `num2words` compatibility adapter.
 
 ## Install
 

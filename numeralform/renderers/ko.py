@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
 from ..model import (
+    DecimalNumber,
     NumeralForm,
     NumeralRequest,
     NumeralResult,
@@ -46,6 +49,11 @@ class KoreanRenderer:
                     domain=NumericDomain(maximum=_MAX_CARDINAL),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
+                CapabilityProfile(
+                    NumeralForm.DECIMAL,
+                    domain=NumericDomain(maximum=_MAX_CARDINAL, decimals=True),
+                ),
+                CapabilityProfile(NumeralForm.ORDINAL),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
             notes=(
@@ -59,6 +67,10 @@ class KoreanRenderer:
         value = request.value
         if request.form is NumeralForm.DIGITS:
             text = self._render_digits(value)
+        elif request.form is NumeralForm.DECIMAL:
+            text = self._render_decimal(cast(DecimalNumber, value))
+        elif request.form is NumeralForm.ORDINAL:
+            text = self._render_ordinal(require_int(value))
         elif request.form is NumeralForm.YEAR:
             text = self._render_cardinal(require_int(value)) + "년"
         else:
@@ -106,6 +118,27 @@ class KoreanRenderer:
             return "".join(parts)
         lower = "".join(parts[large_count:])
         return " ".join(parts[:large_count] + ([lower] if lower else []))
+
+    def _render_ordinal(self, value: int) -> str:
+        if value < 0 or value > _MAX_CARDINAL:
+            raise InvalidValueError(
+                "Korean ordinal value is outside the supported range"
+            )
+        if value == 1:
+            return "첫 번째"
+        if value == 3:
+            return "세 번째"
+        if value == 4:
+            return "네 번째"
+        return self._render_cardinal(value) + " 번째"
+
+    def _render_decimal(self, value: DecimalNumber) -> str:
+        if not isinstance(value, DecimalNumber):
+            raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
+        prefix = "마이너스 " if value.negative else ""
+        whole = self._render_cardinal(int(value.integer))
+        fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
+        return f"{prefix}{whole} 점 {fraction}"
 
     def _render_digits(self, value) -> str:
         from ..model import DigitSequence

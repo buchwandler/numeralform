@@ -36,7 +36,7 @@ def test_exports_and_request_result():
     )
     result = realize(request)
     assert result.text == "veintiún"
-    assert result.locale == "es"
+    assert result.locale == "es-MX"
     assert result.requested_locale == "es-MX"
     assert result.form == NumeralForm.CARDINAL
 
@@ -56,10 +56,8 @@ def test_locale_normalization_and_fallback():
     assert "en-US" in locales()
     assert "en-GB" in locales()
     assert "ru" in locales()
-    assert "am" not in locales()
-    from numeralform import known_locales
-
-    assert "am" in known_locales()
+    assert "am" in locales()
+    assert "kk" in locales()
 
 
 def test_capabilities_are_truthful():

@@ -7,6 +7,8 @@
 - Added a typed API and CLI for locale-aware cardinal, digit-sequence, decimal, and fraction rendering
 - Added renderers for Czech, German, French, Italian, Japanese, Korean, Portuguese, Swedish, Thai, and Vietnamese
 - Added typed morphology, currency, ordinal, regional, and capability-driven rendering
+- Added canonical renderers for all 49 Spokenform base language families and exact regional coverage, including es-MX and Chinese regions.
+- Added canonical Kazakh as kk with explicit legacy kz compatibility mapping.
 
 ### Fixed
 
