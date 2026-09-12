@@ -14,12 +14,12 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - name: Install base runtime and coverage tools
-        run: python -m pip install -e ".[dev]"
+      - name: Install test dependencies
+        run: python -m pip install -e ".[test]"
       - name: Generate coverage report
-        run: python -m pytest --cov=ssmd --cov-branch --cov-report=xml
+        run: python -m coverage run -m pytest && python -m coverage xml
       - name: Upload coverage reports
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: buchwandler/ssmd
+          slug: buchwandler/numeralform
