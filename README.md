@@ -1,3 +1,8 @@
+[![PyPI - Version](https://img.shields.io/pypi/v/numeralfrom)](https://pypi.org/project/numeralform/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/numeralform)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/numeralform)
+[![codecov](https://codecov.io/gh/buchwandler/numeralform/graph/badge.svg?token=gdXfPp7RTe)](https://codecov.io/gh/buchwandler/numeralform)
+
 # Numeralform
 
 Numeralform is a typed, locale-aware number-to-words engine for Python. It preserves semantic values, supports explicit syntax and reviewed morphology, exposes capability discovery, and provides a deterministic `num2words` compatibility adapter.
