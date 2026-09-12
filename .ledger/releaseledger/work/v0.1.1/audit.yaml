@@ -1,0 +1,118 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 1
+release_version: v0.1.1
+git_base_ref: v0.1.0
+git_base_sha: 0e036584f975f4a9ef2de5a17819c65e798788f2
+git_head_ref: HEAD
+git_head_sha: e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+git_range: 0e036584f975f4a9ef2de5a17819c65e798788f2..e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+commit_count: 1
+rows:
+  - sha: e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+    source_ref: git:e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+    short_sha: e30545b
+    changed_paths:
+      - README.md
+      - benchmarks/randomized/generator.py
+      - benchmarks/validation/generate_num2words.py
+      - docs/changelog.md
+      - docs/locales/README.md
+      - docs/locales/am.md
+      - docs/locales/ar.md
+      - docs/locales/az.md
+      - docs/locales/be.md
+      - docs/locales/bn.md
+      - docs/locales/ca.md
+      - docs/locales/capability-matrix.md
+      - docs/locales/ce.md
+      - docs/locales/cy.md
+      - docs/locales/da.md
+      - docs/locales/eo.md
+      - docs/locales/fa.md
+      - docs/locales/he.md
+      - docs/locales/hi.md
+      - docs/locales/hu.md
+      - docs/locales/hy.md
+      - docs/locales/id.md
+      - docs/locales/is.md
+      - docs/locales/kk.md
+      - docs/locales/kn.md
+      - docs/locales/lt.md
+      - docs/locales/lv.md
+      - docs/locales/mn.md
+      - docs/locales/nl.md
+      - docs/locales/no.md
+      - docs/locales/pl.md
+      - docs/locales/ro.md
+      - docs/locales/sk.md
+      - docs/locales/sl.md
+      - docs/locales/sr.md
+      - docs/locales/te.md
+      - docs/locales/tet.md
+      - docs/locales/tg.md
+      - docs/locales/tr.md
+      - docs/locales/uk.md
+      - docs/locales/zh.md
+      - numeralform/compat/_num2words/registry.py
+      - numeralform/compat/num2words.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/_fixtures.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/am.py
+      - numeralform/renderers/ar.py
+      - numeralform/renderers/az.py
+      - numeralform/renderers/be.py
+      - numeralform/renderers/bn.py
+      - numeralform/renderers/ca.py
+      - numeralform/renderers/ce.py
+      - numeralform/renderers/cy.py
+      - numeralform/renderers/da.py
+      - numeralform/renderers/eo.py
+      - numeralform/renderers/fa.py
+      - numeralform/renderers/he.py
+      - numeralform/renderers/hi.py
+      - numeralform/renderers/hu.py
+      - numeralform/renderers/hy.py
+      - numeralform/renderers/id.py
+      - numeralform/renderers/is.py
+      - numeralform/renderers/kk.py
+      - numeralform/renderers/kn.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/lt.py
+      - numeralform/renderers/lv.py
+      - numeralform/renderers/mn.py
+      - numeralform/renderers/nl.py
+      - numeralform/renderers/no.py
+      - numeralform/renderers/pl.py
+      - numeralform/renderers/ro.py
+      - numeralform/renderers/sk.py
+      - numeralform/renderers/sl.py
+      - numeralform/renderers/sr.py
+      - numeralform/renderers/te.py
+      - numeralform/renderers/tet.py
+      - numeralform/renderers/tg.py
+      - numeralform/renderers/tr.py
+      - numeralform/renderers/uk.py
+      - numeralform/renderers/zh.py
+      - scripts/check_spokenform_contract.py
+      - tests/test_capabilities.py
+      - tests/test_coverage_paths.py
+      - tests/test_docs.py
+      - tests/test_regressions.py
+      - tests/test_rendering.py
+      - tests/test_spokenform_contract.py
+    stats:
+      files_changed: 0
+      insertions: 58409
+      deletions: 161
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "feat: add more languanges"

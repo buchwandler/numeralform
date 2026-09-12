@@ -1,0 +1,39 @@
+schema: releaseledger.entry-batch.v1
+operation: create
+schema_version: 1
+object_type: release_entry_batch
+release_version: v0.1.1
+git_base_ref: 0e036584f975f4a9ef2de5a17819c65e798788f2
+git_base_sha: 0e036584f975f4a9ef2de5a17819c65e798788f2
+git_head_ref: e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+git_head_sha: e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+include_merges: nontrivial
+entries:
+  - kind: added
+    summary: Added executable rendering for 49 language families and exact regional locales
+    body: Added decimal, ordinal, year, and compatibility rendering across the expanded locale inventory
+    status: accepted
+    source_refs:
+      - git:e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+    paths:
+      - README.md
+      - docs/locales/README.md
+      - docs/locales/capability-matrix.md
+      - numeralform/compat/_num2words/registry.py
+      - numeralform/compat/num2words.py
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/_fixtures.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/zh.py
+      - tests/test_capabilities.py
+      - tests/test_docs.py
+      - tests/test_rendering.py
+      - tests/test_spokenform_contract.py
+    sources:
+      - git:e30545b649a946b48c7ddb36a9ca61ff2e6056ae
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"

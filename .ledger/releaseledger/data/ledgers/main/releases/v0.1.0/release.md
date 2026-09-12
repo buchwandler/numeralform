@@ -3,12 +3,12 @@ schema_version: 2
 object_type: release
 versioning:
   schema_version: 1
-  revision: 5
+  revision: 6
 version: v0.1.0
-status: planned
+status: released
 history_state: curated
 title: Numeralform v0.1.0
-released_at: null
+released_at: "2026-09-12"
 previous_version: null
 cancel_reason: null
 superseded_by: null
