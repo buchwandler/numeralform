@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import replace
-from importlib.metadata import PackageNotFoundError, version
 from typing import overload
 
 from .currency import (
@@ -65,12 +64,9 @@ from .registry import (
 )
 
 try:
-    from ._version import __version__
+    from ._version import version as __version__
 except ImportError:
-    try:
-        __version__ = version("numeralform")
-    except PackageNotFoundError:
-        __version__ = "0+unknown"
+    from .__about__ import __version__
 
 
 @overload

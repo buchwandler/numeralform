@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import argparse
-import re
+import ast
 import tarfile
 import zipfile
 from email.parser import Parser
 from pathlib import Path
 
-_VERSION_RE = re.compile(
-    r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$',
-    re.MULTILINE,
-)
+
+def _read_runtime_version(source: str) -> str | None:
+    tree = ast.parse(source)
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+
+        names = {target.id for target in node.targets if isinstance(target, ast.Name)}
+        if not {"__version__", "version"} & names:
+            continue
+
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            return node.value.value
+
+    return None
 
 
 def _parse_args() -> argparse.Namespace:
@@ -62,11 +73,13 @@ def main() -> int:
             )
 
             version_source = wheel.read("numeralform/_version.py").decode()
-            match = _VERSION_RE.search(version_source)
-            assert match is not None, "unable to read numeralform/_version.py version"
-            assert match.group(1) == expected_version, (
+            runtime_version = _read_runtime_version(version_source)
+            assert runtime_version is not None, (
+                "unable to read numeralform/_version.py version"
+            )
+            assert runtime_version == expected_version, (
                 "runtime __version__ mismatch: "
-                f"expected {expected_version}, got {match.group(1)}"
+                f"expected {expected_version}, got {runtime_version}"
             )
 
     with tarfile.open(sdists[0]) as sdist:

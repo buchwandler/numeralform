@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import runpy
 import subprocess
 import sys
 import tarfile
@@ -10,6 +11,19 @@ from pathlib import Path
 import pytest
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "check_artifact.py"
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ('__version__ = "0.1.4"\n', "0.1.4"),
+        ('__version__ = version = "0.1.4"\n', "0.1.4"),
+        ('version = "0.1.4"\n', "0.1.4"),
+    ],
+)
+def test_runtime_version_reader(source: str, expected: str) -> None:
+    reader = runpy.run_path(str(SCRIPT))["_read_runtime_version"]
+    assert reader(source) == expected
 
 
 def _create_wheel(
@@ -30,7 +44,8 @@ def _create_wheel(
             "Summary: Typed, locale-aware number-to-words rendering\n",
         )
         wheel.writestr(
-            "numeralform/_version.py", f'__version__ = "{runtime_version}"\n'
+            "numeralform/_version.py",
+            f'__version__ = version = "{runtime_version}"\n',
         )
         wheel.writestr("numeralform/py.typed", "")
 

@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python
@@ -63,6 +64,28 @@ jobs:
             --expected-version "$RELEASE_VERSION"
           twine check dist/*
 
+
+      - name: Verify installed release version
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --force-reinstall --no-deps dist/*.whl
+          python -I -c "
+          import importlib.metadata
+          import os
+          import numeralform
+
+          expected = os.environ['RELEASE_VERSION']
+          metadata_version = importlib.metadata.version('numeralform')
+
+          assert metadata_version == expected, (metadata_version, expected)
+          assert numeralform.__version__ == expected, (
+              numeralform.__version__,
+              expected,
+          )
+          "
       - name: Upload validated release distributions
         uses: actions/upload-artifact@v7
         with:

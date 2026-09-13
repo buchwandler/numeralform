@@ -19,6 +19,10 @@ For development:
 python -m pip install -e ".[test]"
 ```
 
+## Versioning
+
+The package version is derived from Git tags by `setuptools-scm`. Release tags use the form `v<version>`; the corresponding package version is generated during the build. A source checkout without generated version metadata falls back to `0+unknown`.
+
 ## Quick start
 
 ```python

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "setuptools-scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "numeralform"
-version = "0.1.4"
+dynamic = ["version"]
 description = "Typed, locale-aware number-to-words rendering with explicit grammar and deterministic num2words compatibility"
 readme = "README.md"
 license = "Apache-2.0"
@@ -40,6 +40,10 @@ test = [
 [tool.setuptools]
 [tool.setuptools.packages.find]
 include = ["numeralform*"]
+
+[tool.setuptools_scm]
+write_to = "numeralform/_version.py"
+fallback_version = "0+unknown"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
