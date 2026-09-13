@@ -122,3 +122,74 @@ def test_italian_currency_lexemes_do_not_fall_back_to_english() -> None:
     assert render_currency(Decimal("1.50"), locale="it", currency="CHF") == (
         "un franco svizzero e cinquanta centesimi"
     )
+
+
+def test_currency_request_validates_omit_zero_minor_and_preserves_default() -> None:
+    with pytest.raises(InvalidRequestError):
+        CurrencyRequest(MoneyAmount(1, 0, "EUR"), "en", omit_zero_minor=1)
+
+    assert render_currency(1, locale="en", currency="USD") == (
+        "one dollar and zero cents"
+    )
+    assert (
+        render_currency(1, locale="en", currency="USD", omit_zero_minor=True)
+        == "one dollar"
+    )
+
+    request = CurrencyRequest(MoneyAmount(1, 0, "USD"), "en", omit_zero_minor=True)
+    result = realize_currency(request)
+    assert result.text == "one dollar"
+    assert result.request.omit_zero_minor is True
+
+
+def test_spanish_currency_attributive_major_agreement() -> None:
+    assert (
+        render_currency(1, locale="es", currency="EUR", omit_zero_minor=True)
+        == "un euro"
+    )
+    assert (
+        render_currency(1, locale="es-MX", currency="USD", omit_zero_minor=True)
+        == "un dólar"
+    )
+    assert (
+        render_currency(1, locale="es", currency="GBP", omit_zero_minor=True)
+        == "una libra"
+    )
+
+
+def test_german_chf_uses_native_terminology() -> None:
+    text = render_currency(Decimal("87.50"), locale="de", currency="CHF")
+    assert "Swiss" not in text
+    assert "Schweizer Franken" in text
+    assert "Rappen" in text
+
+
+def test_new_currency_morphology_and_support_matrix() -> None:
+    assert (
+        render_currency(50_000, locale="es-MX", currency="KRW", omit_zero_minor=True)
+        == "cincuenta mil wones"
+    )
+    assert (
+        render_currency(1_000_000, locale="es-MX", currency="VND", omit_zero_minor=True)
+        == "un millón de dongs"
+    )
+    assert (
+        render_currency(50_000, locale="es-MX", currency="MNT", omit_zero_minor=True)
+        == "cincuenta mil tugriks"
+    )
+    assert (
+        render_currency(2_000_000, locale="es-MX", currency="MXN", omit_zero_minor=True)
+        == "dos millones de pesos"
+    )
+    assert render_currency(
+        1_250_000, locale="es-MX", currency="MXN", omit_zero_minor=True
+    ) == ("un millón doscientos cincuenta mil pesos")
+
+    for locale, currency in (
+        ("es-MX", "MXN"),
+        ("es-MX", "KRW"),
+        ("es-MX", "VND"),
+        ("es-MX", "MNT"),
+        ("de", "CHF"),
+    ):
+        assert supports_currency(locale, currency, allow_fallback=False)

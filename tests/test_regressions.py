@@ -444,9 +444,21 @@ def test_audited_currency_sign_gender_regional_and_attachment_fixes():
     assert render_currency(Decimal("20.15"), locale="ru", currency="RUB") == (
         "двадцать рублей и пятнадцать копеек"
     )
+
     assert render_currency(Decimal("1.00"), locale="ja", currency="JPY") == "一円"
     assert "cêntimo" in render_currency(Decimal("2.01"), locale="pt-PT", currency="AUD")
     assert "péni" in render_currency(Decimal("1.01"), locale="pt-PT", currency="GBP")
+
+
+def test_currency_exact_million_joining_boundary() -> None:
+    assert (
+        render_currency(1_000_000, locale="es-MX", currency="VND", omit_zero_minor=True)
+        == "un millón de dongs"
+    )
+    assert (
+        render_currency(1_000_001, locale="es-MX", currency="VND", omit_zero_minor=True)
+        == "un millón un dongs"
+    )
 
 
 def test_audited_locale_grammar_fixes():

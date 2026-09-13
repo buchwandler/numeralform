@@ -61,6 +61,7 @@ class CurrencyRequest:
     locale: str
     cents: bool = True
     separator: str | None = None
+    omit_zero_minor: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.amount, MoneyAmount):
@@ -69,6 +70,8 @@ class CurrencyRequest:
             raise InvalidRequestError("locale must be a non-empty string")
         if not isinstance(self.cents, bool):
             raise InvalidRequestError("currency cents must be a boolean")
+        if not isinstance(self.omit_zero_minor, bool):
+            raise InvalidRequestError("currency omit_zero_minor must be a boolean")
         if self.separator is not None and not isinstance(self.separator, str):
             raise InvalidRequestError("separator must be a string or None")
 
@@ -159,12 +162,30 @@ _CURRENCIES = {
         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
         "it": ("franco svizzero", "franchi svizzeri", "centesimo", "centesimi"),
+        "de": ("Schweizer Franken", "Schweizer Franken", "Rappen", "Rappen"),
     },
     "INR": {
         "en": ("Indian rupee", "Indian rupees", "paisa", "paise"),
         "fi": ("Intian rupia", "Intian rupiaa", "paisa", "paisaa"),
     },
-    "KRW": {"en": ("won", "won", "jeon", "jeon"), "ko": ("원", "원", "전", "전")},
+    "KRW": {
+        "en": ("won", "won", "jeon", "jeon"),
+        "es": ("won", "wones", "jeon", "jeon"),
+        "ko": ("원", "원", "전", "전"),
+    },
+    "MXN": {
+        "en": ("Mexican peso", "Mexican pesos", "centavo", "centavos"),
+        "es": ("peso mexicano", "pesos mexicanos", "centavo", "centavos"),
+        "es-MX": ("peso", "pesos", "centavo", "centavos"),
+    },
+    "VND": {
+        "en": ("Vietnamese dong", "Vietnamese dong", "xu", "xu"),
+        "es": ("dong", "dongs", "xu", "xu"),
+    },
+    "MNT": {
+        "en": ("Mongolian tugrik", "Mongolian tugriks", "möngö", "möngö"),
+        "es": ("tugrik", "tugriks", "möngö", "möngö"),
+    },
     "BRL": {
         "en": ("Brazilian real", "Brazilian reals", "centavo", "centavos"),
         "pt": ("real", "reais", "centavo", "centavos"),
@@ -339,6 +360,8 @@ def _currency_policy(
         major_forms = {"one": names[0], "other": names[1]}
         minor_forms = {"one": names[2], "other": names[3]}
     major_gender = _CURRENCY_MAJOR_GENDERS.get((language, code))
+    if language == "es" and major_gender is None:
+        major_gender = "masculine"
     minor_gender = None
     if language == "es":
         minor_gender = "masculine"
@@ -375,7 +398,9 @@ def supports_currency(
 
 
 _CURRENCY_MINOR_UNITS = {code: 2 for code in _CURRENCIES}
-_CURRENCY_MINOR_UNITS.update({"JPY": 0, "KRW": 0, "KWD": 3, "BHD": 3})
+_CURRENCY_MINOR_UNITS.update(
+    {"JPY": 0, "KRW": 0, "VND": 0, "MNT": 0, "KWD": 3, "BHD": 3}
+)
 
 
 def _currency_scale(code: str) -> int:
@@ -471,6 +496,12 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
     return text
 
 
+def _major_joiner(language: str, major: int) -> str:
+    if language == "es" and major != 0 and major % 1_000_000 == 0:
+        return " de "
+    return " "
+
+
 def _render_currency(
     value,
     *,
@@ -479,6 +510,7 @@ def _render_currency(
     cents: bool = True,
     separator: str | None = None,
     compatibility: str | None = None,
+    omit_zero_minor: bool = False,
 ) -> str:
     """Render a currency amount, including private compatibility behavior."""
     from ..registry import resolve_locale
@@ -486,6 +518,8 @@ def _render_currency(
     locale = resolve_locale(locale)
     if not isinstance(cents, bool):
         raise InvalidRequestError("cents must be a boolean")
+    if not isinstance(omit_zero_minor, bool):
+        raise InvalidRequestError("omit_zero_minor must be a boolean")
     if separator is not None and not isinstance(separator, str):
         raise InvalidRequestError("separator must be a string")
     amount = _parse_amount(value, currency, compatibility=compatibility)
@@ -494,14 +528,13 @@ def _render_currency(
     major_category = _plural_category(language, amount.major)
     major_name = policy.major.form(major_category)
     major_words = _words(amount.major, locale, gender=policy.major.gender)
-    major_piece = (
-        f"{major_words}{major_name}"
-        if policy.major.attach
-        else f"{major_words} {major_name}"
-    )
+    joiner = "" if policy.major.attach else _major_joiner(language, amount.major)
+    major_piece = f"{major_words}{joiner}{major_name}"
     sign = policy.negative_prefix if amount.negative else ""
     text = sign + major_piece
-    if amount.minor_units and not (policy.omit_zero_minor and amount.minor == 0):
+    if amount.minor_units and not (
+        (policy.omit_zero_minor or omit_zero_minor) and amount.minor == 0
+    ):
         minor_category = _plural_category(language, amount.minor)
         minor_name = policy.minor.form(minor_category)
         minor_value = (
@@ -526,10 +559,16 @@ def render_currency(
     currency: str | None = None,
     cents: bool = True,
     separator: str | None = None,
+    omit_zero_minor: bool = False,
 ) -> str:
     """Render a canonical currency amount with locale-owned morphology."""
     return _render_currency(
-        value, locale=locale, currency=currency, cents=cents, separator=separator
+        value,
+        locale=locale,
+        currency=currency,
+        cents=cents,
+        separator=separator,
+        omit_zero_minor=omit_zero_minor,
     )
 
 
@@ -540,6 +579,7 @@ def realize_currency(
     currency: str | None = None,
     cents: bool = True,
     separator: str | None = None,
+    omit_zero_minor: bool = False,
 ) -> CurrencyResult:
     """Realize a currency request and return structured metadata."""
     if isinstance(request_or_value, CurrencyRequest):
@@ -553,13 +593,14 @@ def realize_currency(
             )
     else:
         amount = _parse_amount(request_or_value, currency)
-        request = CurrencyRequest(amount, locale, cents, separator)
+        request = CurrencyRequest(amount, locale, cents, separator, omit_zero_minor)
     text = _render_currency(
         request.amount,
         locale=request.locale,
         currency=request.amount.currency,
         cents=request.cents,
         separator=request.separator,
+        omit_zero_minor=request.omit_zero_minor,
     )
     from ..registry import resolve_locale
 
