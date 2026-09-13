@@ -1,0 +1,33 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "additions": 151,
+      "deletions": 18,
+      "patch_file": "db047bf.patch",
+      "patch_sha256": "0b7f152bb0e0b68c58528df0bfdc6db8d37924e62c0dc7a397e93fa1a597d063",
+      "paths": [
+        "docs/api.md",
+        "docs/compatibility.md",
+        "numeralform/compat/num2words.py",
+        "numeralform/currency/__init__.py",
+        "numeralform/renderers/_shared.py",
+        "tests/test_compatibility.py",
+        "tests/test_currency_api.py",
+        "tests/test_decimal_localization.py",
+        "tests/test_spokenform_contract.py"
+      ],
+      "sha": "db047bf984f840f52d47aea163699cdd611db1bd",
+      "short_sha": "db047bf",
+      "source_ref": "git:db047bf984f840f52d47aea163699cdd611db1bd"
+    }
+  ],
+  "git_base_ref": "26eef2671eaf9062225d7e8e9ccdcd14c505dd2c",
+  "git_base_sha": "26eef2671eaf9062225d7e8e9ccdcd14c505dd2c",
+  "git_head_ref": "db047bf984f840f52d47aea163699cdd611db1bd",
+  "git_head_sha": "db047bf984f840f52d47aea163699cdd611db1bd",
+  "include_merges": "nontrivial",
+  "object_type": "git_evidence_manifest",
+  "release_version": "v0.1.5",
+  "schema_version": 1
+}

@@ -1,0 +1,318 @@
+ docs/api.md                        |  4 ++++
+ docs/compatibility.md              |  4 ++++
+ numeralform/compat/num2words.py    | 34 ++++++++++++++++++++-------------
+ numeralform/currency/__init__.py   | 17 ++++++++++++++---
+ numeralform/renderers/_shared.py   | 21 ++++++++++++++++++--
+ tests/test_compatibility.py        |  7 +++++++
+ tests/test_currency_api.py         | 12 ++++++++++++
+ tests/test_decimal_localization.py | 39 ++++++++++++++++++++++++++++++++++++++
+ tests/test_spokenform_contract.py  | 31 ++++++++++++++++++++++++++++++
+ 9 files changed, 151 insertions(+), 18 deletions(-)
+
+diff --git a/docs/api.md b/docs/api.md
+index 0e4b505..ae7d5b0 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -110,3 +110,7 @@ and option translation, and does not require upstream `num2words` at runtime.
+ English uses locale-specific grouping, Korean appends `년`, and German and
+ Japanese use their canonical year realization. Japanese era conversion is
+ available only through compatibility.
++
++## Canonical versus compatibility decimals
++
++Canonical `render(..., form="decimal")` uses reviewed locale separator words and preserves visible fractional digits, such as `Komma` in German. The separate `numeralform.compat.num2words` adapter intentionally retains the pinned upstream-compatible `point` behavior, including for German decimals; changes to canonical localization must not alter that legacy surface.
+diff --git a/docs/compatibility.md b/docs/compatibility.md
+index 9c6b70d..393413c 100644
+--- a/docs/compatibility.md
++++ b/docs/compatibility.md
+@@ -41,3 +41,7 @@ Legacy converter keys use underscores, such as `en_IN`, `fr_CH`, and `zh_CN`. An
+ ## Compatibility superset
+
+ The adapter also preserves selected Numeralform extensions, including fraction strings, precision handling, variable currency scales, and richer cents behavior. These extensions are compatibility-superset behavior, not claims about the upstream API.
++
++## Decimal behavior boundary
++
++Canonical decimal rendering is locale-aware and preserves written fractional precision. Compatibility rendering remains an explicit legacy emulation surface: its pinned upstream behavior may use `point` even when the canonical locale uses a translated separator. Do not treat this intentional difference as a compatibility regression.
+diff --git a/numeralform/compat/num2words.py b/numeralform/compat/num2words.py
+index 9644490..37881e0 100644
+--- a/numeralform/compat/num2words.py
++++ b/numeralform/compat/num2words.py
+@@ -45,6 +45,8 @@ _FORM_MAP = {
+     "currency": "currency",
+     "fraction": "fraction",
+ }
++_LEGACY_POINT_DECIMAL_LANGUAGES = frozenset({"de", "fr", "it", "pt", "sv"})
++
+
+ _INT_RE = re.compile(r"^[+-]?\d+$")
+ _FRACTION_RE = re.compile(r"^[+-]?\d+/\d+$")
+@@ -610,20 +612,26 @@ def _compat_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
+     )
+
+
++def _legacy_point_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
++    integer = int(value.integer)
++    if value.negative:
++        integer = -integer
++    whole = render(integer, locale=locale, form="cardinal", **options)
++    digits = " ".join(
++        render(int(digit), locale=locale, form="cardinal") for digit in value.fraction
++    )
++    sign = "minus " if value.negative and not whole.startswith("minus") else ""
++    return f"{sign}{whole} point {digits}"
++
++
+ def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
+-    try:
+-        return render(value, locale=locale, form="decimal", **options)
+-    except NumeralFormError:
+-        integer = int(value.integer)
+-        if value.negative:
+-            integer = -integer
+-        whole = render(integer, locale=locale, form="cardinal", **options)
+-        digits = " ".join(
+-            render(int(digit), locale=locale, form="cardinal")
+-            for digit in value.fraction
+-        )
+-        sign = "minus " if value.negative and not whole.startswith("minus") else ""
+-        return f"{sign}{whole} point {digits}"
++    language = locale.split("-", 1)[0]
++    if language not in _LEGACY_POINT_DECIMAL_LANGUAGES:
++        try:
++            return render(value, locale=locale, form="decimal", **options)
++        except NumeralFormError:
++            pass
++    return _legacy_point_decimal(value, locale, options)
+
+
+ def _legacy_has_explicit_fraction(value: object) -> bool:
+diff --git a/numeralform/currency/__init__.py b/numeralform/currency/__init__.py
+index cadc966..9ad7989 100644
+--- a/numeralform/currency/__init__.py
++++ b/numeralform/currency/__init__.py
+@@ -119,6 +119,7 @@ _CURRENCIES = {
+         "es": ("dólar", "dólares", "centavo", "centavos"),
+         "de": ("Dollar", "Dollar", "Cent", "Cent"),
+         "fr": ("dollar", "dollars", "cent", "cents"),
++        "it": ("dollaro", "dollari", "centesimo", "centesimi"),
+         "ru": ("доллар", "доллара", "цент", "цента"),
+     },
+     "GBP": {
+@@ -129,6 +130,7 @@ _CURRENCIES = {
+         "fi": ("punta", "puntaa", "penny", "pennyä"),
+         "de": ("Pfund", "Pfund", "Penny", "Pence"),
+         "es": ("libra", "libras", "penique", "peniques"),
++        "it": ("sterlina", "sterline", "penny", "pence"),
+     },
+     "RUB": {
+         "ru": ("рубль", "рубля", "копейка", "копейки"),
+@@ -156,6 +158,7 @@ _CURRENCIES = {
+     "CHF": {
+         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
+         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
++        "it": ("franco svizzero", "franchi svizzeri", "centesimo", "centesimi"),
+     },
+     "INR": {
+         "en": ("Indian rupee", "Indian rupees", "paisa", "paise"),
+@@ -245,6 +248,11 @@ _CURRENCY_NEGATIVE_PREFIXES = {
+     "vi": "âm ",
+ }
+ _ATTACHED_CURRENCIES = {("ja", "JPY")}
++_CURRENCY_MAJOR_GENDERS = {
++    ("es", "GBP"): "feminine",
++    ("es", "NOK"): "feminine",
++    ("it", "GBP"): "feminine",
++}
+
+
+ def _plural_category(language: str, value: int) -> str:
+@@ -330,10 +338,9 @@ def _currency_policy(
+     else:
+         major_forms = {"one": names[0], "other": names[1]}
+         minor_forms = {"one": names[2], "other": names[3]}
+-    major_gender = None
++    major_gender = _CURRENCY_MAJOR_GENDERS.get((language, code))
+     minor_gender = None
+     if language == "es":
+-        major_gender = "feminine" if code in {"GBP", "NOK"} else "masculine"
+         minor_gender = "masculine"
+     return CurrencyLocalePolicy(
+         CurrencyUnitLexeme(
+@@ -443,7 +450,11 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
+         return render(value, locale=locale, style="british-and")
+     if language == "es" and gender is not None:
+         return render(value, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=gender)
+-    if gender is not None:
++    if language == "it" and gender == "feminine":
++        if value == 1:
++            return "una"
++        text = render(value, locale=locale)
++    elif gender is not None:
+         text = render(value, locale=locale, gender=gender)
+     else:
+         text = render(value, locale=locale)
+diff --git a/numeralform/renderers/_shared.py b/numeralform/renderers/_shared.py
+index e466a45..8f14777 100644
+--- a/numeralform/renderers/_shared.py
++++ b/numeralform/renderers/_shared.py
+@@ -183,6 +183,22 @@ class LexicalRenderer:
+         return self._cardinal(value)
+
+
++_DECIMAL_WORDS = {
++    "de": "Komma",
++    "fr": "virgule",
++    "it": "virgola",
++    "pt": "vírgula",
++    "sv": "komma",
++}
++
++
++def _decimal_word(locale: str) -> str:
++    """Return the reviewed spoken decimal separator for a locale tag."""
++    return _DECIMAL_WORDS.get(
++        locale, _DECIMAL_WORDS.get(locale.split("-", 1)[0], "point")
++    )
++
++
+ class DecimalFallbackRenderer:
+     """Add the universal spoken-decimal surface to legacy renderers."""
+
+@@ -207,7 +223,8 @@ class DecimalFallbackRenderer:
+         return replace(
+             base,
+             profiles=base.profiles + (decimal,),
+-            notes=base.notes + ("Decimal digits use the canonical point policy.",),
++            notes=base.notes
++            + ("Decimal digits use the reviewed locale separator policy.",),
+         )
+
+     def render(self, request: NumeralRequest) -> NumeralResult:
+@@ -237,7 +254,7 @@ class DecimalFallbackRenderer:
+             )
+         ).text
+         return NumeralResult(
+-            f"{whole} point {digits}",
++            f"{whole} {_decimal_word(request.locale)} {digits}",
+             request.locale,
+             request.form,
+             request.style,
+diff --git a/tests/test_compatibility.py b/tests/test_compatibility.py
+index c4f0dea..b6e856a 100644
+--- a/tests/test_compatibility.py
++++ b/tests/test_compatibility.py
+@@ -218,3 +218,10 @@ def test_pinned_compatibility_regression_fixtures():
+     assert num2words(1901, lang="en", to="year") == "nineteen oh-one"
+     assert num2words(100001, lang="pt") == "cem mil e um"
+     assert num2words(83, lang="fr-BE", to="ordinal") == "quatre-vingt-troisième"
++
++
++def test_canonical_decimal_localization_does_not_change_compatibility() -> None:
++    assert render(Decimal("1.20"), locale="de", form="decimal") == (
++        "eins Komma zwei null"
++    )
++    assert "point" in num2words(Decimal("1.20"), lang="de")
+diff --git a/tests/test_currency_api.py b/tests/test_currency_api.py
+index e73e650..37cbab4 100644
+--- a/tests/test_currency_api.py
++++ b/tests/test_currency_api.py
+@@ -110,3 +110,15 @@ def test_numeral_request_annotations_match_runtime_coercion():
+ def test_canonical_currency_signature_has_no_compatibility_switch():
+     assert "compatibility" not in inspect.signature(render_currency).parameters
+     assert "compatibility" not in inspect.signature(realize_currency).parameters
++
++
++def test_italian_currency_lexemes_do_not_fall_back_to_english() -> None:
++    assert render_currency(Decimal("1.50"), locale="it", currency="USD") == (
++        "un dollaro e cinquanta centesimi"
++    )
++    assert render_currency(Decimal("1.50"), locale="it", currency="GBP") == (
++        "una sterlina e cinquanta pence"
++    )
++    assert render_currency(Decimal("1.50"), locale="it", currency="CHF") == (
++        "un franco svizzero e cinquanta centesimi"
++    )
+diff --git a/tests/test_decimal_localization.py b/tests/test_decimal_localization.py
+new file mode 100644
+index 0000000..2ddd066
+--- /dev/null
++++ b/tests/test_decimal_localization.py
+@@ -0,0 +1,39 @@
++from __future__ import annotations
++
++from decimal import Decimal
++
++import pytest
++
++from numeralform import render
++
++
++@pytest.mark.parametrize(
++    ("locale", "expected"),
++    [
++        ("de", "eins Komma zwei null"),
++        ("fr", "un virgule deux zéro"),
++        ("it", "uno virgola due zero"),
++        ("pt", "um vírgula dois zero"),
++        ("sv", "ett komma två noll"),
++    ],
++)
++def test_canonical_decimal_fallback_uses_locale_separator(
++    locale: str, expected: str
++) -> None:
++    assert render(Decimal("1.20"), locale=locale, form="decimal") == expected
++
++
++@pytest.mark.parametrize(
++    ("locale", "expected"),
++    [
++        ("fr-BE", "un virgule deux zéro"),
++        ("it-CH", "uno virgola due zero"),
++        ("pt-BR", "um vírgula dois zero"),
++    ],
++)
++def test_regional_decimal_fallback_uses_base_locale(locale: str, expected: str) -> None:
++    assert render(Decimal("1.20"), locale=locale, form="decimal") == expected
++
++
++def test_canonical_decimal_keeps_visible_trailing_zero() -> None:
++    assert render(Decimal("12.50"), locale="it", form="decimal").endswith("cinque zero")
+diff --git a/tests/test_spokenform_contract.py b/tests/test_spokenform_contract.py
+index 0cf86be..3cb6067 100644
+--- a/tests/test_spokenform_contract.py
++++ b/tests/test_spokenform_contract.py
+@@ -127,3 +127,34 @@ def test_kazakh_uses_canonical_bcp47_identity() -> None:
+ def test_korean_word_and_numeric_ordinals_are_distinct() -> None:
+     assert render(3, locale="ko", form="ordinal") == "세 번째"
+     assert render(3, locale="ko", form="ordinal_num") == "3번째"
++
++
++def test_italian_cardinal_and_identifier_digits_are_distinct() -> None:
++    assert render(118, locale="it") == "centodiciotto"
++    assert render(DigitSequence("118"), locale="it", form="digits") == "uno uno otto"
++
++
++def test_corrected_italian_final_three_is_not_regressed() -> None:
++    assert render(123, locale="it") == "centoventitré"
++    assert render(DigitSequence("123"), locale="it", form="digits") == "uno due tre"
++
++
++def test_digit_sequence_preserves_leading_zeroes() -> None:
++    assert (
++        render(DigitSequence("02118"), locale="it", form="digits")
++        == "zero due uno uno otto"
++    )
++
++
++@pytest.mark.parametrize(
++    ("locale", "expected_digits"),
++    [
++        ("de", "eins eins acht"),
++        ("en-US", "one one eight"),
++        ("es-MX", "uno uno ocho"),
++        ("fr", "un un huit"),
++        ("it", "uno uno otto"),
++    ],
++)
++def test_identifier_digit_contract(locale: str, expected_digits: str) -> None:
++    assert render(DigitSequence("118"), locale=locale, form="digits") == expected_digits

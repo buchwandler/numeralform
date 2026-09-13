@@ -1,0 +1,20 @@
+rows:
+  - sha: db047bf984f840f52d47aea163699cdd611db1bd
+    inspected: true
+    inspected_paths:
+      - docs/api.md
+      - docs/compatibility.md
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/_shared.py
+      - tests/test_compatibility.py
+      - tests/test_currency_api.py
+      - tests/test_decimal_localization.py
+      - tests/test_spokenform_contract.py
+    observed_behavior: Canonical decimal rendering now uses reviewed locale separator words and preserves visible fractional digits; the compatibility adapter keeps its pinned point behavior. Italian currency lexemes and gender handling were added for USD, GBP, and CHF, with contract tests covering the new localization and digit behavior.
+    public_impact: public
+    decision: accepted
+    target_entry_key: null
+    target_entry_id: null
+    notes: ""
+    stale: false

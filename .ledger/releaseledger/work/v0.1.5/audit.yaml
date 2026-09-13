@@ -1,0 +1,37 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 1
+release_version: v0.1.5
+git_base_ref: v0.1.4
+git_base_sha: 26eef2671eaf9062225d7e8e9ccdcd14c505dd2c
+git_head_ref: HEAD
+git_head_sha: db047bf984f840f52d47aea163699cdd611db1bd
+git_range: 26eef2671eaf9062225d7e8e9ccdcd14c505dd2c..db047bf984f840f52d47aea163699cdd611db1bd
+commit_count: 1
+rows:
+  - sha: db047bf984f840f52d47aea163699cdd611db1bd
+    source_ref: git:db047bf984f840f52d47aea163699cdd611db1bd
+    short_sha: db047bf
+    changed_paths:
+      - docs/api.md
+      - docs/compatibility.md
+      - numeralform/compat/num2words.py
+      - numeralform/currency/__init__.py
+      - numeralform/renderers/_shared.py
+      - tests/test_compatibility.py
+      - tests/test_currency_api.py
+      - tests/test_decimal_localization.py
+      - tests/test_spokenform_contract.py
+    stats:
+      files_changed: 0
+      insertions: 151
+      deletions: 18
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "feat: improvements"
