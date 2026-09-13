@@ -45,6 +45,8 @@ _FORM_MAP = {
     "currency": "currency",
     "fraction": "fraction",
 }
+_LEGACY_POINT_DECIMAL_LANGUAGES = frozenset({"de", "fr", "it", "pt", "sv"})
+
 
 _INT_RE = re.compile(r"^[+-]?\d+$")
 _FRACTION_RE = re.compile(r"^[+-]?\d+/\d+$")
@@ -610,20 +612,26 @@ def _compat_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
     )
 
 
+def _legacy_point_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
+    integer = int(value.integer)
+    if value.negative:
+        integer = -integer
+    whole = render(integer, locale=locale, form="cardinal", **options)
+    digits = " ".join(
+        render(int(digit), locale=locale, form="cardinal") for digit in value.fraction
+    )
+    sign = "minus " if value.negative and not whole.startswith("minus") else ""
+    return f"{sign}{whole} point {digits}"
+
+
 def _render_decimal(value: DecimalNumber, locale: str, options: dict) -> str:
-    try:
-        return render(value, locale=locale, form="decimal", **options)
-    except NumeralFormError:
-        integer = int(value.integer)
-        if value.negative:
-            integer = -integer
-        whole = render(integer, locale=locale, form="cardinal", **options)
-        digits = " ".join(
-            render(int(digit), locale=locale, form="cardinal")
-            for digit in value.fraction
-        )
-        sign = "minus " if value.negative and not whole.startswith("minus") else ""
-        return f"{sign}{whole} point {digits}"
+    language = locale.split("-", 1)[0]
+    if language not in _LEGACY_POINT_DECIMAL_LANGUAGES:
+        try:
+            return render(value, locale=locale, form="decimal", **options)
+        except NumeralFormError:
+            pass
+    return _legacy_point_decimal(value, locale, options)
 
 
 def _legacy_has_explicit_fraction(value: object) -> bool:

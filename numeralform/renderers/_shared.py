@@ -183,6 +183,22 @@ class LexicalRenderer:
         return self._cardinal(value)
 
 
+_DECIMAL_WORDS = {
+    "de": "Komma",
+    "fr": "virgule",
+    "it": "virgola",
+    "pt": "vírgula",
+    "sv": "komma",
+}
+
+
+def _decimal_word(locale: str) -> str:
+    """Return the reviewed spoken decimal separator for a locale tag."""
+    return _DECIMAL_WORDS.get(
+        locale, _DECIMAL_WORDS.get(locale.split("-", 1)[0], "point")
+    )
+
+
 class DecimalFallbackRenderer:
     """Add the universal spoken-decimal surface to legacy renderers."""
 
@@ -207,7 +223,8 @@ class DecimalFallbackRenderer:
         return replace(
             base,
             profiles=base.profiles + (decimal,),
-            notes=base.notes + ("Decimal digits use the canonical point policy.",),
+            notes=base.notes
+            + ("Decimal digits use the reviewed locale separator policy.",),
         )
 
     def render(self, request: NumeralRequest) -> NumeralResult:
@@ -237,7 +254,7 @@ class DecimalFallbackRenderer:
             )
         ).text
         return NumeralResult(
-            f"{whole} point {digits}",
+            f"{whole} {_decimal_word(request.locale)} {digits}",
             request.locale,
             request.form,
             request.style,

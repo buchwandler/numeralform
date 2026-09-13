@@ -110,3 +110,7 @@ and option translation, and does not require upstream `num2words` at runtime.
 English uses locale-specific grouping, Korean appends `년`, and German and
 Japanese use their canonical year realization. Japanese era conversion is
 available only through compatibility.
+
+## Canonical versus compatibility decimals
+
+Canonical `render(..., form="decimal")` uses reviewed locale separator words and preserves visible fractional digits, such as `Komma` in German. The separate `numeralform.compat.num2words` adapter intentionally retains the pinned upstream-compatible `point` behavior, including for German decimals; changes to canonical localization must not alter that legacy surface.

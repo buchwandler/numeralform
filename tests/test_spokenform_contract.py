@@ -127,3 +127,34 @@ def test_kazakh_uses_canonical_bcp47_identity() -> None:
 def test_korean_word_and_numeric_ordinals_are_distinct() -> None:
     assert render(3, locale="ko", form="ordinal") == "세 번째"
     assert render(3, locale="ko", form="ordinal_num") == "3번째"
+
+
+def test_italian_cardinal_and_identifier_digits_are_distinct() -> None:
+    assert render(118, locale="it") == "centodiciotto"
+    assert render(DigitSequence("118"), locale="it", form="digits") == "uno uno otto"
+
+
+def test_corrected_italian_final_three_is_not_regressed() -> None:
+    assert render(123, locale="it") == "centoventitré"
+    assert render(DigitSequence("123"), locale="it", form="digits") == "uno due tre"
+
+
+def test_digit_sequence_preserves_leading_zeroes() -> None:
+    assert (
+        render(DigitSequence("02118"), locale="it", form="digits")
+        == "zero due uno uno otto"
+    )
+
+
+@pytest.mark.parametrize(
+    ("locale", "expected_digits"),
+    [
+        ("de", "eins eins acht"),
+        ("en-US", "one one eight"),
+        ("es-MX", "uno uno ocho"),
+        ("fr", "un un huit"),
+        ("it", "uno uno otto"),
+    ],
+)
+def test_identifier_digit_contract(locale: str, expected_digits: str) -> None:
+    assert render(DigitSequence("118"), locale=locale, form="digits") == expected_digits

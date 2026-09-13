@@ -110,3 +110,15 @@ def test_numeral_request_annotations_match_runtime_coercion():
 def test_canonical_currency_signature_has_no_compatibility_switch():
     assert "compatibility" not in inspect.signature(render_currency).parameters
     assert "compatibility" not in inspect.signature(realize_currency).parameters
+
+
+def test_italian_currency_lexemes_do_not_fall_back_to_english() -> None:
+    assert render_currency(Decimal("1.50"), locale="it", currency="USD") == (
+        "un dollaro e cinquanta centesimi"
+    )
+    assert render_currency(Decimal("1.50"), locale="it", currency="GBP") == (
+        "una sterlina e cinquanta pence"
+    )
+    assert render_currency(Decimal("1.50"), locale="it", currency="CHF") == (
+        "un franco svizzero e cinquanta centesimi"
+    )

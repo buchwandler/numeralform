@@ -218,3 +218,10 @@ def test_pinned_compatibility_regression_fixtures():
     assert num2words(1901, lang="en", to="year") == "nineteen oh-one"
     assert num2words(100001, lang="pt") == "cem mil e um"
     assert num2words(83, lang="fr-BE", to="ordinal") == "quatre-vingt-troisième"
+
+
+def test_canonical_decimal_localization_does_not_change_compatibility() -> None:
+    assert render(Decimal("1.20"), locale="de", form="decimal") == (
+        "eins Komma zwei null"
+    )
+    assert "point" in num2words(Decimal("1.20"), lang="de")

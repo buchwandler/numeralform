@@ -41,3 +41,7 @@ Legacy converter keys use underscores, such as `en_IN`, `fr_CH`, and `zh_CN`. An
 ## Compatibility superset
 
 The adapter also preserves selected Numeralform extensions, including fraction strings, precision handling, variable currency scales, and richer cents behavior. These extensions are compatibility-superset behavior, not claims about the upstream API.
+
+## Decimal behavior boundary
+
+Canonical decimal rendering is locale-aware and preserves written fractional precision. Compatibility rendering remains an explicit legacy emulation surface: its pinned upstream behavior may use `point` even when the canonical locale uses a translated separator. Do not treat this intentional difference as a compatibility regression.

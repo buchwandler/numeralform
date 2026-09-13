@@ -119,6 +119,7 @@ _CURRENCIES = {
         "es": ("dólar", "dólares", "centavo", "centavos"),
         "de": ("Dollar", "Dollar", "Cent", "Cent"),
         "fr": ("dollar", "dollars", "cent", "cents"),
+        "it": ("dollaro", "dollari", "centesimo", "centesimi"),
         "ru": ("доллар", "доллара", "цент", "цента"),
     },
     "GBP": {
@@ -129,6 +130,7 @@ _CURRENCIES = {
         "fi": ("punta", "puntaa", "penny", "pennyä"),
         "de": ("Pfund", "Pfund", "Penny", "Pence"),
         "es": ("libra", "libras", "penique", "peniques"),
+        "it": ("sterlina", "sterline", "penny", "pence"),
     },
     "RUB": {
         "ru": ("рубль", "рубля", "копейка", "копейки"),
@@ -156,6 +158,7 @@ _CURRENCIES = {
     "CHF": {
         "en": ("Swiss franc", "Swiss francs", "rappen", "rappen"),
         "fr": ("franc suisse", "francs suisses", "centime", "centimes"),
+        "it": ("franco svizzero", "franchi svizzeri", "centesimo", "centesimi"),
     },
     "INR": {
         "en": ("Indian rupee", "Indian rupees", "paisa", "paise"),
@@ -245,6 +248,11 @@ _CURRENCY_NEGATIVE_PREFIXES = {
     "vi": "âm ",
 }
 _ATTACHED_CURRENCIES = {("ja", "JPY")}
+_CURRENCY_MAJOR_GENDERS = {
+    ("es", "GBP"): "feminine",
+    ("es", "NOK"): "feminine",
+    ("it", "GBP"): "feminine",
+}
 
 
 def _plural_category(language: str, value: int) -> str:
@@ -330,10 +338,9 @@ def _currency_policy(
     else:
         major_forms = {"one": names[0], "other": names[1]}
         minor_forms = {"one": names[2], "other": names[3]}
-    major_gender = None
+    major_gender = _CURRENCY_MAJOR_GENDERS.get((language, code))
     minor_gender = None
     if language == "es":
-        major_gender = "feminine" if code in {"GBP", "NOK"} else "masculine"
         minor_gender = "masculine"
     return CurrencyLocalePolicy(
         CurrencyUnitLexeme(
@@ -443,7 +450,11 @@ def _words(value: int, locale: str, *, gender: str | None = None) -> str:
         return render(value, locale=locale, style="british-and")
     if language == "es" and gender is not None:
         return render(value, locale=locale, syntax=Syntax.ATTRIBUTIVE, gender=gender)
-    if gender is not None:
+    if language == "it" and gender == "feminine":
+        if value == 1:
+            return "una"
+        text = render(value, locale=locale)
+    elif gender is not None:
         text = render(value, locale=locale, gender=gender)
     else:
         text = render(value, locale=locale)
