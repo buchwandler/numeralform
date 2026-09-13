@@ -26,7 +26,7 @@ wheel from outside the repository root:
 ```bash
 python -m pip install --force-reinstall --no-deps dist/*.whl
 cd /tmp
-python -I -c 'import numeralform; assert numeralform.__version__ == "0.1.0"; assert numeralform.render(42, locale="en") == "forty-two"'
+python -I -c 'import importlib.metadata; import numeralform; assert numeralform.__version__ == importlib.metadata.version("numeralform"); assert numeralform.render(42, locale="en") == "forty-two"'
 ```
 
 ## Compatibility and reference benchmark gate
@@ -57,7 +57,37 @@ and regenerate `docs/changelog.md` before tagging. Current benchmark paths are
 
 ## Artifacts and tag
 
-Inspect wheel and sdist metadata. Their package metadata and filenames must report
-`0.1.0`. Create the `v0.1.0` tag only after required core and benchmark gates pass.
-Publish using the project publishing policy, then repeat the version and rendering
-smoke tests from the published artifacts.
+Choose the release version before tagging and keep these values identical:
+
+- `[project].version` in `pyproject.toml`
+- `numeralform._version.__version__`
+- the Git tag without its leading `v`
+
+For example, a package version `0.1.4` must use tag `v0.1.4`.
+
+Build and inspect the artifacts:
+
+```bash
+rm -rf build dist *.egg-info
+python -m build --sdist --wheel
+python scripts/check_artifact.py dist --expected-version "<version>"
+twine check dist/*
+```
+
+Install the wheel outside the repository root and verify the installed metadata:
+
+```bash
+python -m pip install --force-reinstall --no-deps dist/*.whl
+cd /tmp
+python -I -c '
+import importlib.metadata
+import numeralform
+
+assert numeralform.__version__ == importlib.metadata.version("numeralform")
+assert numeralform.render(42, locale="en") == "forty-two"
+'
+```
+
+Create and publish the GitHub release only after the release commit containing
+the version bump has passed the required CI and benchmark gates. The PyPI workflow
+validates that the GitHub release tag and built artifact versions match before upload.

@@ -19,7 +19,7 @@ morphology, style, and feature constraints.
 | `cs`    | cardinal, decimal, digits, ordinal_num, year                    | 999,999,999                 |
 | `cy`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
 | `da`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
-| `de`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+| `de`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999,999         |
 | `en`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
 | `en-GB` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
 | `en-IN` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |

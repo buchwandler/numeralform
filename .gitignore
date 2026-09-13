@@ -223,7 +223,7 @@ benchmarks/data/corpora/cldr/*
 !benchmarks/data/corpora/cldr/.gitkeep
 benchmarks/data/corpora/num2words/*
 !benchmarks/data/corpora/num2words/.gitkeep
-benchmarks/data/oracles/num2words/*
-!benchmarks/data/oracles/num2words/.gitkeep
+benchmarks/data/oracles/num2words/
+!benchmarks/data/oracles/.gitkeep
 benchmarks/data/results/*
 !benchmarks/data/results/.gitkeep

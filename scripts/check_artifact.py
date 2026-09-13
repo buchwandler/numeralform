@@ -1,13 +1,40 @@
 from __future__ import annotations
 
-import sys
+import argparse
+import re
 import tarfile
 import zipfile
+from email.parser import Parser
 from pathlib import Path
+
+_VERSION_RE = re.compile(
+    r'^__version__\s*=\s*["\']([^"\']+)["\']\s*$',
+    re.MULTILINE,
+)
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Validate built Numeralform artifacts."
+    )
+    parser.add_argument(
+        "dist",
+        nargs="?",
+        default="dist",
+        type=Path,
+    )
+    parser.add_argument(
+        "--expected-version",
+        help="Require wheel/sdist/runtime metadata to match this release version.",
+    )
+    return parser.parse_args()
 
 
 def main() -> int:
-    dist = Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
+    args = _parse_args()
+    dist: Path = args.dist
+    expected_version: str | None = args.expected_version
+
     wheels = sorted(dist.glob("*.whl"))
     sdists = sorted(dist.glob("*.tar.gz"))
     assert len(wheels) == 1, f"expected one wheel, found {wheels}"
@@ -18,18 +45,44 @@ def main() -> int:
         metadata_name = next(
             name for name in names if name.endswith(".dist-info/METADATA")
         )
-        metadata = wheel.read(metadata_name).decode()
-        assert "Summary: Typed, locale-aware number-to-words" in metadata
+        metadata_text = wheel.read(metadata_name).decode()
+        metadata = Parser().parsestr(metadata_text)
+
+        assert metadata["Name"] == "numeralform"
+        assert "Typed, locale-aware number-to-words" in (metadata["Summary"] or "")
         assert any(name.endswith("numeralform/py.typed") for name in names)
         assert not any(name.startswith("benchmarks/") for name in names)
         assert not any(name.startswith(".ledger/") for name in names)
 
+        if expected_version is not None:
+            actual_version = metadata["Version"]
+            assert actual_version == expected_version, (
+                "wheel metadata version mismatch: "
+                f"expected {expected_version}, got {actual_version}"
+            )
+
+            version_source = wheel.read("numeralform/_version.py").decode()
+            match = _VERSION_RE.search(version_source)
+            assert match is not None, "unable to read numeralform/_version.py version"
+            assert match.group(1) == expected_version, (
+                "runtime __version__ mismatch: "
+                f"expected {expected_version}, got {match.group(1)}"
+            )
+
     with tarfile.open(sdists[0]) as sdist:
         names = set(sdist.getnames())
+
         assert any(name.endswith("/LICENSE") for name in names)
         assert any(name.endswith("/README.md") for name in names)
         assert any(name.endswith("/pyproject.toml") for name in names)
         assert any("/numeralform/__init__.py" in name for name in names)
+
+        if expected_version is not None:
+            expected_root = f"numeralform-{expected_version}"
+            roots = {name.split("/", 1)[0] for name in names if name}
+            assert roots == {expected_root}, (
+                f"sdist root mismatch: expected {expected_root}, got {sorted(roots)}"
+            )
 
     return 0
 

@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "numeralform"
-version = "0.1.0"
+version = "0.1.4"
 description = "Typed, locale-aware number-to-words rendering with explicit grammar and deterministic num2words compatibility"
 readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{ name = "numeralform contributors" }]
 classifiers = [
     "Natural Language :: English",
@@ -18,15 +18,14 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Operating System :: OS Independent",
     "Typing :: Typed",
-    "License :: OSI Approved :: Apache Software License",
     "Development Status :: 3 - Alpha",
 ]
 
 [project.urls]
-Homepage = "https://github.com/nahrstaedt/numeralform"
-Repository = "https://github.com/nahrstaedt/numeralform"
-Issues = "https://github.com/nahrstaedt/numeralform/issues"
-Documentation = "https://github.com/nahrstaedt/numeralform#readme"
+Homepage = "https://github.com/buchwandler/numeralform"
+Repository = "https://github.com/buchwandler/numeralform"
+Issues = "https://github.com/buchwandler/numeralform/issues"
+Documentation = "https://github.com/buchwandler/numeralform#readme"
 
 [project.scripts]
 numeralform = "numeralform.cli:main"

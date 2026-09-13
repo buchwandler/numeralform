@@ -364,6 +364,15 @@ def test_01_todo_renderer_regressions():
     assert render(1050, locale="vi") == "một nghìn lẻ năm mươi"
 
 
+def test_german_cardinal_scale_boundaries() -> None:
+    assert render(999_999_999_999, locale="de")
+    assert render(1_000_000_000_000, locale="de") == "eine Billion"
+    assert render(1_000_000_000_001, locale="de") == "eine Billion eins"
+    assert render(999_999_999_999_999, locale="de")
+    with pytest.raises(InvalidValueError):
+        render(1_000_000_000_000_000, locale="de")
+
+
 def test_audited_scale_and_morphology_regressions():
     assert render(684_012_070, locale="pt") == (
         "seiscentos e oitenta e quatro milhões e doze mil e setenta"

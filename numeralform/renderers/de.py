@@ -72,7 +72,7 @@ _SCALES = [
     (1_000, "tausend", "tausend"),
     (100, "hundert", "hundert"),
 ]
-_MAX_CARDINAL = 999_999_999_999
+_MAX_CARDINAL = 999_999_999_999_999
 
 
 class GermanRenderer:
@@ -119,7 +119,7 @@ class GermanRenderer:
             raise InvalidValueError("cardinal form requires an integer")
         if abs(value) > _MAX_CARDINAL:
             raise InvalidValueError(
-                "German cardinal supports integers up to 999999999999"
+                "German cardinal supports integers up to 999999999999999"
             )
         if value < 0:
             return "minus " + self._cardinal(-value)
