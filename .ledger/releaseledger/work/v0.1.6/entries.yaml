@@ -1,0 +1,26 @@
+schema: releaseledger.entry-batch.v1
+operation: create
+schema_version: 1
+object_type: release_entry_batch
+release_version: v0.1.6
+git_base_ref: 71a1203947e12a7f207d47a140fb195b2e967886
+git_base_sha: 71a1203947e12a7f207d47a140fb195b2e967886
+git_head_ref: ea5f50dd5e59ffe144e7c91cb646c90344861a39
+git_head_sha: ea5f50dd5e59ffe144e7c91cb646c90344861a39
+include_merges: nontrivial
+entries:
+  - kind: changed
+    summary: "Improved currency rendering with zero-minor omission, Spanish morphology, German CHF terms, and regional support"
+    status: accepted
+    source_refs:
+      - git:ea5f50dd5e59ffe144e7c91cb646c90344861a39
+    paths:
+      - numeralform/currency/__init__.py
+      - tests/test_currency_api.py
+      - tests/test_regressions.py
+    sources:
+      - git:ea5f50dd5e59ffe144e7c91cb646c90344861a39
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"

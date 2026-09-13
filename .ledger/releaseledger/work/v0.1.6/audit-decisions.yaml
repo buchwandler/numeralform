@@ -1,0 +1,14 @@
+rows:
+  - sha: ea5f50dd5e59ffe144e7c91cb646c90344861a39
+    inspected: true
+    inspected_paths:
+      - numeralform/currency/__init__.py
+      - tests/test_currency_api.py
+      - tests/test_regressions.py
+    observed_behavior: "Currency rendering now supports omitting zero minor units, adds locale-specific Spanish morphology and German CHF terminology, and expands regional currency support with zero-decimal currencies."
+    public_impact: public
+    decision: accepted
+    target_entry_key: currency-rendering-improvements
+    target_entry_id: null
+    notes: "Reviewed implementation and regression coverage for the public currency API changes."
+    stale: false

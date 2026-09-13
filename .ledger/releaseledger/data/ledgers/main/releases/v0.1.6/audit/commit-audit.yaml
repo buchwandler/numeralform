@@ -1,0 +1,42 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: v0.1.6
+git_base_ref: v0.1.5
+git_base_sha: 71a1203947e12a7f207d47a140fb195b2e967886
+git_head_ref: HEAD
+git_head_sha: ea5f50dd5e59ffe144e7c91cb646c90344861a39
+git_range: 71a1203947e12a7f207d47a140fb195b2e967886..ea5f50dd5e59ffe144e7c91cb646c90344861a39
+commit_count: 1
+rows:
+  - sha: ea5f50dd5e59ffe144e7c91cb646c90344861a39
+    source_ref: git:ea5f50dd5e59ffe144e7c91cb646c90344861a39
+    short_sha: ea5f50d
+    changed_paths:
+      - numeralform/currency/__init__.py
+      - tests/test_currency_api.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 134
+      deletions: 10
+    inspected: true
+    inspected_paths:
+      - numeralform/currency/__init__.py
+      - tests/test_currency_api.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Currency rendering now supports omitting zero minor units, adds
+      locale-specific Spanish morphology and German CHF terminology, and expands regional
+      currency support with zero-decimal currencies.
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: several fixes"
+    target_entry_key: currency-rendering-improvements
+    target_entry_id: entry-0001
+    notes:
+      Reviewed implementation and regression coverage for the public currency API
+      changes.
