@@ -12,5 +12,4 @@ class HungarianRenderer(LexicalRenderer):
         "hu",
         tuple(CARDINALS["hu"][i] for i in range(10)),
         compound="",
-        ordinal_suffix="adik",
     )

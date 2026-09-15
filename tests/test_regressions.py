@@ -44,9 +44,61 @@ def test_english_digit_style_is_rejected():
         render(DigitSequence("12"), locale="en", style="british-and")
 
 
-def test_spanish_ordinal_outside_reviewed_range_is_package_error():
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (20, "vigésimo"),
+        (21, "vigésimo primero"),
+        (25, "vigésimo quinto"),
+        (30, "trigésimo"),
+        (31, "trigésimo primero"),
+        (42, "cuadragésimo segundo"),
+        (99, "nonagésimo noveno"),
+        (100, "centésimo"),
+        (101, "centésimo primero"),
+        (121, "centésimo vigésimo primero"),
+        (200, "ducentésimo"),
+        (999, "noningentésimo nonagésimo noveno"),
+        (1000, "milésimo"),
+        (1001, "milésimo primero"),
+        (2024, "dosmilésimo vigésimo cuarto"),
+        (1_000_000, "millonésimo"),
+        (999_999_999, "novecientos noventa y nuevemillonésimo "
+         "novecientos noventa y nuevemilésimo noningentésimo nonagésimo noveno"),
+    ],
+)
+def test_spanish_ordinals_compose_above_twenty(value, expected):
+    assert render(value, locale="es", form="ordinal") == expected
+
+
+@pytest.mark.parametrize("locale", ["es-CO", "es-CR", "es-GT", "es-MX", "es-NI", "es-VE"])
+def test_spanish_regional_variants_compose_ordinals(locale):
+    assert render(25, locale=locale, form="ordinal") == "vigésimo quinto"
+    assert render(21, locale=locale, form="ordinal") == "vigésimo primero"
+
+
+@pytest.mark.parametrize(
+    ("value", "gender", "expected"),
+    [
+        (21, "masculine", "vigésimo primer"),
+        (21, "feminine", "vigésima primera"),
+        (23, "masculine", "vigésimo tercer"),
+        (31, "feminine", "trigésima primera"),
+        (121, "feminine", "centésima vigésima primera"),
+        (121, "masculine", "centésimo vigésimo primer"),
+        (2024, "feminine", "dosmilésima vigésima cuarta"),
+    ],
+)
+def test_spanish_compound_ordinal_gender_and_apocopation(value, gender, expected):
+    assert (
+        render(value, locale="es", form="ordinal", syntax="attributive", gender=gender)
+        == expected
+    )
+
+
+def test_spanish_ordinal_above_domain_is_package_error():
     with pytest.raises(NumeralFormError):
-        render(30, locale="es", form="ordinal")
+        render(1_000_000_000, locale="es", form="ordinal")
 
 
 def test_russian_ordinal_expands_beyond_initial_review_range():

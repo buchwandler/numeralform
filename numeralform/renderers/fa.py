@@ -12,5 +12,4 @@ class PersianRenderer(LexicalRenderer):
         "fa",
         tuple(CARDINALS["fa"][i] for i in range(10)),
         negative="منفی",
-        ordinal_suffix="م",
     )

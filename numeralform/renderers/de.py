@@ -73,6 +73,7 @@ _SCALES = [
     (100, "hundert", "hundert"),
 ]
 _MAX_CARDINAL = 999_999_999_999_999
+_MAX_ORDINAL = _MAX_CARDINAL
 
 
 class GermanRenderer:
@@ -89,6 +90,9 @@ class GermanRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),

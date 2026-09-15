@@ -12,5 +12,4 @@ class HindiRenderer(LexicalRenderer):
         "hi",
         tuple(CARDINALS["hi"][i] for i in range(10)),
         negative="माइनस",
-        ordinal_suffix="वाँ",
     )

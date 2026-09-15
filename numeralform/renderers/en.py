@@ -120,6 +120,9 @@ class EnglishRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.DECIMAL),

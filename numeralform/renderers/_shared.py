@@ -1,8 +1,9 @@
 """Small mechanical helpers shared by independently owned locale renderers."""
 
 from __future__ import annotations
-
 import unicodedata
+from collections.abc import Mapping
+from typing import ClassVar
 from dataclasses import dataclass, replace
 from typing import ClassVar
 
@@ -25,9 +26,23 @@ class RendererData:
     decimal: str = "point"
     negative: str = "minus"
     compound: str = " "
-    ordinal_suffix: str = "th"
-    ordinal_prefix: str = ""
     digit_separator: str | None = None
+
+
+def contiguous_integer_domain(values: Mapping[int, str]) -> tuple[int, int] | None:
+    """Return the largest contiguous integer block starting at the minimum key."""
+    if not values:
+        return None
+    minimum = min(values)
+    maximum = minimum
+    while maximum + 1 in values:
+        maximum += 1
+    return minimum, maximum
+
+
+# Per-class cache for the fixture-derived ordinal domain so hot render
+# paths do not rescan the fixture table on every request.
+_ORDINAL_DOMAINS: dict[type, NumericDomain | None] = {}
 
 
 class LexicalRenderer:
@@ -35,7 +50,9 @@ class LexicalRenderer:
 
     Lexical maps, script choices, scale names, and joining policy are supplied by
     each concrete locale module. The helper deliberately does not provide a
-    numeric-text fallback.
+    numeric-text fallback and deliberately does not synthesize word ordinals:
+    ordinal surfaces come either from reviewed fixtures or from a locale-owned
+    ``_ordinal()`` override.
     """
 
     locale: ClassVar[str] = ""
@@ -44,7 +61,23 @@ class LexicalRenderer:
     ordinals: ClassVar[dict[int, str]] = {}
     exact: ClassVar[dict[int, str]] = {}
     max_cardinal = 999_999_999
-    max_ordinal = 999_999_999
+
+    @classmethod
+    def _ordinal_domain(cls) -> NumericDomain | None:
+        """The reviewed continuous word-ordinal domain, or None if unreviewed."""
+        try:
+            return _ORDINAL_DOMAINS[cls]
+        except KeyError:
+            block = contiguous_integer_domain(cls.ordinals)
+            domain = (
+                NumericDomain(
+                    minimum=block[0], maximum=block[1], allow_negative=False
+                )
+                if block
+                else None
+            )
+            _ORDINAL_DOMAINS[cls] = domain
+            return domain
 
     @classmethod
     def capabilities(cls) -> LocaleCapabilities:
@@ -63,12 +96,10 @@ class LexicalRenderer:
                 domain=NumericDomain(maximum=9999),
             ),
         ]
-        if cls.ordinals:
+        ordinal_domain = cls._ordinal_domain()
+        if ordinal_domain is not None:
             profiles.append(
-                CapabilityProfile(
-                    NumeralForm.ORDINAL,
-                    domain=NumericDomain(maximum=cls.max_ordinal, allow_negative=False),
-                )
+                CapabilityProfile(NumeralForm.ORDINAL, domain=ordinal_domain)
             )
         return LocaleCapabilities(
             profiles=tuple(profiles),
@@ -167,13 +198,21 @@ class LexicalRenderer:
         return f"{integer} {self.data.decimal} {fraction}"
 
     def _ordinal(self, value: int) -> str:
-        if value < 0 or value > self.max_ordinal:
+        domain = self._ordinal_domain()
+        if (
+            domain is None
+            or value < (domain.minimum or 0)
+            or value > domain.maximum
+        ):
             raise InvalidValueError(
                 f"{self.locale} ordinal value is outside the supported range"
             )
-        if value in self.ordinals:
+        try:
             return self.ordinals[value]
-        return f"{self.data.ordinal_prefix}{self._cardinal(value)}{self.data.ordinal_suffix}"
+        except KeyError as exc:
+            raise InvalidValueError(
+                f"{self.locale} ordinal value {value} has no reviewed rendering"
+            ) from exc
 
     def _year(self, value: int) -> str:
         if value < 0 or value > 9999:
@@ -331,8 +370,6 @@ def locale_data(
     *,
     compound: str = " ",
     negative: str = "minus",
-    ordinal_suffix: str = "th",
-    ordinal_prefix: str = "",
 ) -> RendererData:
     return RendererData(
         digits=digits,
@@ -340,10 +377,7 @@ def locale_data(
         decimal=_DECIMALS.get(locale, "point"),
         negative=negative,
         compound=compound,
-        ordinal_suffix=ordinal_suffix,
-        ordinal_prefix=ordinal_prefix,
         digit_separator=_DIGIT_SEPARATORS.get(locale),
     )
-
 
 __all__ = ["LexicalRenderer", "RendererData"]

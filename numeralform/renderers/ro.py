@@ -8,6 +8,4 @@ class RomanianRenderer(LexicalRenderer):
     locale = "ro"
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
-    data = locale_data(
-        "ro", tuple(CARDINALS["ro"][i] for i in range(10)), ordinal_prefix="al "
-    )
+    data = locale_data("ro", tuple(CARDINALS["ro"][i] for i in range(10)))

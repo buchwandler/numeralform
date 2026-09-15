@@ -75,6 +75,7 @@ _SCALES = [
     (1_000, "tusen"),
 ]
 _MAX_CARDINAL = 999_999_999_999
+_MAX_ORDINAL = _MAX_CARDINAL
 
 
 class SwedishRenderer:
@@ -91,6 +92,9 @@ class SwedishRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
@@ -178,6 +182,16 @@ class SwedishRenderer:
                 + "tusen"
                 + self._render_ordinal(remainder)
             )
+        for scale, name in _SCALES:
+            if value >= scale:
+                quotient, remainder = divmod(value, scale)
+                if quotient == 1:
+                    prefix = "en " + name
+                else:
+                    prefix = self._render_cardinal(quotient) + " " + name + "er"
+                if remainder == 0:
+                    return prefix + "de"
+                return prefix + " " + self._render_ordinal(remainder)
         raise InvalidValueError("Swedish ordinal is outside the supported range")
 
     def _render_digits(self, value) -> str:

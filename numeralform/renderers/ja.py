@@ -33,6 +33,7 @@ _SCALES = [
     (10, "十"),
 ]
 _MAX_CARDINAL = 9999_9999_9999
+_MAX_ORDINAL = _MAX_CARDINAL
 
 
 class JapaneseRenderer:
@@ -49,6 +50,9 @@ class JapaneseRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),

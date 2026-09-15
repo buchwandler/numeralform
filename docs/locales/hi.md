@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker 
 
 ## Ordinal policy
 
-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
+Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..3; values outside that block are rejected rather than synthesized.
 
 ## Year policy
 

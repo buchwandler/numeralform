@@ -8,6 +8,4 @@ class EsperantoRenderer(LexicalRenderer):
     locale = "eo"
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
-    data = locale_data(
-        "eo", tuple(CARDINALS["eo"][i] for i in range(10)), ordinal_suffix="a"
-    )
+    data = locale_data("eo", tuple(CARDINALS["eo"][i] for i in range(10)))

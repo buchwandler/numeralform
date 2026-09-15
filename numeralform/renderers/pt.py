@@ -121,6 +121,7 @@ _HUNDREDS: dict[int, str | tuple[str, str]] = {
     900: "novecentos",
 }
 _MAX_CARDINAL = 999_999_999_999
+_MAX_ORDINAL = 999_999
 
 
 def _next_expressed_group(remainder: int, scale: int) -> int:
@@ -163,6 +164,9 @@ class PortugueseRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
@@ -238,6 +242,10 @@ class PortugueseRenderer:
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
+        if value > _MAX_ORDINAL:
+            raise InvalidValueError(
+                "Portuguese ordinal is outside the supported range"
+            )
         if value <= 20:
             return _ORDINALS_PT[value]
         if value < 100:

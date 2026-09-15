@@ -80,6 +80,7 @@ def _ordinalize_cardinal_tail(cardinal: str) -> str:
 
 _SCALES = [(1_000_000_000, "milliard"), (1_000_000, "million"), (1_000, "mille")]
 _MAX_CARDINAL = 999_999_999_999
+_MAX_ORDINAL = _MAX_CARDINAL
 
 
 class FrenchRenderer:
@@ -96,6 +97,9 @@ class FrenchRenderer:
                 CapabilityProfile(
                     NumeralForm.ORDINAL,
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),

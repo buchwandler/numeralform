@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker 
 
 ## Ordinal policy
 
-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
+Numeric ordinals are separate from word ordinals. Word ordinals use the locale-owned `第 + cardinal` rule for non-negative values through 999,999,999.
 
 ## Year policy
 

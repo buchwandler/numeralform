@@ -27,6 +27,9 @@ def test_supported_locales_have_executable_profiles(locale):
     assert caps.forms
     for profile in caps.profiles:
         value = samples.get(profile.form, 0)
+        minimum = profile.domain.minimum or 0
+        if isinstance(value, int) and value < minimum:
+            value = minimum
         syntax = next(iter(profile.syntaxes))
         assert supports(
             locale,
@@ -95,8 +98,8 @@ def test_spokenform_base_inventory_is_canonical():
 def test_domains_agree_with_renderer_boundaries():
     assert supports("en", value=999_999_999_999)
     assert not supports("en", value=1_000_000_000_000)
-    assert supports("es", form="ordinal", value=20)
-    assert not supports("es", form="ordinal", value=21)
+    assert supports("es", form="ordinal", value=999_999_999)
+    assert not supports("es", form="ordinal", value=1_000_000_000)
     assert supports("fi", value=9_999)
     assert supports("fi", value=1_000_000)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ..errors import InvalidValueError
+from ..locale import NumericDomain
 from ..model import DigitSequence
 from ._fixtures import CARDINALS, ORDINALS
 from ._shared import LexicalRenderer, locale_data
@@ -15,7 +16,22 @@ class ChineseRenderer(LexicalRenderer):
     locale = "zh"
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
-    data = locale_data(locale, _DIGITS, compound="", negative="负", ordinal_prefix="第")
+    data = locale_data(locale, _DIGITS, compound="", negative="负")
+
+    _MAX_ORDINAL = 999_999_999
+
+    @classmethod
+    def _ordinal_domain(cls) -> NumericDomain:
+        return NumericDomain(
+            minimum=0, maximum=cls._MAX_ORDINAL, allow_negative=False
+        )
+
+    def _ordinal(self, value: int) -> str:
+        if value < 0 or value > self._MAX_ORDINAL:
+            raise InvalidValueError(
+                f"{self.locale} ordinal value is outside the supported range"
+            )
+        return "第" + self._cardinal(value)
 
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):

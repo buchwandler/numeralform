@@ -8,6 +8,4 @@ class IndonesianRenderer(LexicalRenderer):
     locale = "id"
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
-    data = locale_data(
-        "id", tuple(CARDINALS["id"][i] for i in range(10)), ordinal_prefix="ke-"
-    )
+    data = locale_data("id", tuple(CARDINALS["id"][i] for i in range(10)))

@@ -174,6 +174,9 @@ class FinnishRenderer:
         common_cases = frozenset({"nominative"})
         common_numbers = frozenset({"singular"})
         common_domain = NumericDomain(maximum=999_999_999_999)
+        ordinal_domain = NumericDomain(
+            minimum=0, maximum=999_999_999_999, allow_negative=False
+        )
         return LocaleCapabilities(
             profiles=(
                 CapabilityProfile(
@@ -188,13 +191,13 @@ class FinnishRenderer:
                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
                     cases=common_cases,
                     grammatical_numbers=common_numbers,
-                    domain=common_domain,
+                    domain=ordinal_domain,
                 ),
                 CapabilityProfile(
                     NumeralForm.ORDINAL_NUMERIC,
                     cases=common_cases,
                     grammatical_numbers=common_numbers,
-                    domain=common_domain,
+                    domain=ordinal_domain,
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),

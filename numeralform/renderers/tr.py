@@ -13,5 +13,4 @@ class TurkishRenderer(LexicalRenderer):
         tuple(CARDINALS["tr"][i] for i in range(10)),
         compound="",
         negative="eksi",
-        ordinal_suffix="inci",
     )

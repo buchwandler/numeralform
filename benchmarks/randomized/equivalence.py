@@ -173,6 +173,57 @@ _ES_ORDINAL_ATTRIBUTIVE_APOCOPE = {
     3: ("tercero", "tercer"),
     13: ("decimotercero", "decimotercer"),
 }
+# The pinned oracle composes Spanish ordinals with historical spellings
+# the canonical renderer deliberately does not use: decimo- teens instead
+# of undécimo/duodécimo, cuadri-/septi-/octi-gentesimo hundreds, the
+# unaccented compounded 20-29 decade (with o-elision before octavo), and
+# a masculine decade stem inside feminine forms. These audited spelling
+# and spacing mappings align both surfaces without masking numeric or
+# morphological differences.
+_ES_ORDINAL_COMPOUND_SPELLINGS = (
+    ("decimoprimero", "undecimo"),
+    ("decimosegundo", "duodecimo"),
+    ("decimoprimera", "undecima"),
+    ("decimosegunda", "duodecima"),
+    ("cuadrigentesimo", "cuadringentesimo"),
+    ("cuadrigentesima", "cuadringentesima"),
+    ("septigentesimo", "septingentesimo"),
+    ("septigentesima", "septingentesima"),
+    ("octigentesimo", "octingentesimo"),
+    ("octigentesima", "octingentesima"),
+)
+
+
+def _spanish_ordinal_compound_key(text: str) -> str:
+    key = unicodedata.normalize("NFD", _surface_key(text))
+    key = "".join(char for char in key if unicodedata.category(char) != "Mn")
+    key = "".join(key.split())
+    for legacy, modern in _ES_ORDINAL_COMPOUND_SPELLINGS:
+        key = key.replace(legacy, modern)
+    # The oracle elides the doubled vowel in vigesimo + octavo compounds.
+    key = key.replace("vigesimoctavo", "vigesimooctavo")
+    key = key.replace("vigesimoctava", "vigesimaoctava")
+    return key
+
+
+def _spanish_ordinal_compound_orthography_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.locale.split("-", 1)[0] != "es" or case.kind != "ordinal":
+        return False
+    expected_key = _spanish_ordinal_compound_key(expected)
+    actual_key = _spanish_ordinal_compound_key(actual)
+    if _spanish_ordinal_gender(case) == "feminine":
+        # The oracle leaves the 20s decade stem masculine in feminine forms.
+        expected_key = expected_key.replace("vigesimo", "vigesima")
+    for suffix in ("primer", "tercer"):
+        if expected_key.endswith(suffix) and not actual_key.endswith(suffix):
+            expected_key += "o"
+        if actual_key.endswith(suffix) and not expected_key.endswith(suffix):
+            actual_key += "o"
+    return expected_key == actual_key
+
+
 _FR_CONTINUATION_WORDS = frozenset(
     {
         "un",
@@ -1058,6 +1109,10 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
         (
             "variant:es-ordinal-attributive-apocope",
             _spanish_ordinal_attributive_apocope_variant,
+        ),
+        (
+            "variant:es-ordinal-compound-orthography",
+            _spanish_ordinal_compound_orthography_variant,
         ),
         ("oracle:es-gbp-gender", _spanish_gbp_gender_variant),
         ("oracle:es-nok-gender", _spanish_nok_gender_variant),

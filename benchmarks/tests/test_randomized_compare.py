@@ -176,6 +176,29 @@ def test_named_locale_equivalence_rules_and_negative_controls():
             "oracle:es-ordinal-accent",
         ),
         (
+            case(locale="es", kind="ordinal", value=21),
+            "vigesimoprimero",
+            "vigésimo primero",
+            "variant:es-ordinal-compound-orthography",
+        ),
+        (
+            case(locale="es", kind="ordinal", value=2024),
+            "dosmilésimo vigesimocuarto",
+            "dosmilésimo vigésimo cuarto",
+            "variant:es-ordinal-compound-orthography",
+        ),
+        (
+            case(
+                locale="es",
+                kind="ordinal",
+                value=121,
+                options={"gender": "f"},
+            ),
+            "centésima vigesimoprimera",
+            "centésima vigésima primera",
+            "variant:es-ordinal-compound-orthography",
+        ),
+        (
             case(locale="es", kind="ordinal", value=12),
             "decimosegundo",
             "duodécimo",
@@ -243,6 +266,21 @@ def test_named_locale_equivalence_rules_and_negative_controls():
         accept_variants=True,
     )
     assert negative.status == "mismatch"
+
+    compound_negative = compare_results(
+        case(locale="es", kind="ordinal", value=121),
+        ExecutionResult.text_result("centésima vigesimoprimera"),
+        ExecutionResult.text_result("centésima vigésima primero"),
+        accept_variants=True,
+    )
+    assert compound_negative.status == "mismatch"
+    compound_wrong_number = compare_results(
+        case(locale="es", kind="ordinal", value=2024),
+        ExecutionResult.text_result("dosmilésimo vigesimocuarto"),
+        ExecutionResult.text_result("dosmilésimo vigésimo quinto"),
+        accept_variants=True,
+    )
+    assert compound_wrong_number.status == "mismatch"
 
     malformed = compare_results(
         case(locale="fr-BE", value=951),

@@ -35,6 +35,7 @@ _SCALES = [
     (10, "십"),
 ]
 _MAX_CARDINAL = 9999_9999_9999
+_MAX_ORDINAL = _MAX_CARDINAL
 
 
 class KoreanRenderer:
@@ -53,7 +54,12 @@ class KoreanRenderer:
                     NumeralForm.DECIMAL,
                     domain=NumericDomain(maximum=_MAX_CARDINAL, decimals=True),
                 ),
-                CapabilityProfile(NumeralForm.ORDINAL),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    domain=NumericDomain(
+                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
+                    ),
+                ),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
             notes=(

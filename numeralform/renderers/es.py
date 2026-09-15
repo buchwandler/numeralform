@@ -104,8 +104,29 @@ _ORDINALS = {
     19: "decimonoveno",
     20: "vigésimo",
 }
+_ORDINAL_TENS = {
+    2: "vigésimo",
+    3: "trigésimo",
+    4: "cuadragésimo",
+    5: "quincuagésimo",
+    6: "sexagésimo",
+    7: "septuagésimo",
+    8: "octogésimo",
+    9: "nonagésimo",
+}
+_ORDINAL_HUNDREDS = {
+    1: "centésimo",
+    2: "ducentésimo",
+    3: "tricentésimo",
+    4: "cuadringentésimo",
+    5: "quingentésimo",
+    6: "sexcentésimo",
+    7: "septingentésimo",
+    8: "octingentésimo",
+    9: "noningentésimo",
+}
 _MAX_CARDINAL = 999_999_999
-_MAX_ORDINAL = 20
+_MAX_ORDINAL = _MAX_CARDINAL
 _MAX_FRACTION_DENOMINATOR = 20
 
 
@@ -301,42 +322,69 @@ class SpanishRenderer:
         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
         return f"{sign}{integer} punto {fraction}"
 
+    def _ordinal_parts(self, value: int) -> list[str]:
+        """Decompose a reviewed ordinal into its agreeing components."""
+        if value <= 20:
+            return [_ORDINALS[value]]
+        if value < 100:
+            tens, units = divmod(value, 10)
+            parts = [_ORDINAL_TENS[tens]]
+            if units:
+                parts.append(_ORDINALS[units])
+            return parts
+        if value < 1000:
+            hundreds, remainder = divmod(value, 100)
+            parts = [_ORDINAL_HUNDREDS[hundreds]]
+            if remainder:
+                parts.extend(self._ordinal_parts(remainder))
+            return parts
+        if value < 1_000_000:
+            thousands, remainder = divmod(value, 1000)
+            head = (
+                "milésimo"
+                if thousands == 1
+                else self._cardinal_plain(thousands) + "milésimo"
+            )
+            parts = [head]
+            if remainder:
+                parts.extend(self._ordinal_parts(remainder))
+            return parts
+        millions, remainder = divmod(value, 1_000_000)
+        head = (
+            "millonésimo"
+            if millions == 1
+            else self._cardinal_plain(millions) + "millonésimo"
+        )
+        parts = [head]
+        if remainder:
+            parts.extend(self._ordinal_parts(remainder))
+        return parts
+
     def _ordinal(self, value: int, request: NumeralRequest) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value > _MAX_ORDINAL:
             raise InvalidValueError(
-                "Spanish ordinal is supported only for values 0 through 20"
+                "Spanish ordinal is outside the supported range"
             )
-        text = _ORDINALS[value]
+        if value == 0:
+            return "cero"
+        tokens = " ".join(self._ordinal_parts(value)).split()
         if request.morphology.gender is Gender.FEMININE:
-            for masculine, feminine in (
-                ("primero", "primera"),
-                ("segundo", "segunda"),
-                ("tercero", "tercera"),
-                ("undécimo", "undécima"),
-                ("duodécimo", "duodécima"),
-                ("décimo", "décima"),
-                ("vigésimo", "vigésima"),
-                ("cuarto", "cuarta"),
-                ("quinto", "quinta"),
-                ("sexto", "sexta"),
-                ("séptimo", "séptima"),
-                ("octavo", "octava"),
-                ("noveno", "novena"),
-            ):
-                if text.endswith(masculine):
-                    text = text[: -len(masculine)] + feminine
-                    break
+            tokens = [
+                token[:-1] + "a" if token.endswith("o") else token
+                for token in tokens
+            ]
         elif (
             request.syntax is Syntax.ATTRIBUTIVE
             and request.morphology.gender is Gender.MASCULINE
+            and (
+                tokens[-1].endswith("primero")
+                or tokens[-1].endswith("tercero")
+            )
         ):
-            if text.endswith("primero"):
-                text = text[:-7] + "primer"
-            elif text.endswith("tercero"):
-                text = text[:-7] + "tercer"
-        return text
+            tokens[-1] = tokens[-1][:-1]
+        return " ".join(tokens)
 
     def _fraction(self, value) -> str:
         if not isinstance(value, FractionNumber):
