@@ -364,24 +364,18 @@ class SpanishRenderer:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value > _MAX_ORDINAL:
-            raise InvalidValueError(
-                "Spanish ordinal is outside the supported range"
-            )
+            raise InvalidValueError("Spanish ordinal is outside the supported range")
         if value == 0:
             return "cero"
         tokens = " ".join(self._ordinal_parts(value)).split()
         if request.morphology.gender is Gender.FEMININE:
             tokens = [
-                token[:-1] + "a" if token.endswith("o") else token
-                for token in tokens
+                token[:-1] + "a" if token.endswith("o") else token for token in tokens
             ]
         elif (
             request.syntax is Syntax.ATTRIBUTIVE
             and request.morphology.gender is Gender.MASCULINE
-            and (
-                tokens[-1].endswith("primero")
-                or tokens[-1].endswith("tercero")
-            )
+            and (tokens[-1].endswith("primero") or tokens[-1].endswith("tercero"))
         ):
             tokens[-1] = tokens[-1][:-1]
         return " ".join(tokens)

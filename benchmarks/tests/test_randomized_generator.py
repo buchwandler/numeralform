@@ -335,3 +335,53 @@ def test_oracle_support_probe_receives_exact_generated_case():
     assert len(probed) == len(cases)
     assert {case.transport for case in probed} >= {"native", "string", "float"}
     assert any(case.call_variant == "ordinal-bool" for case in probed)
+
+
+def test_duplicate_candidates_are_rejected_before_oracle_probe(monkeypatch):
+    from benchmarks.randomized import generator
+
+    calls = []
+
+    def repeated_candidate(
+        rng, locale, kind, profile, currency_choices, *, config, target
+    ):
+        return 7, None, {}, None, None, "native"
+
+    monkeypatch.setattr(generator, "_candidate", repeated_candidate)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        generator.generate_cases(
+            seed=3,
+            count=2,
+            profile="shared",
+            canonical_locales=("en",),
+            external_locales=("en",),
+            locales=("en",),
+            kinds=("cardinal",),
+            supports=lambda *args, **kwargs: True,
+            currency_supports=lambda *args, **kwargs: True,
+            oracle_supports_case=lambda case: calls.append(case) or True,
+        )
+
+    message = str(excinfo.value)
+    assert "accepted=1" in message
+    assert "generation_rejected_duplicate=59" in message
+    assert len(calls) == 1
+
+
+def test_shared_generation_is_deterministic_with_fake_oracle():
+    kwargs = {
+        "seed": 20260910,
+        "count": 25,
+        "profile": "shared",
+        "canonical_locales": ("en", "de"),
+        "external_locales": ("en", "de"),
+        "supports": lambda *args, **kwargs: True,
+        "currency_supports": lambda *args, **kwargs: True,
+        "oracle_supports_case": lambda case: True,
+    }
+    first, _, _ = generate_cases(**kwargs)
+    second, _, _ = generate_cases(**kwargs)
+    assert [case.to_dict() for case in first] == [case.to_dict() for case in second]
+    assert len(first) == 25
+    assert first[0].case_id == "random-v3:20260910:000000"

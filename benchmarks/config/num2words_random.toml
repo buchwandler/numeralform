@@ -21,6 +21,11 @@ locale = "ja"
 kind = "year"
 reason = "num2words uses Japanese era conversion; canonical Numeralform uses Gregorian year reading"
 
+
+[[randomized.shared_exclusions]]
+locale = "am"
+kind = "cardinal"
+reason = "pinned num2words Num2Word_AM.merge returns None for compound cardinals so base.clean loops forever; reproducible infinite loop for multi-component values >= 1000000"
 [randomized.shared]
 edge_probability = 0.30
 negative_probability = 0.10

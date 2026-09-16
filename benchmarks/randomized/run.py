@@ -8,6 +8,7 @@ import platform
 import random
 from collections.abc import Iterable
 from pathlib import Path
+from time import perf_counter
 
 import numeralform
 from benchmarks.validation.oracle.num2words import (
@@ -21,7 +22,6 @@ from benchmarks.validation.oracle.num2words import (
 )
 
 from .adapters import (
-    oracle_supports_case,
     run_num2words,
     run_numeralform_canonical,
     run_numeralform_compat,
@@ -35,7 +35,13 @@ from .generator import (
     generate_cases,
     load_config,
 )
-from .model import DIFFERENTIAL_STATUSES, DifferentialResult, RandomCase
+from .model import (
+    DIFFERENTIAL_STATUSES,
+    DifferentialResult,
+    ExecutionResult,
+    RandomCase,
+)
+from .oracle import OracleRunner
 from .report import write_reports
 
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
@@ -43,12 +49,12 @@ DEFAULT_ORACLE_ROOT = BENCHMARK_ROOT / "data" / "oracles" / "num2words"
 DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
 
 
-def _oracle_supports_case(case: RandomCase, external_num2words) -> bool:
-    return oracle_supports_case(case, external_num2words)
-
-
 def execute_case(
-    case: RandomCase, external_num2words, *, target: str = "canonical"
+    case: RandomCase,
+    external_num2words,
+    *,
+    target: str = "canonical",
+    oracle_result: ExecutionResult | None = None,
 ) -> DifferentialResult:
     if target == "canonical":
         numeralform_result = run_numeralform_canonical(case)
@@ -56,9 +62,11 @@ def execute_case(
         numeralform_result = run_numeralform_compat(case)
     else:
         raise ValueError(f"unknown benchmark target: {target!r}")
+    if oracle_result is None:
+        oracle_result = run_num2words(case, external_num2words)
     return compare_results(
         case,
-        run_num2words(case, external_num2words),
+        oracle_result,
         numeralform_result,
         accept_variants=target == "canonical",
     )
@@ -139,6 +147,27 @@ def _coverage_expected(
     return expected
 
 
+def _print_runtime_profile(phases: dict[str, float], runner: OracleRunner) -> None:
+    print("runtime profile")
+    for name, elapsed in phases.items():
+        print(f"  {name + ':':16}{elapsed:.2f}s")
+    stats = runner.stats
+    print("oracle")
+    print(f"  {'real executions:':16}{stats.executions:,}")
+    print(f"  {'accepted-cache hits:':16}{stats.accepted_cache_hits:,}")
+    print(f"  {'rejected-cache hits:':16}{stats.rejected_cache_hits:,}")
+    print(f"  {'total oracle time:':16}{stats.total_time:.2f}s")
+    print(f"  {'max oracle call:':16}{stats.max_time:.2f}s")
+    slowest = stats.slowest()
+    if slowest:
+        print("slowest oracle calls")
+        for elapsed, key in slowest:
+            print(
+                f"  {elapsed:.2f}s locale={key.oracle_locale} "
+                f"kind={key.kind} value={key.value}"
+            )
+
+
 def run_benchmark(
     *,
     cases: int,
@@ -156,7 +185,10 @@ def run_benchmark(
     fail_on_diff: bool = False,
     fail_on_unaccepted: bool = False,
     fail_on_coverage_gap: bool = False,
+    profile_runtime: bool = False,
+    progress: bool = False,
 ) -> int:
+    setup_start = perf_counter()
     external_num2words = load_num2words(oracle_root)
     version = oracle_version(oracle_root)
     if version != NUM2WORDS_VERSION:
@@ -164,25 +196,55 @@ def run_benchmark(
             f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}"
         )
     config = load_config(CONFIG_PATH, profile)
-    generated, generation_stats, _ = generate_cases(
-        seed=seed,
-        count=cases,
-        profile=profile,
-        locales=locales or None,
-        kinds=kinds or None,
-        currencies=currencies or None,
-        external_locales=oracle_locales(oracle_root),
-        config_path=CONFIG_PATH,
-        target=target,
-        variant=variant,
-        transport=transport,
-        oracle_supports_case=lambda case: _oracle_supports_case(
-            case, external_num2words
-        ),
-    )
+    oracle_runner = OracleRunner(external_num2words)
+    setup_time = perf_counter() - setup_start
+
+    def _progress(accepted: int, attempts: int) -> None:
+        stats = oracle_runner.stats
+        print(
+            f"[randomized] generated {accepted}/{cases}; attempts={attempts}; "
+            f"oracle_calls={stats.executions}; "
+            f"oracle_cache_hits={stats.accepted_cache_hits + stats.rejected_cache_hits}"
+        )
+
+    generation_start = perf_counter()
+    try:
+        generated, generation_stats, _ = generate_cases(
+            seed=seed,
+            count=cases,
+            profile=profile,
+            locales=locales or None,
+            kinds=kinds or None,
+            currencies=currencies or None,
+            external_locales=oracle_locales(oracle_root),
+            config_path=CONFIG_PATH,
+            target=target,
+            variant=variant,
+            transport=transport,
+            oracle_supports_case=oracle_runner.supports,
+            progress=_progress if progress else None,
+        )
+    except RuntimeError as exc:
+        stats = oracle_runner.stats
+        raise RuntimeError(
+            f"{exc}; oracle_calls={stats.executions}, "
+            f"oracle_cache_hits={stats.accepted_cache_hits + stats.rejected_cache_hits}"
+        ) from exc
+    generation_time = perf_counter() - generation_start
+
+    execution_start = perf_counter()
     results = tuple(
-        execute_case(case, external_num2words, target=target) for case in generated
+        execute_case(
+            case,
+            external_num2words,
+            target=target,
+            oracle_result=oracle_runner.execute(case),
+        )
+        for case in generated
     )
+    execution_time = perf_counter() - execution_start
+
+    reporting_start = perf_counter()
     coverage_expected = _coverage_expected(generated, target, config)
     metadata = _metadata(
         seed, profile, cases, config, version, target, coverage_expected
@@ -194,6 +256,11 @@ def run_benchmark(
         generation_stats=generation_stats,
         record_all=record_all,
     )
+    reporting_time = perf_counter() - reporting_start
+
+    coverage_start = perf_counter()
+    coverage = summarize_coverage(results, coverage_expected)
+    coverage_time = perf_counter() - coverage_start
     counts = {
         status: sum(result.status == status for result in results)
         for status in DIFFERENTIAL_STATUSES
@@ -208,15 +275,24 @@ def run_benchmark(
         print(f"{status + ':':20}{value}")
     print(f"report: {paths['report']}")
     print(f"differences: {paths['differences']}")
+    if profile_runtime:
+        _print_runtime_profile(
+            {
+                "setup": setup_time,
+                "generation": generation_time,
+                "execution": execution_time,
+                "reporting": reporting_time,
+                "coverage": coverage_time,
+            },
+            oracle_runner,
+        )
     if fail_on_diff and any(result.status != "match" for result in results):
         return 1
     if fail_on_unaccepted and any(
         result.status not in {"match", "variant"} for result in results
     ):
         return 1
-    if fail_on_coverage_gap and has_coverage_gap(
-        summarize_coverage(results, coverage_expected)
-    ):
+    if fail_on_coverage_gap and has_coverage_gap(coverage):
         return 1
     return 0
 
@@ -266,6 +342,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fail-on-diff", action="store_true")
     parser.add_argument("--fail-on-unaccepted", action="store_true")
     parser.add_argument("--fail-on-coverage-gap", action="store_true")
+    parser.add_argument("--profile-runtime", action="store_true")
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument("--replay", type=Path)
     parser.add_argument("--case-id")
     return parser
@@ -295,6 +373,8 @@ def main(argv: list[str] | None = None) -> int:
         fail_on_diff=args.fail_on_diff,
         fail_on_unaccepted=args.fail_on_unaccepted,
         fail_on_coverage_gap=args.fail_on_coverage_gap,
+        profile_runtime=args.profile_runtime,
+        progress=args.progress,
     )
 
 

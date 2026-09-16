@@ -392,8 +392,11 @@ def _legacy_spanish_ordinal(value: int, gender: str | None = None) -> str:
         return ""
     if gender == "feminine":
         text = render(
-            value, locale="es", form="ordinal",
-            syntax="attributive", gender="feminine",
+            value,
+            locale="es",
+            form="ordinal",
+            syntax="attributive",
+            gender="feminine",
         )
         decade = "vigésima"
     else:

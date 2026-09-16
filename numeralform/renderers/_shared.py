@@ -1,9 +1,9 @@
 """Small mechanical helpers shared by independently owned locale renderers."""
 
 from __future__ import annotations
+
 import unicodedata
 from collections.abc import Mapping
-from typing import ClassVar
 from dataclasses import dataclass, replace
 from typing import ClassVar
 
@@ -70,9 +70,7 @@ class LexicalRenderer:
         except KeyError:
             block = contiguous_integer_domain(cls.ordinals)
             domain = (
-                NumericDomain(
-                    minimum=block[0], maximum=block[1], allow_negative=False
-                )
+                NumericDomain(minimum=block[0], maximum=block[1], allow_negative=False)
                 if block
                 else None
             )
@@ -199,11 +197,7 @@ class LexicalRenderer:
 
     def _ordinal(self, value: int) -> str:
         domain = self._ordinal_domain()
-        if (
-            domain is None
-            or value < (domain.minimum or 0)
-            or value > domain.maximum
-        ):
+        if domain is None or value < (domain.minimum or 0) or value > domain.maximum:
             raise InvalidValueError(
                 f"{self.locale} ordinal value is outside the supported range"
             )
@@ -379,5 +373,6 @@ def locale_data(
         compound=compound,
         digit_separator=_DIGIT_SEPARATORS.get(locale),
     )
+
 
 __all__ = ["LexicalRenderer", "RendererData"]

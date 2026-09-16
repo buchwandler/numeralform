@@ -91,12 +91,7 @@ def oracle_supports_case(
     case: RandomCase, external_num2words: Callable[..., Any]
 ) -> bool:
     """Probe the exact value and keyword arguments used for a case."""
-    try:
-        value, kwargs = num2words_invocation(case)
-        external_num2words(value, **kwargs)
-    except Exception:  # noqa: BLE001
-        return False
-    return True
+    return run_num2words(case, external_num2words).outcome == "text"
 
 
 def canonical_call_kwargs(case: RandomCase) -> dict[str, Any]:

@@ -38,6 +38,14 @@ jobs:
   num2words-random:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: canonical
+            failure_flag: --fail-on-unaccepted
+          - target: compat
+            failure_flag: --fail-on-diff
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -49,29 +57,21 @@ jobs:
         run: python -m pip install -e ".[test]"
       - name: Acquire pinned oracle
         run: python -m benchmarks.download num2words
-      - name: Run randomized differential benchmark
-        run: |
-          SEED="20260910"
-          python -m benchmarks.randomized \
-            --cases 10000 \
-            --seed "$SEED" \
-            --target canonical \
-            --fail-on-unaccepted \
-            --fail-on-coverage-gap
-      - name: Run exact compatibility randomized benchmark
+      - name: Run randomized benchmark
         run: |
           python -m benchmarks.randomized \
             --cases 10000 \
             --seed 20260910 \
-            --target compat \
-            --fail-on-diff \
+            --target "${{ matrix.target }}" \
+            --output-dir "benchmarks/data/results/num2words-random-${{ matrix.target }}" \
+            "${{ matrix.failure_flag }}" \
             --fail-on-coverage-gap
       - name: Upload randomized benchmark report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: num2words-random
-          path: benchmarks/data/results/num2words-random/
+          name: num2words-random-${{ matrix.target }}
+          path: benchmarks/data/results/num2words-random-${{ matrix.target }}
 
   cldr:
     runs-on: ubuntu-latest

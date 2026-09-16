@@ -90,3 +90,32 @@ def test_num2words_invocation_is_shared_by_execution():
     value, kwargs = num2words_invocation(case)
     assert value == case.transport_value()
     assert kwargs == {"lang": "en", "to": "ordinal"}
+
+
+def test_oracle_support_and_execution_share_one_path():
+    from benchmarks.randomized.adapters import oracle_supports_case
+
+    invocations = []
+
+    def fake(value, **kwargs):
+        invocations.append((value, kwargs))
+        return "e\u0301"
+
+    case = make_case("cardinal", 1)
+    assert oracle_supports_case(case, fake)
+    assert run_num2words(case, fake).text == "é"
+    assert len(invocations) == 2
+    assert invocations[0] == invocations[1]
+
+
+def test_oracle_support_reports_exceptions_as_unsupported():
+    from benchmarks.randomized.adapters import oracle_supports_case
+
+    def failing(value, **kwargs):
+        raise ValueError("unsupported")
+
+    case = make_case("cardinal", 1)
+    assert not oracle_supports_case(case, failing)
+    result = run_num2words(case, failing)
+    assert result.outcome == "exception"
+    assert result.exception_type == "ValueError"

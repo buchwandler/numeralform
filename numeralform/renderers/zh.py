@@ -22,9 +22,7 @@ class ChineseRenderer(LexicalRenderer):
 
     @classmethod
     def _ordinal_domain(cls) -> NumericDomain:
-        return NumericDomain(
-            minimum=0, maximum=cls._MAX_ORDINAL, allow_negative=False
-        )
+        return NumericDomain(minimum=0, maximum=cls._MAX_ORDINAL, allow_negative=False)
 
     def _ordinal(self, value: int) -> str:
         if value < 0 or value > self._MAX_ORDINAL:

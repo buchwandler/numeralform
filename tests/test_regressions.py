@@ -63,15 +63,22 @@ def test_english_digit_style_is_rejected():
         (1001, "milésimo primero"),
         (2024, "dosmilésimo vigésimo cuarto"),
         (1_000_000, "millonésimo"),
-        (999_999_999, "novecientos noventa y nuevemillonésimo "
-         "novecientos noventa y nuevemilésimo noningentésimo nonagésimo noveno"),
+        (
+            999_999_999,
+            (
+                "novecientos noventa y nuevemillonésimo "
+                "novecientos noventa y nuevemilésimo noningentésimo nonagésimo noveno"
+            ),
+        ),
     ],
 )
 def test_spanish_ordinals_compose_above_twenty(value, expected):
     assert render(value, locale="es", form="ordinal") == expected
 
 
-@pytest.mark.parametrize("locale", ["es-CO", "es-CR", "es-GT", "es-MX", "es-NI", "es-VE"])
+@pytest.mark.parametrize(
+    "locale", ["es-CO", "es-CR", "es-GT", "es-MX", "es-NI", "es-VE"]
+)
 def test_spanish_regional_variants_compose_ordinals(locale):
     assert render(25, locale=locale, form="ordinal") == "vigésimo quinto"
     assert render(21, locale=locale, form="ordinal") == "vigésimo primero"

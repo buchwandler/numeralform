@@ -243,9 +243,7 @@ class PortugueseRenderer:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise InvalidValueError("ordinal form requires a non-negative integer")
         if value > _MAX_ORDINAL:
-            raise InvalidValueError(
-                "Portuguese ordinal is outside the supported range"
-            )
+            raise InvalidValueError("Portuguese ordinal is outside the supported range")
         if value <= 20:
             return _ORDINALS_PT[value]
         if value < 100:

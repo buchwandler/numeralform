@@ -24,6 +24,7 @@ BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = BENCHMARK_ROOT / "config" / "num2words_random.toml"
 SCHEMA_VERSION = 3
 GENERATOR_VERSION = 3
+PROGRESS_INTERVAL = 2500
 
 
 @dataclass(frozen=True, slots=True)
@@ -814,6 +815,7 @@ def generate_cases(
     variant: str | None = None,
     transport: str | None = None,
     target: str = "canonical",
+    progress: Callable[[int, int], None] | None = None,
 ) -> tuple[tuple[RandomCase, ...], dict[str, int], RandomConfig]:
     if count < 0:
         raise ValueError("case count must be non-negative")
@@ -941,6 +943,19 @@ def generate_cases(
                 rejected["generation_rejected_numeralform_unsupported"] += 1
                 continue
         serialized = SerializedRandomValue.from_python(value)
+        identity = (
+            locale,
+            kind,
+            serialized.value,
+            currency,
+            json.dumps(options, sort_keys=True),
+            variant_id,
+            call_variant,
+            case_transport,
+        )
+        if profile in {"common", "numeralform", "shared"} and identity in seen:
+            rejected["generation_rejected_duplicate"] += 1
+            continue
         if profile == "shared":
             if oracle_supports_case is not None:
                 probe_case = RandomCase(
@@ -968,19 +983,6 @@ def generate_cases(
             if not supported:
                 rejected["generation_rejected_oracle_unsupported"] += 1
                 continue
-        identity = (
-            locale,
-            kind,
-            serialized.value,
-            currency,
-            json.dumps(options, sort_keys=True),
-            variant_id,
-            call_variant,
-            case_transport,
-        )
-        if profile in {"common", "numeralform", "shared"} and identity in seen:
-            rejected["generation_rejected_duplicate"] += 1
-            continue
         seen.add(identity)
         surface, tags = surface_for(locale, kind, value, currency=currency, rng=rng)
         generated.append(
@@ -1003,9 +1005,13 @@ def generate_cases(
                 transport=case_transport,
             )
         )
+        if progress is not None and len(generated) % PROGRESS_INTERVAL == 0:
+            progress(len(generated), attempts)
     if len(generated) != count:
+        details = ", ".join(f"{key}={value}" for key, value in sorted(rejected.items()))
         raise RuntimeError(
-            f"unable to generate {count} supported unique cases after {attempts} attempts"
+            f"unable to generate {count} supported unique cases after {attempts} attempts; "
+            f"accepted={len(generated)}, {details}"
         )
     return tuple(generated), rejected, config
 
