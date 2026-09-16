@@ -710,6 +710,36 @@ def test_01_todo_equivalence_rules_and_negative_controls():
         "âm hai mươi",
         "oracle:vi-negative-cardinal",
     )
+    assert_variant(
+        case(locale="it", kind="currency", value=Decimal("1.01"), currency="GBP"),
+        "una sterlina e un penny",
+        "una sterlina e un pence",
+        "it-gbp-currency",
+    )
+    assert_variant(
+        case(locale="ko", kind="ordinal", value=4789),
+        "사천칠백 여든아홉 번째",
+        "사천칠백팔십구 번째",
+        "variant:ko-ordinal-reading",
+    )
+    assert_variant(
+        case(locale="mn", kind="ordinal", value=3),
+        "гурав дугаар",
+        "гуравдугаар",
+        "variant:mn-ordinal-spacing",
+    )
+    assert_variant(
+        case(locale="zh-CN", value=-13),
+        "负一十三",
+        "负十三",
+        "oracle:zh-cn-leading-one-ten",
+    )
+    assert_variant(
+        case(locale="sv", kind="decimal", value=Decimal("40.20")),
+        "förtio komma två",
+        "fyrtio komma två noll",
+        "oracle:sv-number-orthography+decimal-trailing-zero-precision",
+    )
 
     negative_cases = (
         (case(locale="cs", value=2_000_001), "dva miliony", "jeden milion jedna"),
@@ -742,6 +772,59 @@ def test_01_todo_equivalence_rules_and_negative_controls():
         ),
     )
     for local_case, expected, actual in negative_cases:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"
+
+
+def test_numeric_ordinal_oracle_variants_are_audited():
+    def assert_variant(local_case, expected, actual):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == "oracle:numeric-ordinal-reading"
+
+    assert_variant(case(locale="az", kind="ordinal_num", value=19), "19-cu", "19cı")
+    assert_variant(case(locale="ca", kind="ordinal_num", value=31), "31è", "31r")
+    assert_variant(case(locale="hi", kind="ordinal_num", value=3), "३रा", "३वाँ")
+    assert_variant(case(locale="mn", kind="ordinal_num", value=21), "21 дүгээр", "21-р")
+    assert_variant(
+        case(locale="tg", kind="ordinal_num", value=8992), "8992юм", "8992ум"
+    )
+
+
+def test_new_todo_equivalence_rules_reject_changed_semantics():
+    cases = (
+        (
+            case(locale="it", kind="currency", value=Decimal("1.01"), currency="GBP"),
+            "una sterlina e un penny",
+            "una sterlina e due pence",
+        ),
+        (
+            case(locale="zh-CN", value=20),
+            "一二十",
+            "二十",
+        ),
+        (
+            case(locale="ko", kind="ordinal", value=4789),
+            "사천칠백 여든아홉 번째",
+            "사천칠백팔십팔 번째",
+        ),
+        (
+            case(locale="mn", kind="ordinal", value=3),
+            "гурав дугаар",
+            "дөрөвдугаар",
+        ),
+    )
+    for local_case, expected, actual in cases:
         result = compare_results(
             local_case,
             ExecutionResult.text_result(expected),

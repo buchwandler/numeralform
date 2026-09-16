@@ -119,3 +119,31 @@ def test_oracle_support_reports_exceptions_as_unsupported():
     result = run_num2words(case, failing)
     assert result.outcome == "exception"
     assert result.exception_type == "ValueError"
+
+
+def test_empty_oracle_output_is_an_oracle_error():
+    result = run_num2words(
+        make_case("decimal", Decimal("0.001")), lambda *args, **kwargs: ""
+    )
+    assert result.outcome == "exception"
+    assert result.exception_type == "ValueError"
+    assert "invalid-oracle-output" in (result.exception_message or "")
+
+
+def test_known_non_numeric_ordinal_oracle_output_is_an_error():
+    case = make_case("ordinal_num", 119)
+    case = RandomCase(
+        case.schema_version,
+        case.generator_version,
+        case.seed,
+        case.index,
+        case.case_id,
+        "ar",
+        case.kind,
+        case.surface,
+        case.value,
+        case.currency,
+    )
+    result = run_num2words(case, lambda *args, **kwargs: "مائة وتسعة عشر")
+    assert result.outcome == "exception"
+    assert "non-numeric" in (result.exception_message or "")

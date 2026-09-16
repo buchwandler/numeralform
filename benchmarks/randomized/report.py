@@ -333,10 +333,12 @@ def write_reports(
         "differences": differences_path,
         "report": report_path,
     }
+    all_path = output_dir / RESULT_FILENAMES["all"]
     if record_all:
-        all_path = output_dir / RESULT_FILENAMES["all"]
         _write_jsonl(all_path, (result.to_dict() for result in results))
         paths["all"] = all_path
+    else:
+        all_path.unlink(missing_ok=True)
     return paths
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unicodedata
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import ClassVar
 
 from ..errors import InvalidValueError
@@ -27,6 +27,17 @@ class RendererData:
     negative: str = "minus"
     compound: str = " "
     digit_separator: str | None = None
+    scale_forms: Mapping[int, tuple[str, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class DecimalPolicy:
+    marker: str
+    before_marker: str = " "
+    after_marker: str = " "
+    digit_separator: str = " "
+    negative_prefix: str = "minus"
+    negative_separator: str = " "
 
 
 def contiguous_integer_domain(values: Mapping[int, str]) -> tuple[int, int] | None:
@@ -145,27 +156,66 @@ class LexicalRenderer:
             return self.cardinals[value]
         return self._compose(value)
 
+    def _scale_prefix(self, scale: int, quotient: int) -> str:
+        if quotient == 1 and scale == 1000:
+            return ""
+        return self._compose(quotient)
+
+    def _scale_name(self, scale: int, quotient: int) -> str:
+        base = dict(self.data.scales)[scale]
+        forms = self.data.scale_forms.get(scale)
+        if not forms:
+            return base.removeprefix("one-")
+        if len(forms) == 2:
+            return forms[0] if quotient == 1 else forms[1]
+        if quotient == 1:
+            return forms[0]
+        if quotient % 100 in (11, 12, 13, 14):
+            return forms[2]
+        if quotient % 10 in (2, 3, 4):
+            return forms[1]
+        return forms[2]
+
+    def _join_scale(
+        self,
+        *,
+        scale: int,
+        quotient: int,
+        prefix: str,
+        scale_name: str,
+        remainder: int,
+        suffix: str,
+    ) -> str:
+        result = f"{prefix}{self.data.compound}{scale_name}".strip()
+        if remainder:
+            result = f"{result}{self.data.compound}{suffix}".strip()
+        return result
+
     def _compose(self, value: int) -> str:
+        if value in self.exact:
+            return self.exact[value]
+        if value in self.cardinals:
+            return self.cardinals[value]
         if value == 0:
             return self.data.digits[0]
-        for scale, name in self.data.scales:
+        for scale, _name in self.data.scales:
             if value >= scale:
                 quotient, remainder = divmod(value, scale)
-                prefix = self._compose(quotient)
-                if quotient == 1 and scale == 1000 and name.startswith("one-"):
-                    prefix = ""
-                result = f"{prefix}{self.data.compound}{name}".strip()
-                if remainder:
-                    suffix = self._compose(remainder)
-                    result = f"{result}{self.data.compound}{suffix}".strip()
-                return result
+                prefix = self._scale_prefix(scale, quotient)
+                scale_name = self._scale_name(scale, quotient)
+                suffix = self._compose(remainder) if remainder else ""
+                return self._join_scale(
+                    scale=scale,
+                    quotient=quotient,
+                    prefix=prefix,
+                    scale_name=scale_name,
+                    remainder=remainder,
+                    suffix=suffix,
+                )
         if value < 100:
             tens, ones = divmod(value, 10)
             if tens and ones and tens < len(self.data.digits):
                 return f"{self.data.digits[tens]}{self.data.compound}{self.data.digits[ones]}".strip()
-        # Every shipped locale supplies the common values as reviewed fixtures.
-        # For an unlisted value, spell its decimal digits instead of returning
-        # the numeric input unchanged.
         return self.data.compound.join(
             self.data.digits[int(digit)] for digit in str(value)
         )
@@ -187,13 +237,19 @@ class LexicalRenderer:
     def _decimal(self, value: object) -> str:
         if not isinstance(value, DecimalNumber):
             raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
+        policy = decimal_policy(self.locale)
         integer = self._cardinal(int(value.integer))
         if value.negative:
-            integer = f"{self.data.negative} {integer}"
-        fraction = self.data.compound.join(
+            integer = (
+                f"{policy.negative_prefix}{policy.negative_separator}{integer}".strip()
+            )
+        fraction = policy.digit_separator.join(
             self.data.digits[int(digit)] for digit in value.fraction
         )
-        return f"{integer} {self.data.decimal} {fraction}"
+        return (
+            f"{integer}{policy.before_marker}{policy.marker}"
+            f"{policy.after_marker}{fraction}"
+        )
 
     def _ordinal(self, value: int) -> str:
         domain = self._ordinal_domain()
@@ -213,23 +269,120 @@ class LexicalRenderer:
             raise InvalidValueError(
                 f"{self.locale} year value is outside the supported range"
             )
-        return self._cardinal(value)
+        text = self._cardinal(value)
+        suffix = _YEAR_SUFFIXES.get(self.locale, "")
+        return f"{text}{suffix}"
 
 
-_DECIMAL_WORDS = {
-    "de": "Komma",
-    "fr": "virgule",
-    "it": "virgola",
-    "pt": "vírgula",
-    "sv": "komma",
+_YEAR_SUFFIXES = {
+    "am": "",
+    "ar": "",
+    "az": "",
+    "be": "",
+    "bn": " সাল",
+    "ca": "",
+    "ce": "",
+    "cy": "",
+    "da": "",
+    "eo": "",
+    "fa": "",
+    "he": "",
+    "hi": "",
+    "hy": " թվական",
+    "id": "",
+    "is": "",
+    "lt": "",
+    "lv": "",
+    "mn": " он",
+    "nl": "",
+    "no": "",
+    "pl": "",
+    "ro": "",
+    "sk": "",
+    "sl": "",
+    "sr": "",
+    "te": "",
+    "tet": "",
+    "tg": "",
+    "tr": "",
+    "uk": "",
 }
+
+
+_DECIMAL_POLICIES: dict[str, DecimalPolicy] = {
+    "am": DecimalPolicy("ነጥብ"),
+    "ar": DecimalPolicy("فاصلة", negative_prefix="سالب"),
+    "az": DecimalPolicy("nöqtə", negative_prefix="mənfi"),
+    "be": DecimalPolicy("коска", negative_prefix="мінус"),
+    "bn": DecimalPolicy("দশমিক", negative_prefix="ঋণাত্মক"),
+    "ca": DecimalPolicy("punt", negative_prefix="menys"),
+    "da": DecimalPolicy("komma", negative_prefix="minus"),
+    "de": DecimalPolicy("Komma", negative_prefix="minus"),
+    "eo": DecimalPolicy("komo", negative_prefix="minus"),
+    "fa": DecimalPolicy("ممیز", negative_prefix="منفی"),
+    "fi": DecimalPolicy("pilkku", negative_prefix="miinus"),
+    "fr": DecimalPolicy("virgule", negative_prefix="moins"),
+    "he": DecimalPolicy("נקודה", negative_prefix="מינוס"),
+    "hi": DecimalPolicy("दशमलव", negative_prefix="ऋणात्मक"),
+    "hy": DecimalPolicy("ստորակետ", negative_prefix="մինուս"),
+    "id": DecimalPolicy("koma", negative_prefix="minus"),
+    "is": DecimalPolicy("komma", negative_prefix="mínus"),
+    "it": DecimalPolicy("virgola", negative_prefix="meno"),
+    "ja": DecimalPolicy(
+        "点",
+        before_marker="",
+        after_marker="",
+        digit_separator="",
+        negative_prefix="マイナス",
+        negative_separator="",
+    ),
+    "kn": DecimalPolicy("ದಶಮಾಂಶ", negative_prefix="ಮೈನಸ್"),
+    "lt": DecimalPolicy("kablelis", negative_prefix="minus"),
+    "lv": DecimalPolicy("komats", negative_prefix="mīnuss"),
+    "mn": DecimalPolicy("таслал", negative_prefix="хасах"),
+    "nl": DecimalPolicy("komma", negative_prefix="min"),
+    "no": DecimalPolicy("komma", negative_prefix="minus"),
+    "pl": DecimalPolicy("przecinek", negative_prefix="minus"),
+    "pt": DecimalPolicy("vírgula", negative_prefix="menos"),
+    "ro": DecimalPolicy("virgulă", negative_prefix="minus"),
+    "sk": DecimalPolicy("čiarka", negative_prefix="mínus"),
+    "sl": DecimalPolicy("celih", negative_prefix="minus"),
+    "sr": DecimalPolicy("zapeta", negative_prefix="minus"),
+    "sv": DecimalPolicy("komma", negative_prefix="minus"),
+    "te": DecimalPolicy("దశాంశ", negative_prefix="మైనస్"),
+    "tet": DecimalPolicy("vírgula", negative_prefix="minus"),
+    "tg": DecimalPolicy("нуқта", negative_prefix="манфӣ"),
+    "th": DecimalPolicy(
+        "จุด",
+        before_marker="",
+        after_marker="",
+        digit_separator="",
+        negative_prefix="ติดลบ",
+        negative_separator="",
+    ),
+    "tr": DecimalPolicy("virgül", negative_prefix="eksi"),
+    "uk": DecimalPolicy("кома", negative_prefix="мінус"),
+    "vi": DecimalPolicy("phẩy", negative_prefix="âm"),
+    "zh": DecimalPolicy(
+        "点",
+        before_marker="",
+        after_marker="",
+        digit_separator="",
+        negative_prefix="负",
+        negative_separator="",
+    ),
+}
+
+
+def decimal_policy(locale: str) -> DecimalPolicy:
+    return _DECIMAL_POLICIES.get(
+        locale, _DECIMAL_POLICIES.get(locale.split("-", 1)[0], DecimalPolicy("point"))
+    )
 
 
 def _decimal_word(locale: str) -> str:
     """Return the reviewed spoken decimal separator for a locale tag."""
-    return _DECIMAL_WORDS.get(
-        locale, _DECIMAL_WORDS.get(locale.split("-", 1)[0], "point")
-    )
+    return decimal_policy(locale).marker
 
 
 class DecimalFallbackRenderer:
@@ -266,11 +419,10 @@ class DecimalFallbackRenderer:
         validate_request(request, self.capabilities())
         if not isinstance(request.value, DecimalNumber):
             raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
+        policy = decimal_policy(request.locale)
         whole = self._delegate.render(
             NumeralRequest(
-                -int(request.value.integer)
-                if request.value.negative
-                else int(request.value.integer),
+                int(request.value.integer),
                 request.locale,
                 NumeralForm.CARDINAL,
                 request.syntax,
@@ -279,15 +431,26 @@ class DecimalFallbackRenderer:
                 request.features,
             )
         ).text
+        if request.value.negative:
+            whole = (
+                f"{policy.negative_prefix}{policy.negative_separator}{whole}".strip()
+            )
         digits = self._delegate.render(
             NumeralRequest(
                 DigitSequence(request.value.fraction),
                 request.locale,
                 NumeralForm.DIGITS,
+                request.syntax,
+                request.morphology,
+                request.style,
+                request.features,
             )
         ).text
+        if policy.digit_separator == "":
+            digits = "".join(digits.split())
         return NumeralResult(
-            f"{whole} {_decimal_word(request.locale)} {digits}",
+            f"{whole}{policy.before_marker}{policy.marker}"
+            f"{policy.after_marker}{digits}",
             request.locale,
             request.form,
             request.style,
@@ -333,18 +496,51 @@ _DEFAULT_SCALES = {
     "zh": ((100_000_000, "亿"), (10_000, "万"), (1_000, "千"), (100, "百"), (10, "十")),
 }
 
-_DECIMALS = {
-    "am": "ነጥብ",
-    "ar": "فاصلة",
-    "bn": "দশমিক",
-    "fa": "ممیز",
-    "he": "נקודה",
-    "hi": "दशमलव",
-    "hy": "ստորակետ",
-    "kk": "бүтін",
-    "mn": "таслал",
-    "te": "దశాంశ",
-    "zh": "点",
+_SCALE_FORMS: dict[str, dict[int, tuple[str, ...]]] = {
+    "be": {
+        1_000_000: ("мільён", "мільёны", "мільёнаў"),
+        1_000: ("тысяча", "тысячы", "тысяч"),
+    },
+    "ca": {1_000_000: ("milió", "milions")},
+    "da": {1_000_000: ("million", "millioner")},
+    "eo": {1_000_000: ("miliono", "milionoj")},
+    "he": {1_000_000: ("מיליון", "מיליונים"), 1_000: ("אלף", "אלפים")},
+    "is": {1_000_000: ("milljón", "milljónir")},
+    "lt": {
+        1_000_000: ("milijonas", "milijonai", "milijonų"),
+        1_000: ("tūkstantis", "tūkstančiai", "tūkstančių"),
+    },
+    "lv": {
+        1_000_000: ("miljons", "miljoni", "miljonu"),
+        1_000: ("tūkstotis", "tūkstoši", "tūkstošu"),
+    },
+    "nl": {1_000_000: ("miljoen", "miljoen")},
+    "no": {1_000_000: ("million", "millioner")},
+    "pl": {
+        1_000_000: ("milion", "miliony", "milionów"),
+        1_000: ("tysiąc", "tysiące", "tysięcy"),
+    },
+    "ro": {
+        1_000_000: ("milion", "milioane"),
+        1_000: ("mie", "mii"),
+        100: ("sută", "sute"),
+    },
+    "sk": {
+        1_000_000: ("milión", "milióny", "miliónov"),
+        1_000: ("tisíc", "tisíce", "tisíc"),
+    },
+    "sl": {
+        1_000_000: ("milijon", "milijoni", "milijonov"),
+        1_000: ("tisoč", "tisoči", "tisoč"),
+    },
+    "sr": {
+        1_000_000: ("milion", "miliona", "miliona"),
+        1_000: ("hiljada", "hiljade", "hiljada"),
+    },
+    "uk": {
+        1_000_000: ("мільйон", "мільйони", "мільйонів"),
+        1_000: ("тисяча", "тисячі", "тисяч"),
+    },
 }
 
 _DIGIT_SEPARATORS = {
@@ -368,10 +564,11 @@ def locale_data(
     return RendererData(
         digits=digits,
         scales=_DEFAULT_SCALES[locale],
-        decimal=_DECIMALS.get(locale, "point"),
+        decimal=decimal_policy(locale).marker,
         negative=negative,
         compound=compound,
         digit_separator=_DIGIT_SEPARATORS.get(locale),
+        scale_forms=_SCALE_FORMS.get(locale, {}),
     )
 
 

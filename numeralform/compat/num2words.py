@@ -487,6 +487,7 @@ def _ordinal_numeric(value: int, locale: str, options: dict) -> str:
         return f"{value}ኛ"
     if language == "az":
         return f"{value}{'cı' if value % 10 in {0, 4, 5, 6, 7, 8, 9} else 'ci' if value % 10 in {1, 2} else 'cü'}"
+    if language == "ca":
         suffix = {1: "r", 2: "n", 3: "r"}.get(value % 10, "è")
         return f"{value}{suffix}"
     if language == "ce":

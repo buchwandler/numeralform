@@ -82,6 +82,18 @@ def num2words_kwargs(case: RandomCase) -> dict[str, Any]:
     )
 
 
+def _validate_oracle_surface(case: RandomCase, text: str) -> None:
+    if case.kind != "ordinal_num":
+        return
+    language = case.locale.split("-", 1)[0]
+    if language == "ar" and not any(char.isdigit() for char in text):
+        raise ValueError("invalid-oracle-output: non-numeric ordinal_num for ar")
+    if language == "bn" and not any(char in "০১২৩৪৫৬৭৮৯" for char in text):
+        raise ValueError("invalid-oracle-output: non-numeric ordinal_num for bn")
+    if language == "kn" and text.startswith(str(case.python_value())):
+        raise ValueError("invalid-oracle-output: concatenated ordinal_num for kn")
+
+
 def num2words_invocation(case: RandomCase) -> tuple[Any, dict[str, Any]]:
     """Build the single upstream invocation used by probes and execution."""
     return case.transport_value(), num2words_kwargs(case)
@@ -129,8 +141,11 @@ def run_num2words(
     """Execute a case against the supplied, already verified oracle function."""
     try:
         value, kwargs = num2words_invocation(case)
-        text = external_num2words(value, **kwargs)
-        return ExecutionResult.text_result(normalize(text))
+        text = normalize(external_num2words(value, **kwargs))
+        if not text.strip():
+            raise ValueError(f"invalid-oracle-output: empty text for {case.kind}")
+        _validate_oracle_surface(case, text)
+        return ExecutionResult.text_result(text)
     except Exception as exc:  # noqa: BLE001
         return ExecutionResult.exception_result(exc)
 

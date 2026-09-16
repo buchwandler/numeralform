@@ -615,3 +615,75 @@ def test_seed_107_russian_ordinal_accusative_tracks_animacy():
             )
             == animate
         )
+
+
+@pytest.mark.parametrize(
+    ("locale", "value", "expected"),
+    [
+        (
+            "az",
+            254_658_183,
+            "iki yüz əlli dörd milyon altı yüz əlli səkkiz min yüz səksən üç",
+        ),
+        (
+            "bn",
+            12_345_678,
+            "এক কোটি তেইশ লাখ পঁয়তাল্লিশ হাজার ছয়শত আটাত্তর",
+        ),
+        (
+            "pt",
+            935_100_674,
+            "novecentos e trinta e cinco milhões e cem mil seiscentos e setenta e quatro",
+        ),
+    ],
+)
+def test_recursive_composition_reuses_reviewed_subnumbers(locale, value, expected):
+    assert render(value, locale=locale) == expected
+
+
+@pytest.mark.parametrize(
+    ("locale", "value", "expected"),
+    [
+        ("be", 2_000_000, "два мільёны"),
+        ("ca", 2_000_000, "dos milions"),
+        ("eo", 2_000_000, "du milionoj"),
+        ("pl", 2_000_000, "dwa miliony"),
+        ("ro", 2_000_000, "doi milioane"),
+        ("uk", 2_000_000, "два мільйони"),
+    ],
+)
+def test_locale_owned_scale_forms(locale, value, expected):
+    assert render(value, locale=locale) == expected
+
+
+@pytest.mark.parametrize(
+    ("locale", "value", "expected"),
+    [
+        ("am", 973, "973ኛ"),
+        ("ar", 973, "973."),
+        ("az", 974, "974cı"),
+        ("bn", 973, "৯৭৩তম"),
+        ("ce", 973, "973-й"),
+        ("da", 973, "973ende"),
+        ("hi", 973, "९७३वाँ"),
+        ("hy", 973, "973-րդ"),
+        ("kn", 973, "೯೭೩ನೆಯ"),
+        ("mn", 973, "973-р"),
+        ("nl", 973, "973e"),
+        ("ro", 1, "1-lea"),
+        ("te", 973, "973వ"),
+        ("tet", 973, "973º"),
+        ("tg", 973, "973юм"),
+        ("tr", 973, "973üncü"),
+    ],
+)
+def test_advertised_numeric_ordinal_strategies(locale, value, expected):
+    assert render(value, locale=locale, form="ordinal_num") == expected
+
+
+@pytest.mark.parametrize(
+    ("locale", "value", "suffix"),
+    [("bn", 601, " সাল"), ("hy", 973, " թվական"), ("mn", 8857, " он")],
+)
+def test_locale_year_policies_have_explicit_suffixes(locale, value, suffix):
+    assert render(value, locale=locale, form="year").endswith(suffix)

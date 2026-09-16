@@ -166,3 +166,29 @@ def test_report_breakdowns_materialize_status_subsets():
         "lexical difference": 1,
         "whitespace only": 1,
     }
+
+
+def test_report_removes_stale_all_results_when_recording_is_disabled(tmp_path):
+    case = RandomCase(
+        1,
+        1,
+        42,
+        0,
+        "case-1",
+        "en",
+        "cardinal",
+        "1",
+        SerializedRandomValue.from_python(1),
+    )
+    result = DifferentialResult(
+        case,
+        "match",
+        ExecutionResult.text_result("one"),
+        ExecutionResult.text_result("one"),
+    )
+    metadata = {"seed": 42, "profile": "shared", "target": "canonical"}
+    paths = write_reports([result], tmp_path, metadata=metadata, record_all=True)
+    assert paths["all"].exists()
+    paths = write_reports([result], tmp_path, metadata=metadata, record_all=False)
+    assert "all" not in paths
+    assert not (tmp_path / "all-results.jsonl").exists()

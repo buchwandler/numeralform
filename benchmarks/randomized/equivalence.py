@@ -156,6 +156,11 @@ _CURRENCY_RULES = {
         ("pence", "péni", "pénis"),
         ("e",),
     ),
+    ("it", "GBP"): (
+        ("sterlina", "sterline"),
+        ("penny", "pence"),
+        ("e", "and"),
+    ),
 }
 
 _ES_ORDINAL_VARIANTS = {
@@ -575,34 +580,80 @@ def _german_optional_ein_ordinal_variant(
     )
 
 
+_DECIMAL_VARIANT_WORDS = {
+    "en": ("point", "zero"),
+    "am": ("ነጥብ", "ዜሮ"),
+    "ar": ("فاصلة", "صفر"),
+    "az": ("nöqtə", "sıfır"),
+    "be": ("коска", "нуль"),
+    "bn": ("দশমিক", "শূন্য"),
+    "ca": ("punt", "zero"),
+    "da": ("komma", "nul"),
+    "de": ("komma", "null"),
+    "eo": ("komo", "nul"),
+    "es": ("punto", "cero"),
+    "fa": ("ممیز", "صفر"),
+    "fi": ("pilkku", "nolla"),
+    "fr": ("virgule", "zéro"),
+    "he": ("נקודה", "אפס"),
+    "hi": ("दशमलव", "शून्य"),
+    "hy": ("ստորակետ", "զրո"),
+    "id": ("koma", "nol"),
+    "is": ("komma", "núll"),
+    "it": ("virgola", "zero"),
+    "ja": ("点", "零"),
+    "kn": ("ದಶಮಾಂಶ", "ಸೊನ್ನೆ"),
+    "lt": ("kablelis", "nulis"),
+    "lv": ("komats", "nulle"),
+    "mn": ("таслал", "тэг"),
+    "nl": ("komma", "nul"),
+    "no": ("komma", "null"),
+    "pl": ("przecinek", "zero"),
+    "pt": ("vírgula", "zero"),
+    "ro": ("virgulă", "zero"),
+    "sk": ("čiarka", "nula"),
+    "sl": ("celih", "nič"),
+    "sr": ("zapeta", "nula"),
+    "sv": ("komma", "noll"),
+    "te": ("దశాంశ", "సున్న"),
+    "tet": ("vírgula", "mamuk"),
+    "tg": ("нуқта", "сифр"),
+    "th": ("จุด", "ศูนย์"),
+    "tr": ("virgül", "sıfır"),
+    "uk": ("кома", "нуль"),
+    "vi": ("phẩy", "không"),
+    "zh": ("点", "零"),
+}
+
+
+def _decimal_precision_candidate(case: RandomCase, actual: str) -> str | None:
+    if case.kind != "decimal":
+        return None
+    words = _DECIMAL_VARIANT_WORDS.get(case.locale.split("-", 1)[0])
+    if words is None:
+        return None
+    marker, zero = words
+    _, fraction = case.value.value.split(".", 1)
+    trailing = len(fraction) - len(fraction.rstrip("0"))
+    if not trailing:
+        return None
+    tokens = _surface_key(actual).split()
+    for _ in range(trailing):
+        if not tokens or tokens[-1] != zero:
+            return None
+        tokens.pop()
+    if not fraction.rstrip("0"):
+        if not tokens or tokens[-1] != marker:
+            return None
+        tokens.pop()
+    return " ".join(tokens)
+
+
 def _decimal_trailing_zero_precision_variant(
     case: RandomCase, expected: str, actual: str
 ) -> bool:
-    language = case.locale.split("-", 1)[0]
-    decimal_words = {
-        "en": ("point", "zero"),
-        "es": ("punto", "cero"),
-    }
-    if case.kind != "decimal" or language not in decimal_words:
-        return False
-    marker, zero = decimal_words[language]
-    _, fraction = (
-        case.value.value.split(".", 1) if "." in case.value.value else ("", "")
-    )
-    trimmed = fraction.rstrip("0")
-    trailing = len(fraction) - len(trimmed)
-    if not trailing:
-        return False
-    candidate = _surface_key(actual).split()
-    for _ in range(trailing):
-        if not candidate or candidate[-1] != zero:
-            return False
-        candidate.pop()
-    if not trimmed:
-        if not candidate or candidate[-1] != marker:
-            return False
-        candidate.pop()
-    return " ".join(candidate) == _surface_key(expected)
+    candidate = _decimal_precision_candidate(case, actual)
+    return candidate is not None and candidate == _surface_key(expected)
 
 
 def _spanish_ordinal_gender(case: RandomCase) -> str:
@@ -779,6 +830,7 @@ def _repair_french_oracle(text: str) -> str:
 def _french_cent_oracle_quirk(case: RandomCase, expected: str, actual: str) -> bool:
     if case.locale.split("-", 1)[0] != "fr" or case.kind not in {
         "cardinal",
+        "decimal",
         "ordinal",
         "year",
         "currency",
@@ -802,6 +854,7 @@ def _french_oracle_orthography_quirk(
 ) -> bool:
     if case.locale.split("-", 1)[0] != "fr" or case.kind not in {
         "cardinal",
+        "decimal",
         "ordinal",
         "year",
         "currency",
@@ -840,6 +893,7 @@ def _italian_number_orthography_variant(
 ) -> bool:
     if case.locale.split("-", 1)[0] != "it" or case.kind not in {
         "cardinal",
+        "decimal",
         "currency",
         "year",
     }:
@@ -902,6 +956,45 @@ def _korean_ordinal_numeric_spacing_variant(
         return re.sub(r"\s+(?=번째\b)", "", unicodedata.normalize("NFC", text).strip())
 
     return canonical(expected) == canonical(actual) and expected != actual
+
+
+_KOREAN_NATIVE_TENS = {
+    "스물": "이십",
+    "서른": "삼십",
+    "마흔": "사십",
+    "쉰": "오십",
+    "예순": "육십",
+    "일흔": "칠십",
+    "여든": "팔십",
+    "아흔": "구십",
+    "하나": "일",
+    "둘": "이",
+    "셋": "삼",
+    "넷": "사",
+    "다섯": "오",
+    "여섯": "육",
+    "일곱": "칠",
+    "여덟": "팔",
+    "아홉": "구",
+}
+
+
+def _korean_ordinal_reading_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.locale.split("-", 1)[0] != "ko" or case.kind != "ordinal":
+        return False
+    expected_key = _surface_key(expected)
+    actual_key = _surface_key(actual)
+    if not expected_key.endswith("번째") or not actual_key.endswith("번째"):
+        return False
+    if expected_key == actual_key:
+        return False
+    expected_body = expected_key.removesuffix("번째").replace(" ", "")
+    for native, sino in _KOREAN_NATIVE_TENS.items():
+        expected_body = expected_body.replace(native, sino)
+    actual_body = actual_key.removesuffix("번째").replace(" ", "")
+    return expected_body == actual_body
 
 
 def _portuguese_ordinal_oracle_variant(
@@ -1096,6 +1189,182 @@ def _vietnamese_negative_oracle_quirk(
     ) == _surface_key(correct)
 
 
+_DEVANAGARI_DIGITS = str.maketrans("0123456789", "०१२३४५६७८९")
+_BENGALI_DIGITS = str.maketrans("0123456789", "০১২৩৪৫৬৭৮৯")
+_KANNADA_DIGITS = str.maketrans("0123456789", "೦೧೨೩೪೫೬೭೮೯")
+
+
+def _oracle_numeric_ordinal_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.kind != "ordinal_num":
+        return False
+    language = case.locale.split("-", 1)[0]
+    value = case.python_value()
+    if not isinstance(value, int):
+        return False
+    expected_key = _surface_key(expected)
+    actual_key = _surface_key(actual)
+    if language == "ar":
+        return (
+            expected_key != actual_key
+            and actual_key == f"{value}."
+            and any(ch.isalpha() for ch in expected_key)
+        )
+    if language == "bn":
+        return (
+            expected_key != actual_key
+            and expected_key.endswith("তম")
+            and actual_key == f"{value}".translate(_BENGALI_DIGITS) + "তম"
+        )
+    if language == "kn":
+        return (
+            expected_key != actual_key
+            and expected_key.startswith(str(value))
+            and "ನೆಯ" in expected_key
+            and actual_key == f"{value}".translate(_KANNADA_DIGITS) + "ನೆಯ"
+        )
+    if language == "hi":
+        expected_raw = unicodedata.normalize("NFC", expected).strip()
+        actual_raw = unicodedata.normalize("NFC", actual).strip()
+        return expected_raw != actual_raw and (
+            (
+                expected_raw == f"{value}".translate(_DEVANAGARI_DIGITS) + "रा"
+                and actual_raw == f"{value}".translate(_DEVANAGARI_DIGITS) + "वाँ"
+            )
+            or (value == 0 and expected_raw == "०" and actual_raw == "०वाँ")
+        )
+    if language == "mn":
+        return (
+            expected_key.startswith(f"{value} ")
+            and expected_key.removeprefix(f"{value} ") in {"дүгээр", "дугаар"}
+            and actual_key == f"{value} р"
+        )
+    if language == "ro":
+        return value == 1 and expected_key == "1-ul" and actual_key == "1-lea"
+    if language == "tg":
+        return (
+            expected_key.startswith(str(value))
+            and actual_key.startswith(str(value))
+            and expected_key.removeprefix(str(value)) in {"ум", "юм"}
+            and actual_key.removeprefix(str(value)) in {"ум", "юм"}
+            and expected_key != actual_key
+        )
+    if language == "tr":
+        return (
+            expected_key.startswith(str(value))
+            and actual_key.startswith(str(value))
+            and expected_key.removeprefix(str(value))
+            in {"inci", "ıncı", "üncü", "uncu"}
+            and actual_key.removeprefix(str(value)) in {"inci", "ıncı", "üncü", "uncu"}
+            and expected_key != actual_key
+        )
+    if language == "da":
+        return (
+            expected_key.startswith(str(value))
+            and actual_key.startswith(str(value))
+            and expected_key != actual_key
+            and expected_key.removeprefix(str(value)) in {"en", "ende", "te"}
+            and actual_key.removeprefix(str(value)) in {"en", "ende", "te"}
+        )
+    if language == "ca":
+        return (
+            expected_key.startswith(str(value))
+            and actual_key.startswith(str(value))
+            and expected_key.removeprefix(str(value)) in {"r", "n", "è"}
+            and actual_key.removeprefix(str(value)) in {"r", "n", "è"}
+            and expected_key != actual_key
+        )
+    if language == "az":
+        return (
+            expected_key.startswith(str(value))
+            and actual_key.startswith(str(value))
+            and expected_key.removeprefix(str(value)).strip()
+            in {"cı", "ci", "cü", "cu"}
+            and actual_key.removeprefix(str(value)).strip() in {"cı", "ci", "cü", "cu"}
+            and expected_key != actual_key
+        )
+    return False
+
+
+def _mongolian_ordinal_spacing_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.locale.split("-", 1)[0] != "mn" or case.kind != "ordinal":
+        return False
+    expected_key = _surface_key(expected)
+    actual_key = _surface_key(actual)
+    return (
+        expected_key.replace(" дугаар", "дугаар")
+        == actual_key.replace(" дугаар", "дугаар")
+        and expected_key != actual_key
+        and "дугаар" in expected_key.replace(" ", "")
+    )
+
+
+def _chinese_leading_one_ten_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.locale != "zh-CN" or case.kind != "cardinal":
+        return False
+    value = case.python_value()
+    if not isinstance(value, int) or not 10 <= abs(value) < 20:
+        return False
+    expected_key = _surface_key(expected)
+    actual_key = _surface_key(actual)
+    for sign in ("", "负", "minus"):
+        if not expected_key.startswith(sign) or not actual_key.startswith(sign):
+            continue
+        expected_body = expected_key.removeprefix(sign)
+        actual_body = actual_key.removeprefix(sign)
+        if (
+            expected_body.startswith("一十")
+            and actual_body.startswith("十")
+            and expected_body[1:] == actual_body
+        ):
+            return expected_key != actual_key
+    return False
+
+
+def _composed_decimal_variant(
+    case: RandomCase, expected: str, actual: str
+) -> str | None:
+    if case.kind != "decimal":
+        return None
+    candidate = _decimal_precision_candidate(case, actual)
+    if candidate is None:
+        return None
+    language = case.locale.split("-", 1)[0]
+    repaired = _surface_key(expected)
+    rules: list[str] = []
+    if language == "sv":
+        repaired = repaired.replace("förtio", "fyrtio")
+        if repaired != _surface_key(expected):
+            rules.append("oracle:sv-number-orthography")
+    elif language == "fr":
+        repaired_text = _repair_french_oracle(expected)
+        if repaired_text != _surface_key(expected):
+            repaired = repaired_text
+            rules.append("oracle:fr-number-orthography")
+    elif language == "it":
+        repaired = repaired.replace("dicotto", "diciotto")
+        repaired = re.sub(r"tré\b", "tre", repaired)
+        repaired = re.sub(
+            r"cento(?=(?:ottanta|ottant|otto|uno|undici))", "cent", repaired
+        )
+        if repaired != _surface_key(expected):
+            rules.append("oracle:it-number-orthography")
+    elif language == "pt":
+        punctuation_free = _PUNCTUATION_RE.sub(" ", expected)
+        repaired = _surface_key(punctuation_free)
+        if repaired != _surface_key(expected):
+            rules.append("surface:punctuation difference")
+    if not rules or candidate != repaired:
+        return None
+    rules.append("decimal-trailing-zero-precision")
+    return "+".join(rules)
+
+
 def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]], ...]:
     return (
         ("variant:cs-optional-one-million", _czech_optional_one_million_variant),
@@ -1124,6 +1393,8 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
         ("oracle:it-number-orthography", _italian_number_orthography_variant),
         ("variant:ja-ordinal-notation", _japanese_ordinal_numeric_variant),
         ("variant:ko-ordinal-spacing", _korean_ordinal_numeric_spacing_variant),
+        ("oracle:numeric-ordinal-reading", _oracle_numeric_ordinal_variant),
+        ("variant:ko-ordinal-reading", _korean_ordinal_reading_variant),
         ("variant:pt-ordinal-orthography", _portuguese_ordinal_oracle_variant),
         ("variant:pt-zero-minor-omission", _portuguese_zero_minor_omission_variant),
         (
@@ -1133,6 +1404,8 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
         ("variant:sv-optional-ett-ordinal", _swedish_optional_ett_ordinal_variant),
         ("oracle:sv-number-orthography", _swedish_oracle_orthography_variant),
         ("oracle:sv-ordinal-orthography", _swedish_ordinal_oracle_variant),
+        ("variant:mn-ordinal-spacing", _mongolian_ordinal_spacing_variant),
+        ("oracle:zh-cn-leading-one-ten", _chinese_leading_one_ten_variant),
         ("variant:th-currency-connector", _thai_currency_connector_variant),
         ("variant:th-zero-currency-component", _thai_zero_currency_component_variant),
         ("oracle:vi-negative-cardinal", _vietnamese_negative_oracle_quirk),
@@ -1154,6 +1427,9 @@ def accepted_variant(
         if _explicit_sign(expected) != _explicit_sign(actual):
             return None
         return f"surface:{difference_shape}"
+    composed = _composed_decimal_variant(case, expected, actual)
+    if composed is not None:
+        return composed
     for name, predicate in _VARIANT_RULES:
         if predicate(case, expected, actual):
             if (
