@@ -1,0 +1,1984 @@
+ benchmarks/randomized/equivalence.py        |  55 +++++++
+ benchmarks/tests/test_randomized_compare.py |  38 +++++
+ docs/locales/am.md                          |   2 +-
+ docs/locales/ar.md                          |   2 +-
+ docs/locales/az.md                          |   2 +-
+ docs/locales/be.md                          |   2 +-
+ docs/locales/bn.md                          |   2 +-
+ docs/locales/ca.md                          |   2 +-
+ docs/locales/capability-matrix.md           |  78 +++++-----
+ docs/locales/ce.md                          |   2 +-
+ docs/locales/cy.md                          |   2 +-
+ docs/locales/da.md                          |   2 +-
+ docs/locales/eo.md                          |   2 +-
+ docs/locales/es.md                          |  21 ++-
+ docs/locales/fa.md                          |   2 +-
+ docs/locales/he.md                          |   2 +-
+ docs/locales/hi.md                          |   2 +-
+ docs/locales/hu.md                          |   2 +-
+ docs/locales/hy.md                          |   2 +-
+ docs/locales/id.md                          |   2 +-
+ docs/locales/kk.md                          |   2 +-
+ docs/locales/kn.md                          |   2 +-
+ docs/locales/mn.md                          |   2 +-
+ docs/locales/nl.md                          |   2 +-
+ docs/locales/no.md                          |   2 +-
+ docs/locales/pl.md                          |   2 +-
+ docs/locales/ro.md                          |   2 +-
+ docs/locales/sl.md                          |   2 +-
+ docs/locales/te.md                          |   2 +-
+ docs/locales/tet.md                         |   2 +-
+ docs/locales/tg.md                          |   2 +-
+ docs/locales/tr.md                          |   2 +-
+ docs/locales/uk.md                          |   2 +-
+ docs/locales/zh.md                          |   2 +-
+ numeralform/compat/num2words.py             | 231 +++++++++++++++-------------
+ numeralform/renderers/_fixtures.py          |   8 +
+ numeralform/renderers/_shared.py            |  70 ++++++---
+ numeralform/renderers/az.py                 |   4 +-
+ numeralform/renderers/ca.py                 |   4 +-
+ numeralform/renderers/de.py                 |   4 +
+ numeralform/renderers/en.py                 |   3 +
+ numeralform/renderers/eo.py                 |   4 +-
+ numeralform/renderers/es.py                 | 100 ++++++++----
+ numeralform/renderers/fa.py                 |   1 -
+ numeralform/renderers/fi.py                 |   7 +-
+ numeralform/renderers/fr.py                 |   4 +
+ numeralform/renderers/hi.py                 |   1 -
+ numeralform/renderers/hu.py                 |   1 -
+ numeralform/renderers/id.py                 |   4 +-
+ numeralform/renderers/it.py                 |   4 +
+ numeralform/renderers/ja.py                 |   4 +
+ numeralform/renderers/ko.py                 |   8 +-
+ numeralform/renderers/pt.py                 |   8 +
+ numeralform/renderers/ro.py                 |   4 +-
+ numeralform/renderers/sv.py                 |  14 ++
+ numeralform/renderers/tr.py                 |   1 -
+ numeralform/renderers/zh.py                 |  18 ++-
+ tests/test_capabilities.py                  |   7 +-
+ tests/test_ordinal_domain_contract.py       | 208 +++++++++++++++++++++++++
+ tests/test_regressions.py                   |  56 ++++++-
+ 60 files changed, 777 insertions(+), 253 deletions(-)
+
+diff --git a/benchmarks/randomized/equivalence.py b/benchmarks/randomized/equivalence.py
+index 0461ba8..4fa1854 100644
+--- a/benchmarks/randomized/equivalence.py
++++ b/benchmarks/randomized/equivalence.py
+@@ -173,6 +173,57 @@ _ES_ORDINAL_ATTRIBUTIVE_APOCOPE = {
+     3: ("tercero", "tercer"),
+     13: ("decimotercero", "decimotercer"),
+ }
++# The pinned oracle composes Spanish ordinals with historical spellings
++# the canonical renderer deliberately does not use: decimo- teens instead
++# of undécimo/duodécimo, cuadri-/septi-/octi-gentesimo hundreds, the
++# unaccented compounded 20-29 decade (with o-elision before octavo), and
++# a masculine decade stem inside feminine forms. These audited spelling
++# and spacing mappings align both surfaces without masking numeric or
++# morphological differences.
++_ES_ORDINAL_COMPOUND_SPELLINGS = (
++    ("decimoprimero", "undecimo"),
++    ("decimosegundo", "duodecimo"),
++    ("decimoprimera", "undecima"),
++    ("decimosegunda", "duodecima"),
++    ("cuadrigentesimo", "cuadringentesimo"),
++    ("cuadrigentesima", "cuadringentesima"),
++    ("septigentesimo", "septingentesimo"),
++    ("septigentesima", "septingentesima"),
++    ("octigentesimo", "octingentesimo"),
++    ("octigentesima", "octingentesima"),
++)
++
++
++def _spanish_ordinal_compound_key(text: str) -> str:
++    key = unicodedata.normalize("NFD", _surface_key(text))
++    key = "".join(char for char in key if unicodedata.category(char) != "Mn")
++    key = "".join(key.split())
++    for legacy, modern in _ES_ORDINAL_COMPOUND_SPELLINGS:
++        key = key.replace(legacy, modern)
++    # The oracle elides the doubled vowel in vigesimo + octavo compounds.
++    key = key.replace("vigesimoctavo", "vigesimooctavo")
++    key = key.replace("vigesimoctava", "vigesimaoctava")
++    return key
++
++
++def _spanish_ordinal_compound_orthography_variant(
++    case: RandomCase, expected: str, actual: str
++) -> bool:
++    if case.locale.split("-", 1)[0] != "es" or case.kind != "ordinal":
++        return False
++    expected_key = _spanish_ordinal_compound_key(expected)
++    actual_key = _spanish_ordinal_compound_key(actual)
++    if _spanish_ordinal_gender(case) == "feminine":
++        # The oracle leaves the 20s decade stem masculine in feminine forms.
++        expected_key = expected_key.replace("vigesimo", "vigesima")
++    for suffix in ("primer", "tercer"):
++        if expected_key.endswith(suffix) and not actual_key.endswith(suffix):
++            expected_key += "o"
++        if actual_key.endswith(suffix) and not expected_key.endswith(suffix):
++            actual_key += "o"
++    return expected_key == actual_key
++
++
+ _FR_CONTINUATION_WORDS = frozenset(
+     {
+         "un",
+@@ -1059,6 +1110,10 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
+             "variant:es-ordinal-attributive-apocope",
+             _spanish_ordinal_attributive_apocope_variant,
+         ),
++        (
++            "variant:es-ordinal-compound-orthography",
++            _spanish_ordinal_compound_orthography_variant,
++        ),
+         ("oracle:es-gbp-gender", _spanish_gbp_gender_variant),
+         ("oracle:es-nok-gender", _spanish_nok_gender_variant),
+         ("variant:fi-compound-spacing", _finnish_compound_spacing_variant),
+diff --git a/benchmarks/tests/test_randomized_compare.py b/benchmarks/tests/test_randomized_compare.py
+index 094f254..f394ae3 100644
+--- a/benchmarks/tests/test_randomized_compare.py
++++ b/benchmarks/tests/test_randomized_compare.py
+@@ -175,6 +175,29 @@ def test_named_locale_equivalence_rules_and_negative_controls():
+             "vigésimo",
+             "oracle:es-ordinal-accent",
+         ),
++        (
++            case(locale="es", kind="ordinal", value=21),
++            "vigesimoprimero",
++            "vigésimo primero",
++            "variant:es-ordinal-compound-orthography",
++        ),
++        (
++            case(locale="es", kind="ordinal", value=2024),
++            "dosmilésimo vigesimocuarto",
++            "dosmilésimo vigésimo cuarto",
++            "variant:es-ordinal-compound-orthography",
++        ),
++        (
++            case(
++                locale="es",
++                kind="ordinal",
++                value=121,
++                options={"gender": "f"},
++            ),
++            "centésima vigesimoprimera",
++            "centésima vigésima primera",
++            "variant:es-ordinal-compound-orthography",
++        ),
+         (
+             case(locale="es", kind="ordinal", value=12),
+             "decimosegundo",
+@@ -244,6 +267,21 @@ def test_named_locale_equivalence_rules_and_negative_controls():
+     )
+     assert negative.status == "mismatch"
+
++    compound_negative = compare_results(
++        case(locale="es", kind="ordinal", value=121),
++        ExecutionResult.text_result("centésima vigesimoprimera"),
++        ExecutionResult.text_result("centésima vigésima primero"),
++        accept_variants=True,
++    )
++    assert compound_negative.status == "mismatch"
++    compound_wrong_number = compare_results(
++        case(locale="es", kind="ordinal", value=2024),
++        ExecutionResult.text_result("dosmilésimo vigesimocuarto"),
++        ExecutionResult.text_result("dosmilésimo vigésimo quinto"),
++        accept_variants=True,
++    )
++    assert compound_wrong_number.status == "mismatch"
++
+     malformed = compare_results(
+         case(locale="fr-BE", value=951),
+         ExecutionResult.text_result("neuf cents cinquante et un"),
+diff --git a/docs/locales/am.md b/docs/locales/am.md
+index 2fadb26..d7e9615 100644
+--- a/docs/locales/am.md
++++ b/docs/locales/am.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/ar.md b/docs/locales/ar.md
+index f5f28b4..3ee9fcd 100644
+--- a/docs/locales/ar.md
++++ b/docs/locales/ar.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/az.md b/docs/locales/az.md
+index 2a2f273..ac9f48f 100644
+--- a/docs/locales/az.md
++++ b/docs/locales/az.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/be.md b/docs/locales/be.md
+index 49a36f6..004ebfa 100644
+--- a/docs/locales/be.md
++++ b/docs/locales/be.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/bn.md b/docs/locales/bn.md
+index 66355b7..dd9072b 100644
+--- a/docs/locales/bn.md
++++ b/docs/locales/bn.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/ca.md b/docs/locales/ca.md
+index 971642f..d19d972 100644
+--- a/docs/locales/ca.md
++++ b/docs/locales/ca.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..29; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/capability-matrix.md b/docs/locales/capability-matrix.md
+index ff755a3..bd850ab 100644
+--- a/docs/locales/capability-matrix.md
++++ b/docs/locales/capability-matrix.md
+@@ -9,68 +9,68 @@ morphology, style, and feature constraints.
+
+ | Locale  | Reviewed forms                                                  | Advertised integer maximums |
+ | ------- | --------------------------------------------------------------- | --------------------------- |
+-| `am`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `ar`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `az`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `be`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `bn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `ca`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `ce`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `am`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `ar`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `az`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `be`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `bn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `ca`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 29, 9,999, 999,999,999      |
++| `ce`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `cs`    | cardinal, decimal, digits, ordinal_num, year                    | 999,999,999                 |
+-| `cy`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `da`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `cy`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 100, 9,999, 999,999,999     |
++| `da`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `de`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999,999         |
+ | `en`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+ | `en-GB` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+ | `en-IN` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+ | `en-NG` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+ | `en-US` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+-| `eo`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `es`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `es-CO` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `es-CR` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `es-GT` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `es-MX` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `es-NI` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `es-VE` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 20, 999,999,999             |
+-| `fa`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `eo`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `es`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `es-CO` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `es-CR` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `es-GT` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `es-MX` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `es-NI` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `es-VE` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `fa`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `fi`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `fr`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `fr-BE` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `fr-CH` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `fr-DZ` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+-| `he`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `hi`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `hu`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `hy`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `id`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `he`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `hi`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 3, 9,999, 999,999,999       |
++| `hu`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `hy`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 3, 9,999, 999,999,999       |
++| `id`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `is`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `it`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `ja`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+-| `kk`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `kn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `kk`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 3, 9,999, 999,999,999       |
++| `kn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `ko`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `lt`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `lv`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+-| `mn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `nl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `no`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `pl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `pt`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+-| `pt-BR` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+-| `pt-PT` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+-| `ro`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `mn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 3, 9,999, 999,999,999       |
++| `nl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `no`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `pl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `pt`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999, 999,999,999,999    |
++| `pt-BR` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999, 999,999,999,999    |
++| `pt-PT` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999, 999,999,999,999    |
++| `ro`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `ru`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999,999,999     |
+ | `sk`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+-| `sl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `sl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `sr`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `sv`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+-| `te`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `tet`   | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `tg`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `te`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `tet`   | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `tg`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `th`    | cardinal, decimal, digits, ordinal_num, year                    | 999,999,999,999             |
+-| `tr`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+-| `uk`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
++| `tr`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `uk`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `vi`    | cardinal, decimal, digits, ordinal_num, year                    | 999,999,999,999             |
+ | `zh`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+ | `zh-CN` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+diff --git a/docs/locales/ce.md b/docs/locales/ce.md
+index 7927c79..1016d66 100644
+--- a/docs/locales/ce.md
++++ b/docs/locales/ce.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/cy.md b/docs/locales/cy.md
+index d16e078..46d63d3 100644
+--- a/docs/locales/cy.md
++++ b/docs/locales/cy.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..100; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/da.md b/docs/locales/da.md
+index 726fa8f..04099c5 100644
+--- a/docs/locales/da.md
++++ b/docs/locales/da.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/eo.md b/docs/locales/eo.md
+index f823cfe..ea33e22 100644
+--- a/docs/locales/eo.md
++++ b/docs/locales/eo.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/es.md b/docs/locales/es.md
+index 30440ee..d9e75a3 100644
+--- a/docs/locales/es.md
++++ b/docs/locales/es.md
+@@ -8,7 +8,7 @@
+ - Morphology: masculine/feminine cardinal and ordinal morphology is accepted only in attributive contexts where the profile advertises it. Case, animacy, grammatical number, and noun class are unsupported.
+ - Styles: `default` only.
+ - Cardinal range: `-999,999,999..999,999,999`.
+-- Ordinal range: `0..20`.
++- Ordinal range: `0..999,999,999`.
+ - Fraction denominator range: `2..20`.
+ - Year: explicit form using ordinary Spanish cardinal realization.
+
+@@ -28,10 +28,27 @@
+
+ Digit sequences preserve leading zeroes. Masculine apocopation is component-aware: it transforms the final component (`uno`, `veintiuno`, or `... y uno`) rather than replacing arbitrary text.
+
++## Ordinal composition
++
++```text
++20    -> vigésimo
++21    -> vigésimo primero
++25    -> vigésimo quinto
++42    -> cuadragésimo segundo
++100   -> centésimo
++121   -> centésimo vigésimo primero
++999   -> noningentésimo nonagésimo noveno
++1000  -> milésimo
++2024  -> dosmilésimo vigésimo cuarto
++1000000 -> millonésimo
++```
++
++Compound gender and apocopation are component-aware: feminine agreement applies to every agreeing component (`121 attributive feminine -> centésima vigésima primera`), while masculine attributive apocopation (`primero -> primer`, `tercero -> tercer`) applies only to the final component (`21 attributive masculine -> vigésimo primer`).
++
+ ## Limitations and decisions
+
+ - Feminine hundreds are reviewed for attributive output (`doscientas`, `trescientas`, and so on).
+-- Ordinals intentionally stop at 20 until larger composition is independently reviewed; requests such as ordinal 30 raise `InvalidValueError`.
++- Ordinals compose through the cardinal maximum (`999,999,999`); the compatibility layer additionally adapts historical num2words spellings for values it serves.
+ - Fraction denominators outside the reviewed range are rejected.
+ - Year does not arise from magnitude inference; callers must request `form="year"`.
+
+diff --git a/docs/locales/fa.md b/docs/locales/fa.md
+index 8e236e1..c286868 100644
+--- a/docs/locales/fa.md
++++ b/docs/locales/fa.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/he.md b/docs/locales/he.md
+index fbf594f..0c1c3c1 100644
+--- a/docs/locales/he.md
++++ b/docs/locales/he.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/hi.md b/docs/locales/hi.md
+index 5450246..25eca81 100644
+--- a/docs/locales/hi.md
++++ b/docs/locales/hi.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..3; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/hu.md b/docs/locales/hu.md
+index f298657..c77ee89 100644
+--- a/docs/locales/hu.md
++++ b/docs/locales/hu.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/hy.md b/docs/locales/hy.md
+index 3e94893..57392b6 100644
+--- a/docs/locales/hy.md
++++ b/docs/locales/hy.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 1..3; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/id.md b/docs/locales/id.md
+index 6d34356..ae3e573 100644
+--- a/docs/locales/id.md
++++ b/docs/locales/id.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/kk.md b/docs/locales/kk.md
+index 3212591..566c2d3 100644
+--- a/docs/locales/kk.md
++++ b/docs/locales/kk.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 1..3; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/kn.md b/docs/locales/kn.md
+index d7f8dd9..28a7a0c 100644
+--- a/docs/locales/kn.md
++++ b/docs/locales/kn.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/mn.md b/docs/locales/mn.md
+index fcaa0bc..e58289d 100644
+--- a/docs/locales/mn.md
++++ b/docs/locales/mn.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 1..3; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/nl.md b/docs/locales/nl.md
+index 6656953..58f5102 100644
+--- a/docs/locales/nl.md
++++ b/docs/locales/nl.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/no.md b/docs/locales/no.md
+index 7cfbdb1..79bd960 100644
+--- a/docs/locales/no.md
++++ b/docs/locales/no.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/pl.md b/docs/locales/pl.md
+index 694eb91..c667fcd 100644
+--- a/docs/locales/pl.md
++++ b/docs/locales/pl.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 1..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/ro.md b/docs/locales/ro.md
+index dc3c0d8..b33766b 100644
+--- a/docs/locales/ro.md
++++ b/docs/locales/ro.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/sl.md b/docs/locales/sl.md
+index caa6fa9..f12e621 100644
+--- a/docs/locales/sl.md
++++ b/docs/locales/sl.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/te.md b/docs/locales/te.md
+index 866c8c0..4171ca1 100644
+--- a/docs/locales/te.md
++++ b/docs/locales/te.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/tet.md b/docs/locales/tet.md
+index 86fc754..55a682a 100644
+--- a/docs/locales/tet.md
++++ b/docs/locales/tet.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/tg.md b/docs/locales/tg.md
+index 59b2ed8..4b48e0b 100644
+--- a/docs/locales/tg.md
++++ b/docs/locales/tg.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/tr.md b/docs/locales/tr.md
+index fddd55d..1f36735 100644
+--- a/docs/locales/tr.md
++++ b/docs/locales/tr.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 0..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/uk.md b/docs/locales/uk.md
+index 0853b96..e0baa61 100644
+--- a/docs/locales/uk.md
++++ b/docs/locales/uk.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals are fixture-backed and advertise exactly the reviewed contiguous block 1..1000; values outside that block are rejected rather than synthesized.
+
+ ## Year policy
+
+diff --git a/docs/locales/zh.md b/docs/locales/zh.md
+index 6fdd08f..e9ff9c5 100644
+--- a/docs/locales/zh.md
++++ b/docs/locales/zh.md
+@@ -30,7 +30,7 @@ The integer part is rendered canonically, followed by the locale decimal marker
+
+ ## Ordinal policy
+
+-Numeric ordinals are separate from word ordinals. Word ordinal support is advertised only where a reviewed lexical surface is available.
++Numeric ordinals are separate from word ordinals. Word ordinals use the locale-owned `第 + cardinal` rule for non-negative values through 999,999,999.
+
+ ## Year policy
+
+diff --git a/numeralform/compat/num2words.py b/numeralform/compat/num2words.py
+index 37881e0..48d5919 100644
+--- a/numeralform/compat/num2words.py
++++ b/numeralform/compat/num2words.py
+@@ -8,6 +8,7 @@ from __future__ import annotations
+
+ import math
+ import re
++import unicodedata
+ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+
+ from .. import render
+@@ -345,21 +346,21 @@ _ES_ORDINAL_UNDER_20 = {
+     8: "octavo",
+     9: "noveno",
+     10: "décimo",
+-    11: "décimoprimero",
+-    12: "décimosegundo",
+-    13: "décimotercero",
+-    14: "décimocuarto",
+-    15: "décimoquinto",
+-    16: "décimosexto",
+-    17: "décimoséptimo",
+-    18: "décimoctavo",
+-    19: "décimo noveno",
+-    20: "vigésimo",
++    11: "decimoprimero",
++    12: "decimosegundo",
++    13: "decimotercero",
++    14: "decimocuarto",
++    15: "decimoquinto",
++    16: "decimosexto",
++    17: "decimoséptimo",
++    18: "decimoctavo",
++    19: "decimonoveno",
++    20: "vigesimo",
+ }
+ _ES_ORDINAL_TENS = {
+-    20: "vigésimo",
++    20: "vigesimo",
+     30: "trigésimo",
+-    40: "quadragésimo",
++    40: "cuadragésimo",
+     50: "quincuagésimo",
+     60: "sexagésimo",
+     70: "septuagésimo",
+@@ -370,40 +371,49 @@ _ES_ORDINAL_HUNDREDS = {
+     100: "centésimo",
+     200: "ducentésimo",
+     300: "tricentésimo",
+-    400: "cuadringentésimo",
++    400: "cuadrigentésimo",
+     500: "quingentésimo",
+     600: "sexcentésimo",
+-    700: "septingentésimo",
+-    800: "octingentésimo",
++    700: "septigentésimo",
++    800: "octigentésimo",
+     900: "noningentésimo",
+ }
+
+
+-def _legacy_spanish_ordinal(value: int) -> str:
++def _legacy_spanish_ordinal(value: int, gender: str | None = None) -> str:
++    """Adapt the canonical Spanish ordinal composition to the num2words surface.
++
++    The canonical renderer owns the linguistic composition; this shim only
++    reproduces the pinned oracle's legacy spellings: the empty zero surface,
++    decimo- teens, the unaccented compounded 20-29 decade, and the oracle's
++    decision to keep that decade stem masculine in feminine forms.
++    """
+     if value == 0:
+         return ""
+-    if value <= 20:
+-        return _ES_ORDINAL_UNDER_20[value]
+-    if value < 100:
+-        tens, ones = divmod(value, 10)
+-        return _ES_ORDINAL_TENS[tens * 10] + (
+-            f" {_ES_ORDINAL_UNDER_20[ones]}" if ones else ""
+-        )
+-    if value < 1000:
+-        hundreds, rest = divmod(value, 100)
+-        prefix = _ES_ORDINAL_HUNDREDS[hundreds * 100]
+-        return prefix + (f" {_legacy_spanish_ordinal(rest)}" if rest else "")
+-    if value < 1_000_000:
+-        thousands, rest = divmod(value, 1000)
+-        prefix = (
+-            "milésimo"
+-            if thousands == 1
+-            else render(thousands, locale="es") + "milésimo"
++    if gender == "feminine":
++        text = render(
++            value, locale="es", form="ordinal",
++            syntax="attributive", gender="feminine",
+         )
+-        return prefix + (f" {_legacy_spanish_ordinal(rest)}" if rest else "")
+-    millions, rest = divmod(value, 1_000_000)
+-    prefix = render(millions, locale="es") + "milésimo"
+-    return prefix + (f" {_legacy_spanish_ordinal(rest)}" if rest else "")
++        decade = "vigésima"
++    else:
++        text = render(value, locale="es", form="ordinal")
++        decade = "vigésimo"
++    text = (
++        text.replace("undécimo", "decimoprimero")
++        .replace("duodécimo", "decimosegundo")
++        .replace("undécima", "decimoprimera")
++        .replace("duodécima", "decimosegunda")
++    )
++    if decade == "vigésimo":
++        text = text.replace("vigésimo octavo", "vigesimoctavo")
++        text = text.replace("vigésimo ", "vigesimo")
++        text = text.replace("vigésimo", "vigesimo")
++    else:
++        text = text.replace("vigésima octava", "vigesimoctava")
++        text = text.replace("vigésima ", "vigesimo")
++        text = text.replace("vigésima", "vigesimo")
++    return text
+
+
+ def _legacy_year(value: int, locale: str) -> str:
+@@ -961,82 +971,72 @@ def _num2words_impl(
+         if not isinstance(value, int) or value < 0:
+             raise ValueError("ordinal_num requires a non-negative integer")
+         return _ordinal_numeric(value, locale, options)
+-    if to == "ordinal" and isinstance(value, int) and not options:
++    if to == "ordinal" and isinstance(value, int):
+         language = request_locale.split("-", 1)[0]
+-        if language == "sv":
+-            text = render(value, locale="sv", form="ordinal")
+-            return (
+-                text.replace("fyrtio", "förtio")
+-                .replace("fyrtionde", "förtionde")
+-                .replace("tjugonde", "tjugode")
+-            )
+-        if language == "it":
+-            if value < 20:
+-                return render(value, locale="it", form="ordinal")
+-            text = render(value, locale="it")
+-            if value % 10 == 3:
+-                return text[:-1] + "eesimo"
+-            if value % 10 == 6:
+-                return text + "esimo"
+-            stem = text[:-1]
+-            if stem.endswith("mil"):
+-                stem += "l"
+-            return stem + "esimo"
+-        if language == "en":
+-            return _legacy_english_ordinal(value)
+-        if language == "es":
+-            text = _legacy_spanish_ordinal(value)
+-            if text == "décimoséptimo":
+-                return "decimoséptimo"
+-            if value not in {7, 10}:
+-                import unicodedata
+-
+-                text = "".join(
+-                    char
+-                    for char in unicodedata.normalize("NFD", text)
+-                    if unicodedata.category(char) != "Mn"
+-                ).replace(" ", "")
+-            return text
+-        if language == "fr":
+-            if locale in {"fr", "fr-DZ"}:
+-                legacy = {
+-                    71: "soixante et onzième",
+-                    72: "soixante-douzième",
+-                    73: "soixante-treizième",
+-                    74: "soixante-quatorzième",
+-                    75: "soixante-quinzième",
+-                    76: "soixante-seizième",
+-                    80: "quatre-vingtsième",
+-                    81: "quatre-vingt-unième",
+-                    91: "quatre-vingt-onzième",
+-                    92: "quatre-vingt-douzième",
+-                    93: "quatre-vingt-treizième",
+-                    94: "quatre-vingt-quatorzième",
+-                    95: "quatre-vingt-quinzième",
+-                    96: "quatre-vingt-seizième",
++        if language == "es" and set(options) <= {"gender"}:
++            return _legacy_spanish_ordinal(value, options.get("gender"))
++        if not options:
++            if language == "sv":
++                text = render(value, locale="sv", form="ordinal")
++                return (
++                    text.replace("fyrtio", "förtio")
++                    .replace("fyrtionde", "förtionde")
++                    .replace("tjugonde", "tjugode")
++                )
++            if language == "it":
++                if value < 20:
++                    return render(value, locale="it", form="ordinal")
++                text = render(value, locale="it")
++                if value % 10 == 3:
++                    return text[:-1] + "eesimo"
++                if value % 10 == 6:
++                    return text + "esimo"
++                stem = text[:-1]
++                if stem.endswith("mil"):
++                    stem += "l"
++                return stem + "esimo"
++            if language == "en":
++                return _legacy_english_ordinal(value)
++            if language == "fr":
++                if locale in {"fr", "fr-DZ"}:
++                    legacy = {
++                        71: "soixante et onzième",
++                        72: "soixante-douzième",
++                        73: "soixante-treizième",
++                        74: "soixante-quatorzième",
++                        75: "soixante-quinzième",
++                        76: "soixante-seizième",
++                        80: "quatre-vingtsième",
++                        81: "quatre-vingt-unième",
++                        91: "quatre-vingt-onzième",
++                        92: "quatre-vingt-douzième",
++                        93: "quatre-vingt-treizième",
++                        94: "quatre-vingt-quatorzième",
++                        95: "quatre-vingt-quinzième",
++                        96: "quatre-vingt-seizième",
++                    }
++                    if value in legacy:
++                        return legacy[value]
++                under_19 = {
++                    11: "onzième",
++                    12: "douzième",
++                    13: "treizième",
++                    14: "quatorzième",
++                    15: "quinzième",
++                    16: "seizième",
++                    17: "dix-septième",
++                    18: "dix-huitième",
+                 }
+-                if value in legacy:
+-                    return legacy[value]
+-            under_19 = {
+-                11: "onzième",
+-                12: "douzième",
+-                13: "treizième",
+-                14: "quatorzième",
+-                15: "quinzième",
+-                16: "seizième",
+-                17: "dix-septième",
+-                18: "dix-huitième",
+-            }
+-            if value in under_19:
+-                return under_19[value]
+-            text = render(value, locale=request_locale, form="ordinal").replace(
+-                "quatre-vingts-", "quatre-vingt-"
+-            )
+-            return re.sub(r"(.+)-premier$", r"\1 et unième", text)
+-        if language == "ru":
+-            return render(value, locale="ru", form="ordinal").replace(
+-                "девяностой", "девяностый"
+-            )
++                if value in under_19:
++                    return under_19[value]
++                text = render(value, locale=request_locale, form="ordinal").replace(
++                    "quatre-vingts-", "quatre-vingt-"
++                )
++                return re.sub(r"(.+)-premier$", r"\1 et unième", text)
++            if language == "ru":
++                return render(value, locale="ru", form="ordinal").replace(
++                    "девяностой", "девяностый"
++                )
+     if to == "year" and isinstance(value, int) and not options:
+         return _legacy_year(value, request_locale)
+     if options.get("style") == "num2words":
+@@ -1056,6 +1056,15 @@ def _num2words_impl(
+             form = "fraction"
+         return render(value, locale=locale, form=form, **options)
+     except InvalidValueError as exc:
++        if to == "ordinal" and isinstance(value, int) and not options:
++            # Isolated reviewed fixtures (for example 2024) remain valid
++            # num2words surfaces even though the canonical ordinal domain
++            # advertises only the contiguous block.
++            from ..renderers._fixtures import ORDINALS
++
++            table = ORDINALS.get(locale.split("-", 1)[0])
++            if table is not None and value in table:
++                return unicodedata.normalize("NFC", table[value])
+         raise OverflowError(str(exc)) from exc
+     except NumeralFormError as exc:
+         raise NotImplementedError(str(exc)) from exc
+diff --git a/numeralform/renderers/_fixtures.py b/numeralform/renderers/_fixtures.py
+index b461240..74aba18 100644
+--- a/numeralform/renderers/_fixtures.py
++++ b/numeralform/renderers/_fixtures.py
+@@ -41722,11 +41722,19 @@ ORDINALS = {
+         2024: "האלפיים עשרים וארבעה",
+     },
+     "hi": {
++        0: "शून्य",
+         1: "पहला",
+         2: "दूसरा",
+         3: "तीसरा",
+         10: "दसवाँ",
++        11: "ग्यारहवाँ",
++        19: "उन्नीसवाँ",
++        20: "बीसवाँ",
++        21: "इक्कीसवाँ",
+         42: "बयालीसवाँ",
++        99: "निन्यानवेवाँ",
++        101: "एक सौ एकवाँ",
++        999: "नौ सौ निन्यानवेवाँ",
+         100: "सौवाँ",
+         1000: "हज़ारवाँ",
+         2024: "दो हज़ार चौबीसवाँ",
+diff --git a/numeralform/renderers/_shared.py b/numeralform/renderers/_shared.py
+index 8f14777..b1baf7a 100644
+--- a/numeralform/renderers/_shared.py
++++ b/numeralform/renderers/_shared.py
+@@ -1,8 +1,9 @@
+ """Small mechanical helpers shared by independently owned locale renderers."""
+
+ from __future__ import annotations
+-
+ import unicodedata
++from collections.abc import Mapping
++from typing import ClassVar
+ from dataclasses import dataclass, replace
+ from typing import ClassVar
+
+@@ -25,17 +26,33 @@ class RendererData:
+     decimal: str = "point"
+     negative: str = "minus"
+     compound: str = " "
+-    ordinal_suffix: str = "th"
+-    ordinal_prefix: str = ""
+     digit_separator: str | None = None
+
+
++def contiguous_integer_domain(values: Mapping[int, str]) -> tuple[int, int] | None:
++    """Return the largest contiguous integer block starting at the minimum key."""
++    if not values:
++        return None
++    minimum = min(values)
++    maximum = minimum
++    while maximum + 1 in values:
++        maximum += 1
++    return minimum, maximum
++
++
++# Per-class cache for the fixture-derived ordinal domain so hot render
++# paths do not rescan the fixture table on every request.
++_ORDINAL_DOMAINS: dict[type, NumericDomain | None] = {}
++
++
+ class LexicalRenderer:
+     """A locale-owned renderer with only numeric decomposition shared.
+
+     Lexical maps, script choices, scale names, and joining policy are supplied by
+     each concrete locale module. The helper deliberately does not provide a
+-    numeric-text fallback.
++    numeric-text fallback and deliberately does not synthesize word ordinals:
++    ordinal surfaces come either from reviewed fixtures or from a locale-owned
++    ``_ordinal()`` override.
+     """
+
+     locale: ClassVar[str] = ""
+@@ -44,7 +61,23 @@ class LexicalRenderer:
+     ordinals: ClassVar[dict[int, str]] = {}
+     exact: ClassVar[dict[int, str]] = {}
+     max_cardinal = 999_999_999
+-    max_ordinal = 999_999_999
++
++    @classmethod
++    def _ordinal_domain(cls) -> NumericDomain | None:
++        """The reviewed continuous word-ordinal domain, or None if unreviewed."""
++        try:
++            return _ORDINAL_DOMAINS[cls]
++        except KeyError:
++            block = contiguous_integer_domain(cls.ordinals)
++            domain = (
++                NumericDomain(
++                    minimum=block[0], maximum=block[1], allow_negative=False
++                )
++                if block
++                else None
++            )
++            _ORDINAL_DOMAINS[cls] = domain
++            return domain
+
+     @classmethod
+     def capabilities(cls) -> LocaleCapabilities:
+@@ -63,12 +96,10 @@ class LexicalRenderer:
+                 domain=NumericDomain(maximum=9999),
+             ),
+         ]
+-        if cls.ordinals:
++        ordinal_domain = cls._ordinal_domain()
++        if ordinal_domain is not None:
+             profiles.append(
+-                CapabilityProfile(
+-                    NumeralForm.ORDINAL,
+-                    domain=NumericDomain(maximum=cls.max_ordinal, allow_negative=False),
+-                )
++                CapabilityProfile(NumeralForm.ORDINAL, domain=ordinal_domain)
+             )
+         return LocaleCapabilities(
+             profiles=tuple(profiles),
+@@ -167,13 +198,21 @@ class LexicalRenderer:
+         return f"{integer} {self.data.decimal} {fraction}"
+
+     def _ordinal(self, value: int) -> str:
+-        if value < 0 or value > self.max_ordinal:
++        domain = self._ordinal_domain()
++        if (
++            domain is None
++            or value < (domain.minimum or 0)
++            or value > domain.maximum
++        ):
+             raise InvalidValueError(
+                 f"{self.locale} ordinal value is outside the supported range"
+             )
+-        if value in self.ordinals:
++        try:
+             return self.ordinals[value]
+-        return f"{self.data.ordinal_prefix}{self._cardinal(value)}{self.data.ordinal_suffix}"
++        except KeyError as exc:
++            raise InvalidValueError(
++                f"{self.locale} ordinal value {value} has no reviewed rendering"
++            ) from exc
+
+     def _year(self, value: int) -> str:
+         if value < 0 or value > 9999:
+@@ -331,8 +370,6 @@ def locale_data(
+     *,
+     compound: str = " ",
+     negative: str = "minus",
+-    ordinal_suffix: str = "th",
+-    ordinal_prefix: str = "",
+ ) -> RendererData:
+     return RendererData(
+         digits=digits,
+@@ -340,10 +377,7 @@ def locale_data(
+         decimal=_DECIMALS.get(locale, "point"),
+         negative=negative,
+         compound=compound,
+-        ordinal_suffix=ordinal_suffix,
+-        ordinal_prefix=ordinal_prefix,
+         digit_separator=_DIGIT_SEPARATORS.get(locale),
+     )
+
+-
+ __all__ = ["LexicalRenderer", "RendererData"]
+diff --git a/numeralform/renderers/az.py b/numeralform/renderers/az.py
+index f8a323d..950a322 100644
+--- a/numeralform/renderers/az.py
++++ b/numeralform/renderers/az.py
+@@ -8,6 +8,4 @@ class AzerbaijaniRenderer(LexicalRenderer):
+     locale = "az"
+     cardinals = CARDINALS[locale]
+     ordinals = ORDINALS[locale]
+-    data = locale_data(
+-        "az", tuple(CARDINALS["az"][i] for i in range(10)), ordinal_suffix="inci"
+-    )
++    data = locale_data("az", tuple(CARDINALS["az"][i] for i in range(10)))
+diff --git a/numeralform/renderers/ca.py b/numeralform/renderers/ca.py
+index 70af4a3..fb8283f 100644
+--- a/numeralform/renderers/ca.py
++++ b/numeralform/renderers/ca.py
+@@ -8,6 +8,4 @@ class CatalanRenderer(LexicalRenderer):
+     locale = "ca"
+     cardinals = CARDINALS[locale]
+     ordinals = ORDINALS[locale]
+-    data = locale_data(
+-        "ca", tuple(CARDINALS["ca"][i] for i in range(10)), ordinal_suffix="è"
+-    )
++    data = locale_data("ca", tuple(CARDINALS["ca"][i] for i in range(10)))
+diff --git a/numeralform/renderers/de.py b/numeralform/renderers/de.py
+index be4d358..016518c 100644
+--- a/numeralform/renderers/de.py
++++ b/numeralform/renderers/de.py
+@@ -73,6 +73,7 @@ _SCALES = [
+     (100, "hundert", "hundert"),
+ ]
+ _MAX_CARDINAL = 999_999_999_999_999
++_MAX_ORDINAL = _MAX_CARDINAL
+
+
+ class GermanRenderer:
+@@ -89,6 +90,9 @@ class GermanRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+diff --git a/numeralform/renderers/en.py b/numeralform/renderers/en.py
+index 0df2293..afabc2e 100644
+--- a/numeralform/renderers/en.py
++++ b/numeralform/renderers/en.py
+@@ -120,6 +120,9 @@ class EnglishRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.DECIMAL),
+diff --git a/numeralform/renderers/eo.py b/numeralform/renderers/eo.py
+index f4bc4bb..8829a04 100644
+--- a/numeralform/renderers/eo.py
++++ b/numeralform/renderers/eo.py
+@@ -8,6 +8,4 @@ class EsperantoRenderer(LexicalRenderer):
+     locale = "eo"
+     cardinals = CARDINALS[locale]
+     ordinals = ORDINALS[locale]
+-    data = locale_data(
+-        "eo", tuple(CARDINALS["eo"][i] for i in range(10)), ordinal_suffix="a"
+-    )
++    data = locale_data("eo", tuple(CARDINALS["eo"][i] for i in range(10)))
+diff --git a/numeralform/renderers/es.py b/numeralform/renderers/es.py
+index 7c8c589..da08767 100644
+--- a/numeralform/renderers/es.py
++++ b/numeralform/renderers/es.py
+@@ -104,8 +104,29 @@ _ORDINALS = {
+     19: "decimonoveno",
+     20: "vigésimo",
+ }
++_ORDINAL_TENS = {
++    2: "vigésimo",
++    3: "trigésimo",
++    4: "cuadragésimo",
++    5: "quincuagésimo",
++    6: "sexagésimo",
++    7: "septuagésimo",
++    8: "octogésimo",
++    9: "nonagésimo",
++}
++_ORDINAL_HUNDREDS = {
++    1: "centésimo",
++    2: "ducentésimo",
++    3: "tricentésimo",
++    4: "cuadringentésimo",
++    5: "quingentésimo",
++    6: "sexcentésimo",
++    7: "septingentésimo",
++    8: "octingentésimo",
++    9: "noningentésimo",
++}
+ _MAX_CARDINAL = 999_999_999
+-_MAX_ORDINAL = 20
++_MAX_ORDINAL = _MAX_CARDINAL
+ _MAX_FRACTION_DENOMINATOR = 20
+
+
+@@ -301,42 +322,69 @@ class SpanishRenderer:
+         fraction = " ".join(_DIGITS[int(digit)] for digit in value.fraction)
+         return f"{sign}{integer} punto {fraction}"
+
++    def _ordinal_parts(self, value: int) -> list[str]:
++        """Decompose a reviewed ordinal into its agreeing components."""
++        if value <= 20:
++            return [_ORDINALS[value]]
++        if value < 100:
++            tens, units = divmod(value, 10)
++            parts = [_ORDINAL_TENS[tens]]
++            if units:
++                parts.append(_ORDINALS[units])
++            return parts
++        if value < 1000:
++            hundreds, remainder = divmod(value, 100)
++            parts = [_ORDINAL_HUNDREDS[hundreds]]
++            if remainder:
++                parts.extend(self._ordinal_parts(remainder))
++            return parts
++        if value < 1_000_000:
++            thousands, remainder = divmod(value, 1000)
++            head = (
++                "milésimo"
++                if thousands == 1
++                else self._cardinal_plain(thousands) + "milésimo"
++            )
++            parts = [head]
++            if remainder:
++                parts.extend(self._ordinal_parts(remainder))
++            return parts
++        millions, remainder = divmod(value, 1_000_000)
++        head = (
++            "millonésimo"
++            if millions == 1
++            else self._cardinal_plain(millions) + "millonésimo"
++        )
++        parts = [head]
++        if remainder:
++            parts.extend(self._ordinal_parts(remainder))
++        return parts
++
+     def _ordinal(self, value: int, request: NumeralRequest) -> str:
+         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+             raise InvalidValueError("ordinal form requires a non-negative integer")
+         if value > _MAX_ORDINAL:
+             raise InvalidValueError(
+-                "Spanish ordinal is supported only for values 0 through 20"
++                "Spanish ordinal is outside the supported range"
+             )
+-        text = _ORDINALS[value]
++        if value == 0:
++            return "cero"
++        tokens = " ".join(self._ordinal_parts(value)).split()
+         if request.morphology.gender is Gender.FEMININE:
+-            for masculine, feminine in (
+-                ("primero", "primera"),
+-                ("segundo", "segunda"),
+-                ("tercero", "tercera"),
+-                ("undécimo", "undécima"),
+-                ("duodécimo", "duodécima"),
+-                ("décimo", "décima"),
+-                ("vigésimo", "vigésima"),
+-                ("cuarto", "cuarta"),
+-                ("quinto", "quinta"),
+-                ("sexto", "sexta"),
+-                ("séptimo", "séptima"),
+-                ("octavo", "octava"),
+-                ("noveno", "novena"),
+-            ):
+-                if text.endswith(masculine):
+-                    text = text[: -len(masculine)] + feminine
+-                    break
++            tokens = [
++                token[:-1] + "a" if token.endswith("o") else token
++                for token in tokens
++            ]
+         elif (
+             request.syntax is Syntax.ATTRIBUTIVE
+             and request.morphology.gender is Gender.MASCULINE
++            and (
++                tokens[-1].endswith("primero")
++                or tokens[-1].endswith("tercero")
++            )
+         ):
+-            if text.endswith("primero"):
+-                text = text[:-7] + "primer"
+-            elif text.endswith("tercero"):
+-                text = text[:-7] + "tercer"
+-        return text
++            tokens[-1] = tokens[-1][:-1]
++        return " ".join(tokens)
+
+     def _fraction(self, value) -> str:
+         if not isinstance(value, FractionNumber):
+diff --git a/numeralform/renderers/fa.py b/numeralform/renderers/fa.py
+index abc5b5a..094b8ce 100644
+--- a/numeralform/renderers/fa.py
++++ b/numeralform/renderers/fa.py
+@@ -12,5 +12,4 @@ class PersianRenderer(LexicalRenderer):
+         "fa",
+         tuple(CARDINALS["fa"][i] for i in range(10)),
+         negative="منفی",
+-        ordinal_suffix="م",
+     )
+diff --git a/numeralform/renderers/fi.py b/numeralform/renderers/fi.py
+index 3ddc429..87847b2 100644
+--- a/numeralform/renderers/fi.py
++++ b/numeralform/renderers/fi.py
+@@ -174,6 +174,9 @@ class FinnishRenderer:
+         common_cases = frozenset({"nominative"})
+         common_numbers = frozenset({"singular"})
+         common_domain = NumericDomain(maximum=999_999_999_999)
++        ordinal_domain = NumericDomain(
++            minimum=0, maximum=999_999_999_999, allow_negative=False
++        )
+         return LocaleCapabilities(
+             profiles=(
+                 CapabilityProfile(
+@@ -188,13 +191,13 @@ class FinnishRenderer:
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                     cases=common_cases,
+                     grammatical_numbers=common_numbers,
+-                    domain=common_domain,
++                    domain=ordinal_domain,
+                 ),
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL_NUMERIC,
+                     cases=common_cases,
+                     grammatical_numbers=common_numbers,
+-                    domain=common_domain,
++                    domain=ordinal_domain,
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+diff --git a/numeralform/renderers/fr.py b/numeralform/renderers/fr.py
+index cc945fe..90442a3 100644
+--- a/numeralform/renderers/fr.py
++++ b/numeralform/renderers/fr.py
+@@ -80,6 +80,7 @@ def _ordinalize_cardinal_tail(cardinal: str) -> str:
+
+ _SCALES = [(1_000_000_000, "milliard"), (1_000_000, "million"), (1_000, "mille")]
+ _MAX_CARDINAL = 999_999_999_999
++_MAX_ORDINAL = _MAX_CARDINAL
+
+
+ class FrenchRenderer:
+@@ -96,6 +97,9 @@ class FrenchRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+diff --git a/numeralform/renderers/hi.py b/numeralform/renderers/hi.py
+index 418ee75..e69171f 100644
+--- a/numeralform/renderers/hi.py
++++ b/numeralform/renderers/hi.py
+@@ -12,5 +12,4 @@ class HindiRenderer(LexicalRenderer):
+         "hi",
+         tuple(CARDINALS["hi"][i] for i in range(10)),
+         negative="माइनस",
+-        ordinal_suffix="वाँ",
+     )
+diff --git a/numeralform/renderers/hu.py b/numeralform/renderers/hu.py
+index 8b141c4..86f1ae1 100644
+--- a/numeralform/renderers/hu.py
++++ b/numeralform/renderers/hu.py
+@@ -12,5 +12,4 @@ class HungarianRenderer(LexicalRenderer):
+         "hu",
+         tuple(CARDINALS["hu"][i] for i in range(10)),
+         compound="",
+-        ordinal_suffix="adik",
+     )
+diff --git a/numeralform/renderers/id.py b/numeralform/renderers/id.py
+index b5e47e4..f7476f8 100644
+--- a/numeralform/renderers/id.py
++++ b/numeralform/renderers/id.py
+@@ -8,6 +8,4 @@ class IndonesianRenderer(LexicalRenderer):
+     locale = "id"
+     cardinals = CARDINALS[locale]
+     ordinals = ORDINALS[locale]
+-    data = locale_data(
+-        "id", tuple(CARDINALS["id"][i] for i in range(10)), ordinal_prefix="ke-"
+-    )
++    data = locale_data("id", tuple(CARDINALS["id"][i] for i in range(10)))
+diff --git a/numeralform/renderers/it.py b/numeralform/renderers/it.py
+index 91ab045..871dc97 100644
+--- a/numeralform/renderers/it.py
++++ b/numeralform/renderers/it.py
+@@ -59,6 +59,7 @@ _SCALES = [
+     (1_000, "mille", "mila"),
+ ]
+ _MAX_CARDINAL = 999_999_999_999
++_MAX_ORDINAL = _MAX_CARDINAL
+
+
+ _ITALIAN_ORDINAL_SUFFIXES = (
+@@ -96,6 +97,9 @@ class ItalianRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+diff --git a/numeralform/renderers/ja.py b/numeralform/renderers/ja.py
+index 08f2998..86ef326 100644
+--- a/numeralform/renderers/ja.py
++++ b/numeralform/renderers/ja.py
+@@ -33,6 +33,7 @@ _SCALES = [
+     (10, "十"),
+ ]
+ _MAX_CARDINAL = 9999_9999_9999
++_MAX_ORDINAL = _MAX_CARDINAL
+
+
+ class JapaneseRenderer:
+@@ -49,6 +50,9 @@ class JapaneseRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+diff --git a/numeralform/renderers/ko.py b/numeralform/renderers/ko.py
+index d5d5ccb..3669980 100644
+--- a/numeralform/renderers/ko.py
++++ b/numeralform/renderers/ko.py
+@@ -35,6 +35,7 @@ _SCALES = [
+     (10, "십"),
+ ]
+ _MAX_CARDINAL = 9999_9999_9999
++_MAX_ORDINAL = _MAX_CARDINAL
+
+
+ class KoreanRenderer:
+@@ -53,7 +54,12 @@ class KoreanRenderer:
+                     NumeralForm.DECIMAL,
+                     domain=NumericDomain(maximum=_MAX_CARDINAL, decimals=True),
+                 ),
+-                CapabilityProfile(NumeralForm.ORDINAL),
++                CapabilityProfile(
++                    NumeralForm.ORDINAL,
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
++                ),
+                 CapabilityProfile(NumeralForm.YEAR),
+             ),
+             notes=(
+diff --git a/numeralform/renderers/pt.py b/numeralform/renderers/pt.py
+index dea7055..3ebec36 100644
+--- a/numeralform/renderers/pt.py
++++ b/numeralform/renderers/pt.py
+@@ -121,6 +121,7 @@ _HUNDREDS: dict[int, str | tuple[str, str]] = {
+     900: "novecentos",
+ }
+ _MAX_CARDINAL = 999_999_999_999
++_MAX_ORDINAL = 999_999
+
+
+ def _next_expressed_group(remainder: int, scale: int) -> int:
+@@ -163,6 +164,9 @@ class PortugueseRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+@@ -238,6 +242,10 @@ class PortugueseRenderer:
+     def _ordinal(self, value: int) -> str:
+         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+             raise InvalidValueError("ordinal form requires a non-negative integer")
++        if value > _MAX_ORDINAL:
++            raise InvalidValueError(
++                "Portuguese ordinal is outside the supported range"
++            )
+         if value <= 20:
+             return _ORDINALS_PT[value]
+         if value < 100:
+diff --git a/numeralform/renderers/ro.py b/numeralform/renderers/ro.py
+index 2972ae2..4ff16da 100644
+--- a/numeralform/renderers/ro.py
++++ b/numeralform/renderers/ro.py
+@@ -8,6 +8,4 @@ class RomanianRenderer(LexicalRenderer):
+     locale = "ro"
+     cardinals = CARDINALS[locale]
+     ordinals = ORDINALS[locale]
+-    data = locale_data(
+-        "ro", tuple(CARDINALS["ro"][i] for i in range(10)), ordinal_prefix="al "
+-    )
++    data = locale_data("ro", tuple(CARDINALS["ro"][i] for i in range(10)))
+diff --git a/numeralform/renderers/sv.py b/numeralform/renderers/sv.py
+index 7ffe1fe..e4dd212 100644
+--- a/numeralform/renderers/sv.py
++++ b/numeralform/renderers/sv.py
+@@ -75,6 +75,7 @@ _SCALES = [
+     (1_000, "tusen"),
+ ]
+ _MAX_CARDINAL = 999_999_999_999
++_MAX_ORDINAL = _MAX_CARDINAL
+
+
+ class SwedishRenderer:
+@@ -91,6 +92,9 @@ class SwedishRenderer:
+                 CapabilityProfile(
+                     NumeralForm.ORDINAL,
+                     syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
++                    domain=NumericDomain(
++                        minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
++                    ),
+                 ),
+                 CapabilityProfile(NumeralForm.DIGITS),
+                 CapabilityProfile(NumeralForm.YEAR),
+@@ -178,6 +182,16 @@ class SwedishRenderer:
+                 + "tusen"
+                 + self._render_ordinal(remainder)
+             )
++        for scale, name in _SCALES:
++            if value >= scale:
++                quotient, remainder = divmod(value, scale)
++                if quotient == 1:
++                    prefix = "en " + name
++                else:
++                    prefix = self._render_cardinal(quotient) + " " + name + "er"
++                if remainder == 0:
++                    return prefix + "de"
++                return prefix + " " + self._render_ordinal(remainder)
+         raise InvalidValueError("Swedish ordinal is outside the supported range")
+
+     def _render_digits(self, value) -> str:
+diff --git a/numeralform/renderers/tr.py b/numeralform/renderers/tr.py
+index c93f3b2..0c4b13f 100644
+--- a/numeralform/renderers/tr.py
++++ b/numeralform/renderers/tr.py
+@@ -13,5 +13,4 @@ class TurkishRenderer(LexicalRenderer):
+         tuple(CARDINALS["tr"][i] for i in range(10)),
+         compound="",
+         negative="eksi",
+-        ordinal_suffix="inci",
+     )
+diff --git a/numeralform/renderers/zh.py b/numeralform/renderers/zh.py
+index 8fbba31..a9a9094 100644
+--- a/numeralform/renderers/zh.py
++++ b/numeralform/renderers/zh.py
+@@ -3,6 +3,7 @@
+ from __future__ import annotations
+
+ from ..errors import InvalidValueError
++from ..locale import NumericDomain
+ from ..model import DigitSequence
+ from ._fixtures import CARDINALS, ORDINALS
+ from ._shared import LexicalRenderer, locale_data
+@@ -15,7 +16,22 @@ class ChineseRenderer(LexicalRenderer):
+     locale = "zh"
+     cardinals = CARDINALS[locale]
+     ordinals = ORDINALS[locale]
+-    data = locale_data(locale, _DIGITS, compound="", negative="负", ordinal_prefix="第")
++    data = locale_data(locale, _DIGITS, compound="", negative="负")
++
++    _MAX_ORDINAL = 999_999_999
++
++    @classmethod
++    def _ordinal_domain(cls) -> NumericDomain:
++        return NumericDomain(
++            minimum=0, maximum=cls._MAX_ORDINAL, allow_negative=False
++        )
++
++    def _ordinal(self, value: int) -> str:
++        if value < 0 or value > self._MAX_ORDINAL:
++            raise InvalidValueError(
++                f"{self.locale} ordinal value is outside the supported range"
++            )
++        return "第" + self._cardinal(value)
+
+     def _cardinal(self, value: int) -> str:
+         if not isinstance(value, int) or isinstance(value, bool):
+diff --git a/tests/test_capabilities.py b/tests/test_capabilities.py
+index 6593a2c..08cf2d5 100644
+--- a/tests/test_capabilities.py
++++ b/tests/test_capabilities.py
+@@ -27,6 +27,9 @@ def test_supported_locales_have_executable_profiles(locale):
+     assert caps.forms
+     for profile in caps.profiles:
+         value = samples.get(profile.form, 0)
++        minimum = profile.domain.minimum or 0
++        if isinstance(value, int) and value < minimum:
++            value = minimum
+         syntax = next(iter(profile.syntaxes))
+         assert supports(
+             locale,
+@@ -95,8 +98,8 @@ def test_spokenform_base_inventory_is_canonical():
+ def test_domains_agree_with_renderer_boundaries():
+     assert supports("en", value=999_999_999_999)
+     assert not supports("en", value=1_000_000_000_000)
+-    assert supports("es", form="ordinal", value=20)
+-    assert not supports("es", form="ordinal", value=21)
++    assert supports("es", form="ordinal", value=999_999_999)
++    assert not supports("es", form="ordinal", value=1_000_000_000)
+     assert supports("fi", value=9_999)
+     assert supports("fi", value=1_000_000)
+
+diff --git a/tests/test_ordinal_domain_contract.py b/tests/test_ordinal_domain_contract.py
+new file mode 100644
+index 0000000..3a910df
+--- /dev/null
++++ b/tests/test_ordinal_domain_contract.py
+@@ -0,0 +1,208 @@
++"""Ordinal capability-domain contract tests.
++
++Every advertised word-ordinal domain must be an executable contract:
++
++- no profile advertises negative ordinals;
++- every finite domain boundary renders;
++- ``supports()`` and ``render()`` agree at the boundaries;
++- every integer inside the intersection of a domain with the common sweep
++  range renders;
++- fixture-only locales advertise exactly their largest contiguous reviewed
++  fixture block.
++"""
++
++from __future__ import annotations
++
++import pytest
++
++from numeralform import (
++    NumeralForm,
++    capabilities,
++    locales,
++    render,
++    supports,
++)
++from numeralform.errors import NumeralFormError
++from numeralform.registry import resolve
++from numeralform.renderers._shared import LexicalRenderer
++
++ORDINAL = NumeralForm.ORDINAL
++
++# Base languages whose word ordinals are produced by a locale-owned
++# algorithm rather than reviewed fixture lookup. Regional variants
++# (en-GB, es-MX, fr-BE, ...) inherit the classification.
++ALGORITHMIC_ORDINAL_LANGUAGES = {
++    "de",
++    "en",
++    "es",
++    "fi",
++    "fr",
++    "it",
++    "ja",
++    "ko",
++    "pt",
++    "ru",
++    "sv",
++    "zh",
++}
++
++COMMON_SWEEP_LIMIT = 9_999
++
++
++def _ordinal_domains(locale: str):
++    return {
++        profile.domain
++        for profile in capabilities(locale).profiles
++        if profile.form is ORDINAL
++    }
++
++
++def _locales_with_ordinals() -> list[str]:
++    return [locale for locale in locales() if _ordinal_domains(locale)]
++
++
++def _algorithmic(locale: str) -> bool:
++    return locale.split("-", 1)[0] in ALGORITHMIC_ORDINAL_LANGUAGES
++
++
++def _unwrap(renderer):
++    while (delegate := getattr(renderer, "_delegate", None)) is not None:
++        renderer = delegate
++    return renderer
++
++
++def _base_renderer(locale: str):
++    return _unwrap(resolve(locale))
++
++
++def _contiguous_block(values) -> tuple[int, int] | None:
++    if not values:
++        return None
++    minimum = min(values)
++    maximum = minimum
++    while maximum + 1 in values:
++        maximum += 1
++    return minimum, maximum
++
++
++def _assert_renders(locale: str, value: int) -> None:
++    assert supports(locale, form=ORDINAL, value=value), (
++        f"{locale}: supports() rejected advertised ordinal value {value}"
++    )
++    text = render(value, locale=locale, form=ORDINAL)
++    assert text, f"{locale}: ordinal {value} rendered empty"
++
++
++def _assert_rejects(locale: str, value: int) -> None:
++    assert not supports(locale, form=ORDINAL, value=value), (
++        f"{locale}: supports() advertised ordinal value {value} outside the domain"
++    )
++    with pytest.raises(NumeralFormError):
++        render(value, locale=locale, form=ORDINAL)
++
++
++def test_no_ordinal_profile_advertises_negatives_or_negative_minimum():
++    for locale in _locales_with_ordinals():
++        for domain in _ordinal_domains(locale):
++            assert domain.allow_negative is False, f"{locale}: {domain}"
++            assert domain.minimum is None or domain.minimum >= 0, f"{locale}: {domain}"
++            assert domain.maximum is not None, (
++                f"{locale}: ordinal profile {domain} is unbounded but every "
++                "implementation is finite"
++            )
++
++
++def test_ordinal_domain_boundaries_are_executable():
++    for locale in _locales_with_ordinals():
++        for domain in _ordinal_domains(locale):
++            minimum = domain.minimum or 0
++            maximum = domain.maximum
++            _assert_renders(locale, minimum)
++            _assert_renders(locale, maximum)
++            _assert_rejects(locale, maximum + 1)
++            _assert_rejects(locale, -1)
++
++
++@pytest.mark.parametrize("locale", _locales_with_ordinals())
++def test_common_ordinal_sweep(locale):
++    for domain in _ordinal_domains(locale):
++        minimum = domain.minimum or 0
++        for value in range(minimum, min(domain.maximum, COMMON_SWEEP_LIMIT) + 1):
++            _assert_renders(locale, value)
++
++
++SCALE_PROBES = (
++    9_999,
++    10_000,
++    10_001,
++    99_999,
++    100_000,
++    100_001,
++    999_999,
++    1_000_000,
++    1_000_001,
++    999_999_999,
++    1_000_000_000,
++    999_999_999_999,
++    9999_9999_9999,
++    10**18 - 1,
++)
++
++
++@pytest.mark.parametrize("locale", _locales_with_ordinals())
++def test_algorithmic_scale_probes(locale):
++    if not _algorithmic(locale):
++        pytest.skip("fixture-only locale: contiguous sweep already exhausts it")
++    for domain in _ordinal_domains(locale):
++        probes = [value for value in SCALE_PROBES if value <= domain.maximum]
++        probes += [domain.maximum - 1, domain.maximum]
++        for value in probes:
++            _assert_renders(locale, value)
++
++
++@pytest.mark.parametrize("locale", _locales_with_ordinals())
++def test_fixture_only_domains_are_continuous_and_complete(locale):
++    if _algorithmic(locale):
++        pytest.skip("locale-owned ordinal algorithm")
++    renderer = _base_renderer(locale)
++    assert isinstance(renderer, LexicalRenderer)
++    ordinals = renderer.ordinals
++    block = _contiguous_block(ordinals)
++    for domain in _ordinal_domains(locale):
++        assert block is not None, f"{locale}: ordinal profile without fixtures"
++        assert domain.minimum == block[0], f"{locale}: {domain} vs fixtures {block}"
++        assert domain.maximum == block[1], f"{locale}: {domain} vs fixtures {block}"
++        assert set(range(block[0], block[1] + 1)) <= set(ordinals)
++
++
++@pytest.mark.parametrize("locale", _locales_with_ordinals())
++def test_isolated_fixtures_do_not_widen_domains(locale):
++    for domain in _ordinal_domains(locale):
++        if domain.maximum is None or 2024 <= domain.maximum:
++            continue
++        _assert_rejects(locale, 2024)
++
++
++def test_known_previous_suffix_leakages():
++    # Chinese owns the 第 + cardinal ordinal rule; the old shared fallback
++    # appended the English suffix here.
++    assert render(1001, locale="zh", form=ORDINAL) == "第一千零一"
++    # Generic fixture-only locales no longer synthesize values beyond their
++    # reviewed contiguous block instead of rendering "...th" cardinals.
++    for locale in ("am", "ar", "be", "bn", "he", "kn", "uk"):
++        assert not supports(locale, form=ORDINAL, value=1001)
++
++
++@pytest.mark.parametrize(
++    ("locale", "block"),
++    [("hi", (0, 3)), ("hy", (1, 3)), ("kk", (1, 3)), ("mn", (1, 3))],
++)
++def test_sparse_fixture_locales_advertise_only_contiguous_block(locale, block):
++    # These locales have a tiny contiguous block plus isolated reference
++    # fixtures (10, 42, 100, 1000, 2024). Only the contiguous block may be
++    # advertised as a continuous domain; isolated keys must stay rejected.
++    assert _contiguous_block(_base_renderer(locale).ordinals) == block
++    for domain in _ordinal_domains(locale):
++        assert (domain.minimum, domain.maximum) == block
++    for isolated in (block[1] + 1, 10, 42, 100, 1000, 2024):
++        _assert_rejects(locale, isolated)
+diff --git a/tests/test_regressions.py b/tests/test_regressions.py
+index 70dd9b3..7395d55 100644
+--- a/tests/test_regressions.py
++++ b/tests/test_regressions.py
+@@ -44,9 +44,61 @@ def test_english_digit_style_is_rejected():
+         render(DigitSequence("12"), locale="en", style="british-and")
+
+
+-def test_spanish_ordinal_outside_reviewed_range_is_package_error():
++@pytest.mark.parametrize(
++    ("value", "expected"),
++    [
++        (20, "vigésimo"),
++        (21, "vigésimo primero"),
++        (25, "vigésimo quinto"),
++        (30, "trigésimo"),
++        (31, "trigésimo primero"),
++        (42, "cuadragésimo segundo"),
++        (99, "nonagésimo noveno"),
++        (100, "centésimo"),
++        (101, "centésimo primero"),
++        (121, "centésimo vigésimo primero"),
++        (200, "ducentésimo"),
++        (999, "noningentésimo nonagésimo noveno"),
++        (1000, "milésimo"),
++        (1001, "milésimo primero"),
++        (2024, "dosmilésimo vigésimo cuarto"),
++        (1_000_000, "millonésimo"),
++        (999_999_999, "novecientos noventa y nuevemillonésimo "
++         "novecientos noventa y nuevemilésimo noningentésimo nonagésimo noveno"),
++    ],
++)
++def test_spanish_ordinals_compose_above_twenty(value, expected):
++    assert render(value, locale="es", form="ordinal") == expected
++
++
++@pytest.mark.parametrize("locale", ["es-CO", "es-CR", "es-GT", "es-MX", "es-NI", "es-VE"])
++def test_spanish_regional_variants_compose_ordinals(locale):
++    assert render(25, locale=locale, form="ordinal") == "vigésimo quinto"
++    assert render(21, locale=locale, form="ordinal") == "vigésimo primero"
++
++
++@pytest.mark.parametrize(
++    ("value", "gender", "expected"),
++    [
++        (21, "masculine", "vigésimo primer"),
++        (21, "feminine", "vigésima primera"),
++        (23, "masculine", "vigésimo tercer"),
++        (31, "feminine", "trigésima primera"),
++        (121, "feminine", "centésima vigésima primera"),
++        (121, "masculine", "centésimo vigésimo primer"),
++        (2024, "feminine", "dosmilésima vigésima cuarta"),
++    ],
++)
++def test_spanish_compound_ordinal_gender_and_apocopation(value, gender, expected):
++    assert (
++        render(value, locale="es", form="ordinal", syntax="attributive", gender=gender)
++        == expected
++    )
++
++
++def test_spanish_ordinal_above_domain_is_package_error():
+     with pytest.raises(NumeralFormError):
+-        render(30, locale="es", form="ordinal")
++        render(1_000_000_000, locale="es", form="ordinal")
+
+
+ def test_russian_ordinal_expands_beyond_initial_review_range():

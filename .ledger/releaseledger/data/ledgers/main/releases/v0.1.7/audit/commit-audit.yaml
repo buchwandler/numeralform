@@ -1,0 +1,203 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: v0.1.7
+git_base_ref: v0.1.6
+git_base_sha: ab68676015f4fdc5f1d94e0612d50fa7a3385ae0
+git_head_ref: HEAD
+git_head_sha: d902413441065fbbf0e62ac9946c3a8773b35fae
+git_range: ab68676015f4fdc5f1d94e0612d50fa7a3385ae0..d902413441065fbbf0e62ac9946c3a8773b35fae
+commit_count: 2
+rows:
+  - sha: f86c0bdfc61736c03fec35109ae2ed3d8ade33f2
+    source_ref: git:f86c0bdfc61736c03fec35109ae2ed3d8ade33f2
+    short_sha: f86c0bd
+    changed_paths:
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/tests/test_randomized_compare.py
+      - docs/locales/am.md
+      - docs/locales/ar.md
+      - docs/locales/az.md
+      - docs/locales/be.md
+      - docs/locales/bn.md
+      - docs/locales/ca.md
+      - docs/locales/capability-matrix.md
+      - docs/locales/ce.md
+      - docs/locales/cy.md
+      - docs/locales/da.md
+      - docs/locales/eo.md
+      - docs/locales/es.md
+      - docs/locales/fa.md
+      - docs/locales/he.md
+      - docs/locales/hi.md
+      - docs/locales/hu.md
+      - docs/locales/hy.md
+      - docs/locales/id.md
+      - docs/locales/kk.md
+      - docs/locales/kn.md
+      - docs/locales/mn.md
+      - docs/locales/nl.md
+      - docs/locales/no.md
+      - docs/locales/pl.md
+      - docs/locales/ro.md
+      - docs/locales/sl.md
+      - docs/locales/te.md
+      - docs/locales/tet.md
+      - docs/locales/tg.md
+      - docs/locales/tr.md
+      - docs/locales/uk.md
+      - docs/locales/zh.md
+      - numeralform/compat/num2words.py
+      - numeralform/renderers/_fixtures.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/az.py
+      - numeralform/renderers/ca.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/eo.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fa.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/hi.py
+      - numeralform/renderers/hu.py
+      - numeralform/renderers/id.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/ro.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/tr.py
+      - numeralform/renderers/zh.py
+      - tests/test_capabilities.py
+      - tests/test_ordinal_domain_contract.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 777
+      deletions: 253
+    inspected: true
+    inspected_paths:
+      - benchmarks/randomized/equivalence.py
+      - benchmarks/tests/test_randomized_compare.py
+      - docs/locales/am.md
+      - docs/locales/ar.md
+      - docs/locales/az.md
+      - docs/locales/be.md
+      - docs/locales/bn.md
+      - docs/locales/ca.md
+      - docs/locales/capability-matrix.md
+      - docs/locales/ce.md
+      - docs/locales/cy.md
+      - docs/locales/da.md
+      - docs/locales/eo.md
+      - docs/locales/es.md
+      - docs/locales/fa.md
+      - docs/locales/he.md
+      - docs/locales/hi.md
+      - docs/locales/hu.md
+      - docs/locales/hy.md
+      - docs/locales/id.md
+      - docs/locales/kk.md
+      - docs/locales/kn.md
+      - docs/locales/mn.md
+      - docs/locales/nl.md
+      - docs/locales/no.md
+      - docs/locales/pl.md
+      - docs/locales/ro.md
+      - docs/locales/sl.md
+      - docs/locales/te.md
+      - docs/locales/tet.md
+      - docs/locales/tg.md
+      - docs/locales/tr.md
+      - docs/locales/uk.md
+      - docs/locales/zh.md
+      - numeralform/compat/num2words.py
+      - numeralform/renderers/_fixtures.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/az.py
+      - numeralform/renderers/ca.py
+      - numeralform/renderers/de.py
+      - numeralform/renderers/en.py
+      - numeralform/renderers/eo.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/fa.py
+      - numeralform/renderers/fi.py
+      - numeralform/renderers/fr.py
+      - numeralform/renderers/hi.py
+      - numeralform/renderers/hu.py
+      - numeralform/renderers/id.py
+      - numeralform/renderers/it.py
+      - numeralform/renderers/ja.py
+      - numeralform/renderers/ko.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/ro.py
+      - numeralform/renderers/sv.py
+      - numeralform/renderers/tr.py
+      - numeralform/renderers/zh.py
+      - tests/test_capabilities.py
+      - tests/test_ordinal_domain_contract.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Added executable word-ordinal composition and capability domains
+      for supported locales, including Spanish compound morphology, while fixture-backed
+      locales now advertise only reviewed contiguous ranges
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "feat: better numerals for several languanges"
+    target_entry_id: entry-0001
+    notes: ""
+  - sha: d902413441065fbbf0e62ac9946c3a8773b35fae
+    source_ref: git:d902413441065fbbf0e62ac9946c3a8773b35fae
+    short_sha: d902413
+    changed_paths:
+      - .github/workflows/benchmarks.yml
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/oracle.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_runner.py
+      - numeralform/compat/num2words.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/zh.py
+      - tests/test_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 529
+      deletions: 92
+    inspected: true
+    inspected_paths:
+      - .github/workflows/benchmarks.yml
+      - benchmarks/config/num2words_random.toml
+      - benchmarks/randomized/adapters.py
+      - benchmarks/randomized/generator.py
+      - benchmarks/randomized/oracle.py
+      - benchmarks/randomized/run.py
+      - benchmarks/tests/test_randomized_adapters.py
+      - benchmarks/tests/test_randomized_generator.py
+      - benchmarks/tests/test_randomized_runner.py
+      - numeralform/compat/num2words.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/es.py
+      - numeralform/renderers/pt.py
+      - numeralform/renderers/zh.py
+      - tests/test_regressions.py
+    observed_behavior:
+      Corrected compatibility ordinal adapters and renderer edge cases,
+      and added deterministic randomized oracle coverage plus benchmark runner tests
+      and workflow configuration
+    public_impact: public
+    decision: accepted
+    stale: false
+    evidence_subject: "fix: benchmark fix and pre-commit"
+    target_entry_id: entry-0002
+    notes: ""

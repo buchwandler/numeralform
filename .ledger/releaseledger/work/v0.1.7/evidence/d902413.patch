@@ -1,0 +1,964 @@
+ .github/workflows/benchmarks.yml              |  28 ++---
+ benchmarks/config/num2words_random.toml       |   5 +
+ benchmarks/randomized/adapters.py             |   7 +-
+ benchmarks/randomized/generator.py            |  34 +++---
+ benchmarks/randomized/oracle.py               | 135 ++++++++++++++++++++++++
+ benchmarks/randomized/run.py                  | 136 +++++++++++++++++++-----
+ benchmarks/tests/test_randomized_adapters.py  |  29 ++++++
+ benchmarks/tests/test_randomized_generator.py |  50 +++++++++
+ benchmarks/tests/test_randomized_runner.py    | 144 +++++++++++++++++++++++++-
+ numeralform/compat/num2words.py               |   7 +-
+ numeralform/renderers/_shared.py              |  13 +--
+ numeralform/renderers/es.py                   |  12 +--
+ numeralform/renderers/pt.py                   |   4 +-
+ numeralform/renderers/zh.py                   |   4 +-
+ tests/test_regressions.py                     |  13 ++-
+ 15 files changed, 529 insertions(+), 92 deletions(-)
+
+diff --git a/.github/workflows/benchmarks.yml b/.github/workflows/benchmarks.yml
+index 1e09df1..6c25ffa 100644
+--- a/.github/workflows/benchmarks.yml
++++ b/.github/workflows/benchmarks.yml
+@@ -38,6 +38,14 @@ jobs:
+   num2words-random:
+     runs-on: ubuntu-latest
+     timeout-minutes: 30
++    strategy:
++      fail-fast: false
++      matrix:
++        include:
++          - target: canonical
++            failure_flag: --fail-on-unaccepted
++          - target: compat
++            failure_flag: --fail-on-diff
+     steps:
+       - uses: actions/checkout@v7
+       - uses: actions/setup-python@v7
+@@ -49,29 +57,21 @@ jobs:
+         run: python -m pip install -e ".[test]"
+       - name: Acquire pinned oracle
+         run: python -m benchmarks.download num2words
+-      - name: Run randomized differential benchmark
+-        run: |
+-          SEED="20260910"
+-          python -m benchmarks.randomized \
+-            --cases 10000 \
+-            --seed "$SEED" \
+-            --target canonical \
+-            --fail-on-unaccepted \
+-            --fail-on-coverage-gap
+-      - name: Run exact compatibility randomized benchmark
++      - name: Run randomized benchmark
+         run: |
+           python -m benchmarks.randomized \
+             --cases 10000 \
+             --seed 20260910 \
+-            --target compat \
+-            --fail-on-diff \
++            --target "${{ matrix.target }}" \
++            --output-dir "benchmarks/data/results/num2words-random-${{ matrix.target }}" \
++            "${{ matrix.failure_flag }}" \
+             --fail-on-coverage-gap
+       - name: Upload randomized benchmark report
+         if: always()
+         uses: actions/upload-artifact@v7
+         with:
+-          name: num2words-random
+-          path: benchmarks/data/results/num2words-random/
++          name: num2words-random-${{ matrix.target }}
++          path: benchmarks/data/results/num2words-random-${{ matrix.target }}
+
+   cldr:
+     runs-on: ubuntu-latest
+diff --git a/benchmarks/config/num2words_random.toml b/benchmarks/config/num2words_random.toml
+index 4dc2770..9326304 100644
+--- a/benchmarks/config/num2words_random.toml
++++ b/benchmarks/config/num2words_random.toml
+@@ -21,6 +21,11 @@ locale = "ja"
+ kind = "year"
+ reason = "num2words uses Japanese era conversion; canonical Numeralform uses Gregorian year reading"
+
++
++[[randomized.shared_exclusions]]
++locale = "am"
++kind = "cardinal"
++reason = "pinned num2words Num2Word_AM.merge returns None for compound cardinals so base.clean loops forever; reproducible infinite loop for multi-component values >= 1000000"
+ [randomized.shared]
+ edge_probability = 0.30
+ negative_probability = 0.10
+diff --git a/benchmarks/randomized/adapters.py b/benchmarks/randomized/adapters.py
+index b00f865..95d9e1d 100644
+--- a/benchmarks/randomized/adapters.py
++++ b/benchmarks/randomized/adapters.py
+@@ -91,12 +91,7 @@ def oracle_supports_case(
+     case: RandomCase, external_num2words: Callable[..., Any]
+ ) -> bool:
+     """Probe the exact value and keyword arguments used for a case."""
+-    try:
+-        value, kwargs = num2words_invocation(case)
+-        external_num2words(value, **kwargs)
+-    except Exception:  # noqa: BLE001
+-        return False
+-    return True
++    return run_num2words(case, external_num2words).outcome == "text"
+
+
+ def canonical_call_kwargs(case: RandomCase) -> dict[str, Any]:
+diff --git a/benchmarks/randomized/generator.py b/benchmarks/randomized/generator.py
+index 11a15fc..30b5485 100644
+--- a/benchmarks/randomized/generator.py
++++ b/benchmarks/randomized/generator.py
+@@ -24,6 +24,7 @@ BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
+ CONFIG_PATH = BENCHMARK_ROOT / "config" / "num2words_random.toml"
+ SCHEMA_VERSION = 3
+ GENERATOR_VERSION = 3
++PROGRESS_INTERVAL = 2500
+
+
+ @dataclass(frozen=True, slots=True)
+@@ -814,6 +815,7 @@ def generate_cases(
+     variant: str | None = None,
+     transport: str | None = None,
+     target: str = "canonical",
++    progress: Callable[[int, int], None] | None = None,
+ ) -> tuple[tuple[RandomCase, ...], dict[str, int], RandomConfig]:
+     if count < 0:
+         raise ValueError("case count must be non-negative")
+@@ -941,6 +943,19 @@ def generate_cases(
+                 rejected["generation_rejected_numeralform_unsupported"] += 1
+                 continue
+         serialized = SerializedRandomValue.from_python(value)
++        identity = (
++            locale,
++            kind,
++            serialized.value,
++            currency,
++            json.dumps(options, sort_keys=True),
++            variant_id,
++            call_variant,
++            case_transport,
++        )
++        if profile in {"common", "numeralform", "shared"} and identity in seen:
++            rejected["generation_rejected_duplicate"] += 1
++            continue
+         if profile == "shared":
+             if oracle_supports_case is not None:
+                 probe_case = RandomCase(
+@@ -968,19 +983,6 @@ def generate_cases(
+             if not supported:
+                 rejected["generation_rejected_oracle_unsupported"] += 1
+                 continue
+-        identity = (
+-            locale,
+-            kind,
+-            serialized.value,
+-            currency,
+-            json.dumps(options, sort_keys=True),
+-            variant_id,
+-            call_variant,
+-            case_transport,
+-        )
+-        if profile in {"common", "numeralform", "shared"} and identity in seen:
+-            rejected["generation_rejected_duplicate"] += 1
+-            continue
+         seen.add(identity)
+         surface, tags = surface_for(locale, kind, value, currency=currency, rng=rng)
+         generated.append(
+@@ -1003,9 +1005,13 @@ def generate_cases(
+                 transport=case_transport,
+             )
+         )
++        if progress is not None and len(generated) % PROGRESS_INTERVAL == 0:
++            progress(len(generated), attempts)
+     if len(generated) != count:
++        details = ", ".join(f"{key}={value}" for key, value in sorted(rejected.items()))
+         raise RuntimeError(
+-            f"unable to generate {count} supported unique cases after {attempts} attempts"
++            f"unable to generate {count} supported unique cases after {attempts} attempts; "
++            f"accepted={len(generated)}, {details}"
+         )
+     return tuple(generated), rejected, config
+
+diff --git a/benchmarks/randomized/oracle.py b/benchmarks/randomized/oracle.py
+new file mode 100644
+index 0000000..3cf989a
+--- /dev/null
++++ b/benchmarks/randomized/oracle.py
+@@ -0,0 +1,135 @@
++"""Oracle invocation keys, result caches, and runtime statistics."""
++
++from __future__ import annotations
++
++import heapq
++import json
++from collections import OrderedDict
++from collections.abc import Callable
++from dataclasses import dataclass, field
++from time import perf_counter
++
++from .adapters import run_num2words
++from .model import ExecutionResult, RandomCase
++
++REJECTED_CACHE_MAX = 4096
++SLOWEST_CALLS_KEPT = 10
++
++
++@dataclass(frozen=True, slots=True)
++class OracleInvocationKey:
++    """Identity of one upstream oracle invocation.
++
++    Describes what the oracle is asked to convert, not replay metadata such as
++    case IDs, indices, surfaces, tags, the seed, or the canonical locale.
++    """
++
++    oracle_locale: str
++    kind: str
++    value_kind: str
++    value: str
++    currency: str | None
++    options_json: str
++    call_variant: str | None
++    transport: str
++
++
++def oracle_invocation_key(case: RandomCase) -> OracleInvocationKey:
++    return OracleInvocationKey(
++        oracle_locale=case.oracle_locale,
++        kind=case.kind,
++        value_kind=case.value.kind,
++        value=case.value.value,
++        currency=case.currency,
++        options_json=json.dumps(case.options, sort_keys=True),
++        call_variant=case.call_variant,
++        transport=case.transport,
++    )
++
++
++@dataclass
++class OracleRuntimeStats:
++    keep_slowest: int = SLOWEST_CALLS_KEPT
++    executions: int = 0
++    accepted_cache_hits: int = 0
++    rejected_cache_hits: int = 0
++    total_time: float = 0.0
++    max_time: float = 0.0
++    _slowest: list[tuple[float, int, OracleInvocationKey]] = field(
++        default_factory=list, repr=False
++    )
++    _sequence: int = field(default=0, repr=False)
++
++    def record(self, key: OracleInvocationKey, elapsed: float) -> None:
++        self.executions += 1
++        self.total_time += elapsed
++        self.max_time = max(self.max_time, elapsed)
++        entry = (elapsed, self._sequence, key)
++        self._sequence += 1
++        if len(self._slowest) < self.keep_slowest:
++            heapq.heappush(self._slowest, entry)
++        elif elapsed > self._slowest[0][0]:
++            heapq.heapreplace(self._slowest, entry)
++
++    def slowest(self) -> tuple[tuple[float, OracleInvocationKey], ...]:
++        return tuple(
++            (elapsed, key)
++            for elapsed, _sequence, key in sorted(self._slowest, reverse=True)
++        )
++
++
++@dataclass
++class OracleRunner:
++    """Executes oracle invocations once and retains the results.
++
++    Text outcomes are cached indefinitely because accepted generated cases
++    need the exact same ``ExecutionResult`` during the comparison pass.
++    Rejected outcomes use a bounded LRU so repeated unsupported edge probes
++    cannot grow without limit.
++    """
++
++    function: Callable[..., object]
++    rejected_cache_max: int = REJECTED_CACHE_MAX
++    stats: OracleRuntimeStats = field(default_factory=OracleRuntimeStats)
++    accepted: dict[OracleInvocationKey, ExecutionResult] = field(default_factory=dict)
++    rejected: OrderedDict[OracleInvocationKey, ExecutionResult] = field(
++        default_factory=OrderedDict
++    )
++
++    def key(self, case: RandomCase) -> OracleInvocationKey:
++        return oracle_invocation_key(case)
++
++    def execute(self, case: RandomCase) -> ExecutionResult:
++        key = self.key(case)
++        cached = self.accepted.get(key)
++        if cached is not None:
++            self.stats.accepted_cache_hits += 1
++            return cached
++        rejected = self.rejected.get(key)
++        if rejected is not None:
++            self.stats.rejected_cache_hits += 1
++            self.rejected.move_to_end(key)
++            return rejected
++        start = perf_counter()
++        result = run_num2words(case, self.function)
++        self.stats.record(key, perf_counter() - start)
++        if result.outcome == "text":
++            self.accepted[key] = result
++        else:
++            self.rejected[key] = result
++            while len(self.rejected) > self.rejected_cache_max:
++                self.rejected.popitem(last=False)
++        return result
++
++    def supports(self, case: RandomCase) -> bool:
++        return self.execute(case).outcome == "text"
++
++
++__all__ = [
++    "REJECTED_CACHE_MAX",
++    "SLOWEST_CALLS_KEPT",
++    "OracleInvocationKey",
++    "OracleRunner",
++    "OracleRuntimeStats",
++    "oracle_invocation_key",
++]
+diff --git a/benchmarks/randomized/run.py b/benchmarks/randomized/run.py
+index a088949..84444b1 100644
+--- a/benchmarks/randomized/run.py
++++ b/benchmarks/randomized/run.py
+@@ -8,6 +8,7 @@ import platform
+ import random
+ from collections.abc import Iterable
+ from pathlib import Path
++from time import perf_counter
+
+ import numeralform
+ from benchmarks.validation.oracle.num2words import (
+@@ -21,7 +22,6 @@ from benchmarks.validation.oracle.num2words import (
+ )
+
+ from .adapters import (
+-    oracle_supports_case,
+     run_num2words,
+     run_numeralform_canonical,
+     run_numeralform_compat,
+@@ -35,7 +35,13 @@ from .generator import (
+     generate_cases,
+     load_config,
+ )
+-from .model import DIFFERENTIAL_STATUSES, DifferentialResult, RandomCase
++from .model import (
++    DIFFERENTIAL_STATUSES,
++    DifferentialResult,
++    ExecutionResult,
++    RandomCase,
++)
++from .oracle import OracleRunner
+ from .report import write_reports
+
+ BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
+@@ -43,12 +49,12 @@ DEFAULT_ORACLE_ROOT = BENCHMARK_ROOT / "data" / "oracles" / "num2words"
+ DEFAULT_OUTPUT_DIR = BENCHMARK_ROOT / "data" / "results" / "num2words-random"
+
+
+-def _oracle_supports_case(case: RandomCase, external_num2words) -> bool:
+-    return oracle_supports_case(case, external_num2words)
+-
+-
+ def execute_case(
+-    case: RandomCase, external_num2words, *, target: str = "canonical"
++    case: RandomCase,
++    external_num2words,
++    *,
++    target: str = "canonical",
++    oracle_result: ExecutionResult | None = None,
+ ) -> DifferentialResult:
+     if target == "canonical":
+         numeralform_result = run_numeralform_canonical(case)
+@@ -56,9 +62,11 @@ def execute_case(
+         numeralform_result = run_numeralform_compat(case)
+     else:
+         raise ValueError(f"unknown benchmark target: {target!r}")
++    if oracle_result is None:
++        oracle_result = run_num2words(case, external_num2words)
+     return compare_results(
+         case,
+-        run_num2words(case, external_num2words),
++        oracle_result,
+         numeralform_result,
+         accept_variants=target == "canonical",
+     )
+@@ -139,6 +147,27 @@ def _coverage_expected(
+     return expected
+
+
++def _print_runtime_profile(phases: dict[str, float], runner: OracleRunner) -> None:
++    print("runtime profile")
++    for name, elapsed in phases.items():
++        print(f"  {name + ':':16}{elapsed:.2f}s")
++    stats = runner.stats
++    print("oracle")
++    print(f"  {'real executions:':16}{stats.executions:,}")
++    print(f"  {'accepted-cache hits:':16}{stats.accepted_cache_hits:,}")
++    print(f"  {'rejected-cache hits:':16}{stats.rejected_cache_hits:,}")
++    print(f"  {'total oracle time:':16}{stats.total_time:.2f}s")
++    print(f"  {'max oracle call:':16}{stats.max_time:.2f}s")
++    slowest = stats.slowest()
++    if slowest:
++        print("slowest oracle calls")
++        for elapsed, key in slowest:
++            print(
++                f"  {elapsed:.2f}s locale={key.oracle_locale} "
++                f"kind={key.kind} value={key.value}"
++            )
++
++
+ def run_benchmark(
+     *,
+     cases: int,
+@@ -156,7 +185,10 @@ def run_benchmark(
+     fail_on_diff: bool = False,
+     fail_on_unaccepted: bool = False,
+     fail_on_coverage_gap: bool = False,
++    profile_runtime: bool = False,
++    progress: bool = False,
+ ) -> int:
++    setup_start = perf_counter()
+     external_num2words = load_num2words(oracle_root)
+     version = oracle_version(oracle_root)
+     if version != NUM2WORDS_VERSION:
+@@ -164,25 +196,55 @@ def run_benchmark(
+             f"unsupported oracle version {version!r}; expected {NUM2WORDS_VERSION!r}"
+         )
+     config = load_config(CONFIG_PATH, profile)
+-    generated, generation_stats, _ = generate_cases(
+-        seed=seed,
+-        count=cases,
+-        profile=profile,
+-        locales=locales or None,
+-        kinds=kinds or None,
+-        currencies=currencies or None,
+-        external_locales=oracle_locales(oracle_root),
+-        config_path=CONFIG_PATH,
+-        target=target,
+-        variant=variant,
+-        transport=transport,
+-        oracle_supports_case=lambda case: _oracle_supports_case(
+-            case, external_num2words
+-        ),
+-    )
++    oracle_runner = OracleRunner(external_num2words)
++    setup_time = perf_counter() - setup_start
++
++    def _progress(accepted: int, attempts: int) -> None:
++        stats = oracle_runner.stats
++        print(
++            f"[randomized] generated {accepted}/{cases}; attempts={attempts}; "
++            f"oracle_calls={stats.executions}; "
++            f"oracle_cache_hits={stats.accepted_cache_hits + stats.rejected_cache_hits}"
++        )
++
++    generation_start = perf_counter()
++    try:
++        generated, generation_stats, _ = generate_cases(
++            seed=seed,
++            count=cases,
++            profile=profile,
++            locales=locales or None,
++            kinds=kinds or None,
++            currencies=currencies or None,
++            external_locales=oracle_locales(oracle_root),
++            config_path=CONFIG_PATH,
++            target=target,
++            variant=variant,
++            transport=transport,
++            oracle_supports_case=oracle_runner.supports,
++            progress=_progress if progress else None,
++        )
++    except RuntimeError as exc:
++        stats = oracle_runner.stats
++        raise RuntimeError(
++            f"{exc}; oracle_calls={stats.executions}, "
++            f"oracle_cache_hits={stats.accepted_cache_hits + stats.rejected_cache_hits}"
++        ) from exc
++    generation_time = perf_counter() - generation_start
++
++    execution_start = perf_counter()
+     results = tuple(
+-        execute_case(case, external_num2words, target=target) for case in generated
++        execute_case(
++            case,
++            external_num2words,
++            target=target,
++            oracle_result=oracle_runner.execute(case),
++        )
++        for case in generated
+     )
++    execution_time = perf_counter() - execution_start
++
++    reporting_start = perf_counter()
+     coverage_expected = _coverage_expected(generated, target, config)
+     metadata = _metadata(
+         seed, profile, cases, config, version, target, coverage_expected
+@@ -194,6 +256,11 @@ def run_benchmark(
+         generation_stats=generation_stats,
+         record_all=record_all,
+     )
++    reporting_time = perf_counter() - reporting_start
++
++    coverage_start = perf_counter()
++    coverage = summarize_coverage(results, coverage_expected)
++    coverage_time = perf_counter() - coverage_start
+     counts = {
+         status: sum(result.status == status for result in results)
+         for status in DIFFERENTIAL_STATUSES
+@@ -208,15 +275,24 @@ def run_benchmark(
+         print(f"{status + ':':20}{value}")
+     print(f"report: {paths['report']}")
+     print(f"differences: {paths['differences']}")
++    if profile_runtime:
++        _print_runtime_profile(
++            {
++                "setup": setup_time,
++                "generation": generation_time,
++                "execution": execution_time,
++                "reporting": reporting_time,
++                "coverage": coverage_time,
++            },
++            oracle_runner,
++        )
+     if fail_on_diff and any(result.status != "match" for result in results):
+         return 1
+     if fail_on_unaccepted and any(
+         result.status not in {"match", "variant"} for result in results
+     ):
+         return 1
+-    if fail_on_coverage_gap and has_coverage_gap(
+-        summarize_coverage(results, coverage_expected)
+-    ):
++    if fail_on_coverage_gap and has_coverage_gap(coverage):
+         return 1
+     return 0
+
+@@ -266,6 +342,8 @@ def build_parser() -> argparse.ArgumentParser:
+     parser.add_argument("--fail-on-diff", action="store_true")
+     parser.add_argument("--fail-on-unaccepted", action="store_true")
+     parser.add_argument("--fail-on-coverage-gap", action="store_true")
++    parser.add_argument("--profile-runtime", action="store_true")
++    parser.add_argument("--progress", action="store_true")
+     parser.add_argument("--replay", type=Path)
+     parser.add_argument("--case-id")
+     return parser
+@@ -295,6 +373,8 @@ def main(argv: list[str] | None = None) -> int:
+         fail_on_diff=args.fail_on_diff,
+         fail_on_unaccepted=args.fail_on_unaccepted,
+         fail_on_coverage_gap=args.fail_on_coverage_gap,
++        profile_runtime=args.profile_runtime,
++        progress=args.progress,
+     )
+
+
+diff --git a/benchmarks/tests/test_randomized_adapters.py b/benchmarks/tests/test_randomized_adapters.py
+index 54c931b..8d1a3aa 100644
+--- a/benchmarks/tests/test_randomized_adapters.py
++++ b/benchmarks/tests/test_randomized_adapters.py
+@@ -90,3 +90,32 @@ def test_num2words_invocation_is_shared_by_execution():
+     value, kwargs = num2words_invocation(case)
+     assert value == case.transport_value()
+     assert kwargs == {"lang": "en", "to": "ordinal"}
++
++
++def test_oracle_support_and_execution_share_one_path():
++    from benchmarks.randomized.adapters import oracle_supports_case
++
++    invocations = []
++
++    def fake(value, **kwargs):
++        invocations.append((value, kwargs))
++        return "e\u0301"
++
++    case = make_case("cardinal", 1)
++    assert oracle_supports_case(case, fake)
++    assert run_num2words(case, fake).text == "é"
++    assert len(invocations) == 2
++    assert invocations[0] == invocations[1]
++
++
++def test_oracle_support_reports_exceptions_as_unsupported():
++    from benchmarks.randomized.adapters import oracle_supports_case
++
++    def failing(value, **kwargs):
++        raise ValueError("unsupported")
++
++    case = make_case("cardinal", 1)
++    assert not oracle_supports_case(case, failing)
++    result = run_num2words(case, failing)
++    assert result.outcome == "exception"
++    assert result.exception_type == "ValueError"
+diff --git a/benchmarks/tests/test_randomized_generator.py b/benchmarks/tests/test_randomized_generator.py
+index d7e0c9b..ff014f2 100644
+--- a/benchmarks/tests/test_randomized_generator.py
++++ b/benchmarks/tests/test_randomized_generator.py
+@@ -335,3 +335,53 @@ def test_oracle_support_probe_receives_exact_generated_case():
+     assert len(probed) == len(cases)
+     assert {case.transport for case in probed} >= {"native", "string", "float"}
+     assert any(case.call_variant == "ordinal-bool" for case in probed)
++
++
++def test_duplicate_candidates_are_rejected_before_oracle_probe(monkeypatch):
++    from benchmarks.randomized import generator
++
++    calls = []
++
++    def repeated_candidate(
++        rng, locale, kind, profile, currency_choices, *, config, target
++    ):
++        return 7, None, {}, None, None, "native"
++
++    monkeypatch.setattr(generator, "_candidate", repeated_candidate)
++
++    with pytest.raises(RuntimeError) as excinfo:
++        generator.generate_cases(
++            seed=3,
++            count=2,
++            profile="shared",
++            canonical_locales=("en",),
++            external_locales=("en",),
++            locales=("en",),
++            kinds=("cardinal",),
++            supports=lambda *args, **kwargs: True,
++            currency_supports=lambda *args, **kwargs: True,
++            oracle_supports_case=lambda case: calls.append(case) or True,
++        )
++
++    message = str(excinfo.value)
++    assert "accepted=1" in message
++    assert "generation_rejected_duplicate=59" in message
++    assert len(calls) == 1
++
++
++def test_shared_generation_is_deterministic_with_fake_oracle():
++    kwargs = {
++        "seed": 20260910,
++        "count": 25,
++        "profile": "shared",
++        "canonical_locales": ("en", "de"),
++        "external_locales": ("en", "de"),
++        "supports": lambda *args, **kwargs: True,
++        "currency_supports": lambda *args, **kwargs: True,
++        "oracle_supports_case": lambda case: True,
++    }
++    first, _, _ = generate_cases(**kwargs)
++    second, _, _ = generate_cases(**kwargs)
++    assert [case.to_dict() for case in first] == [case.to_dict() for case in second]
++    assert len(first) == 25
++    assert first[0].case_id == "random-v3:20260910:000000"
+diff --git a/benchmarks/tests/test_randomized_runner.py b/benchmarks/tests/test_randomized_runner.py
+index 735d05c..5627376 100644
+--- a/benchmarks/tests/test_randomized_runner.py
++++ b/benchmarks/tests/test_randomized_runner.py
+@@ -1,4 +1,40 @@
+-from benchmarks.randomized.run import build_parser
++from decimal import Decimal
++
++from benchmarks.randomized.model import RandomCase, SerializedRandomValue
++from benchmarks.randomized.oracle import OracleRunner, oracle_invocation_key
++from benchmarks.randomized.run import build_parser, execute_case
++
++
++def make_case(
++    kind="cardinal",
++    value=1,
++    *,
++    locale="en",
++    oracle_locale=None,
++    currency=None,
++    options=None,
++    call_variant=None,
++    transport="native",
++    case_id="probe",
++    index=0,
++    surface="",
++):
++    return RandomCase(
++        schema_version=3,
++        generator_version=3,
++        seed=1,
++        index=index,
++        case_id=case_id,
++        locale=locale,
++        kind=kind,
++        surface=surface,
++        value=SerializedRandomValue.from_python(value),
++        currency=currency,
++        oracle_locale=oracle_locale or locale,
++        options=options or {},
++        call_variant=call_variant,
++        transport=transport,
++    )
+
+
+ def test_randomized_cli_options_are_explicit():
+@@ -32,3 +68,109 @@ def test_randomized_cli_options_are_explicit():
+     assert args.fail_on_diff
+     assert args.fail_on_unaccepted
+     assert args.fail_on_coverage_gap
++
++
++def test_randomized_cli_supports_runtime_diagnostics_flags():
++    args = build_parser().parse_args(["--profile-runtime", "--progress"])
++    assert args.profile_runtime
++    assert args.progress
++    plain = build_parser().parse_args([])
++    assert not plain.profile_runtime
++    assert not plain.progress
++
++
++def test_probe_plus_execution_runs_the_oracle_once():
++    calls = []
++
++    def fake(value, **kwargs):
++        calls.append((value, kwargs))
++        return "one"
++
++    case = make_case()
++    runner = OracleRunner(fake)
++    assert runner.supports(case)
++    result = execute_case(
++        case, fake, target="compat", oracle_result=runner.execute(case)
++    )
++    assert result.status == "match"
++    assert len(calls) == 1
++    assert runner.stats.executions == 1
++    assert runner.stats.accepted_cache_hits == 1
++
++
++def test_execute_case_without_cached_result_runs_the_oracle():
++    calls = []
++
++    def fake(value, **kwargs):
++        calls.append((value, kwargs))
++        return "one"
++
++    result = execute_case(make_case(), fake, target="compat")
++    assert result.status == "match"
++    assert len(calls) == 1
++
++
++def test_rejected_results_are_cached_with_a_bound():
++    calls = []
++
++    def failing(value, **kwargs):
++        calls.append(value)
++        raise ValueError("unsupported")
++
++    runner = OracleRunner(failing, rejected_cache_max=4)
++    case = make_case()
++    assert not runner.supports(case)
++    assert not runner.supports(case)
++    assert len(calls) == 1
++    assert runner.stats.rejected_cache_hits == 1
++
++    for value in range(10):
++        runner.execute(make_case(value=value))
++    assert len(calls) == 10
++    assert len(runner.rejected) <= 4
++
++
++def test_probe_and_accepted_cases_share_invocation_key():
++    probe = make_case(case_id="probe", surface="", index=0)
++    accepted = make_case(case_id="random-v3:20260910:000000", surface="1", index=0)
++    assert oracle_invocation_key(probe) == oracle_invocation_key(accepted)
++
++
++def test_cache_keys_do_not_collide_across_transports():
++    native = make_case(transport="native")
++    string = make_case(transport="string")
++    as_float = make_case(transport="float")
++    keys = {oracle_invocation_key(case) for case in (native, string, as_float)}
++    assert len(keys) == 3
++
++
++def test_cache_keys_distinguish_call_variants():
++    via_to = make_case(kind="ordinal")
++    via_bool = make_case(kind="ordinal", call_variant="ordinal-bool")
++    assert oracle_invocation_key(via_to) != oracle_invocation_key(via_bool)
++
++
++def test_cache_keys_distinguish_currencies():
++    usd = make_case(kind="currency", value=Decimal("1.01"), currency="USD")
++    eur = make_case(kind="currency", value=Decimal("1.01"), currency="EUR")
++    assert oracle_invocation_key(usd) != oracle_invocation_key(eur)
++
++
++def test_cache_keys_distinguish_options():
++    masculine = make_case(options={"gender": "masculine"})
++    feminine = make_case(options={"gender": "feminine"})
++    assert oracle_invocation_key(masculine) != oracle_invocation_key(feminine)
++
++
++def test_cache_keys_distinguish_oracle_locales():
++    english = make_case(oracle_locale="en")
++    german = make_case(oracle_locale="de")
++    assert oracle_invocation_key(english) != oracle_invocation_key(german)
++
++
++def test_cache_keys_preserve_decimal_spelling():
++    one_point_zero = make_case(kind="decimal", value=Decimal("1.0"))
++    one_point_zero_zero = make_case(kind="decimal", value=Decimal("1.00"))
++    assert oracle_invocation_key(one_point_zero) != oracle_invocation_key(
++        one_point_zero_zero
++    )
+diff --git a/numeralform/compat/num2words.py b/numeralform/compat/num2words.py
+index 48d5919..a3d78c1 100644
+--- a/numeralform/compat/num2words.py
++++ b/numeralform/compat/num2words.py
+@@ -392,8 +392,11 @@ def _legacy_spanish_ordinal(value: int, gender: str | None = None) -> str:
+         return ""
+     if gender == "feminine":
+         text = render(
+-            value, locale="es", form="ordinal",
+-            syntax="attributive", gender="feminine",
++            value,
++            locale="es",
++            form="ordinal",
++            syntax="attributive",
++            gender="feminine",
+         )
+         decade = "vigésima"
+     else:
+diff --git a/numeralform/renderers/_shared.py b/numeralform/renderers/_shared.py
+index b1baf7a..a572767 100644
+--- a/numeralform/renderers/_shared.py
++++ b/numeralform/renderers/_shared.py
+@@ -1,9 +1,9 @@
+ """Small mechanical helpers shared by independently owned locale renderers."""
+
+ from __future__ import annotations
++
+ import unicodedata
+ from collections.abc import Mapping
+-from typing import ClassVar
+ from dataclasses import dataclass, replace
+ from typing import ClassVar
+
+@@ -70,9 +70,7 @@ class LexicalRenderer:
+         except KeyError:
+             block = contiguous_integer_domain(cls.ordinals)
+             domain = (
+-                NumericDomain(
+-                    minimum=block[0], maximum=block[1], allow_negative=False
+-                )
++                NumericDomain(minimum=block[0], maximum=block[1], allow_negative=False)
+                 if block
+                 else None
+             )
+@@ -199,11 +197,7 @@ class LexicalRenderer:
+
+     def _ordinal(self, value: int) -> str:
+         domain = self._ordinal_domain()
+-        if (
+-            domain is None
+-            or value < (domain.minimum or 0)
+-            or value > domain.maximum
+-        ):
++        if domain is None or value < (domain.minimum or 0) or value > domain.maximum:
+             raise InvalidValueError(
+                 f"{self.locale} ordinal value is outside the supported range"
+             )
+@@ -380,4 +374,5 @@ def locale_data(
+         digit_separator=_DIGIT_SEPARATORS.get(locale),
+     )
+
++
+ __all__ = ["LexicalRenderer", "RendererData"]
+diff --git a/numeralform/renderers/es.py b/numeralform/renderers/es.py
+index da08767..8817fe7 100644
+--- a/numeralform/renderers/es.py
++++ b/numeralform/renderers/es.py
+@@ -364,24 +364,18 @@ class SpanishRenderer:
+         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+             raise InvalidValueError("ordinal form requires a non-negative integer")
+         if value > _MAX_ORDINAL:
+-            raise InvalidValueError(
+-                "Spanish ordinal is outside the supported range"
+-            )
++            raise InvalidValueError("Spanish ordinal is outside the supported range")
+         if value == 0:
+             return "cero"
+         tokens = " ".join(self._ordinal_parts(value)).split()
+         if request.morphology.gender is Gender.FEMININE:
+             tokens = [
+-                token[:-1] + "a" if token.endswith("o") else token
+-                for token in tokens
++                token[:-1] + "a" if token.endswith("o") else token for token in tokens
+             ]
+         elif (
+             request.syntax is Syntax.ATTRIBUTIVE
+             and request.morphology.gender is Gender.MASCULINE
+-            and (
+-                tokens[-1].endswith("primero")
+-                or tokens[-1].endswith("tercero")
+-            )
++            and (tokens[-1].endswith("primero") or tokens[-1].endswith("tercero"))
+         ):
+             tokens[-1] = tokens[-1][:-1]
+         return " ".join(tokens)
+diff --git a/numeralform/renderers/pt.py b/numeralform/renderers/pt.py
+index 3ebec36..2f84490 100644
+--- a/numeralform/renderers/pt.py
++++ b/numeralform/renderers/pt.py
+@@ -243,9 +243,7 @@ class PortugueseRenderer:
+         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+             raise InvalidValueError("ordinal form requires a non-negative integer")
+         if value > _MAX_ORDINAL:
+-            raise InvalidValueError(
+-                "Portuguese ordinal is outside the supported range"
+-            )
++            raise InvalidValueError("Portuguese ordinal is outside the supported range")
+         if value <= 20:
+             return _ORDINALS_PT[value]
+         if value < 100:
+diff --git a/numeralform/renderers/zh.py b/numeralform/renderers/zh.py
+index a9a9094..20cba5c 100644
+--- a/numeralform/renderers/zh.py
++++ b/numeralform/renderers/zh.py
+@@ -22,9 +22,7 @@ class ChineseRenderer(LexicalRenderer):
+
+     @classmethod
+     def _ordinal_domain(cls) -> NumericDomain:
+-        return NumericDomain(
+-            minimum=0, maximum=cls._MAX_ORDINAL, allow_negative=False
+-        )
++        return NumericDomain(minimum=0, maximum=cls._MAX_ORDINAL, allow_negative=False)
+
+     def _ordinal(self, value: int) -> str:
+         if value < 0 or value > self._MAX_ORDINAL:
+diff --git a/tests/test_regressions.py b/tests/test_regressions.py
+index 7395d55..cf2fbc2 100644
+--- a/tests/test_regressions.py
++++ b/tests/test_regressions.py
+@@ -63,15 +63,22 @@ def test_english_digit_style_is_rejected():
+         (1001, "milésimo primero"),
+         (2024, "dosmilésimo vigésimo cuarto"),
+         (1_000_000, "millonésimo"),
+-        (999_999_999, "novecientos noventa y nuevemillonésimo "
+-         "novecientos noventa y nuevemilésimo noningentésimo nonagésimo noveno"),
++        (
++            999_999_999,
++            (
++                "novecientos noventa y nuevemillonésimo "
++                "novecientos noventa y nuevemilésimo noningentésimo nonagésimo noveno"
++            ),
++        ),
+     ],
+ )
+ def test_spanish_ordinals_compose_above_twenty(value, expected):
+     assert render(value, locale="es", form="ordinal") == expected
+
+
+-@pytest.mark.parametrize("locale", ["es-CO", "es-CR", "es-GT", "es-MX", "es-NI", "es-VE"])
++@pytest.mark.parametrize(
++    "locale", ["es-CO", "es-CR", "es-GT", "es-MX", "es-NI", "es-VE"]
++)
+ def test_spanish_regional_variants_compose_ordinals(locale):
+     assert render(25, locale=locale, form="ordinal") == "vigésimo quinto"
+     assert render(21, locale=locale, form="ordinal") == "vigésimo primero"
