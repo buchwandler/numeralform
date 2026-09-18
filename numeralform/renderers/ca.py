@@ -8,4 +8,6 @@ class CatalanRenderer(LexicalRenderer):
     locale = "ca"
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
-    data = locale_data("ca", tuple(CARDINALS["ca"][i] for i in range(10)))
+    data = locale_data(
+        "ca", tuple(CARDINALS["ca"][i] for i in range(10)), negative="menys"
+    )

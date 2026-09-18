@@ -8,4 +8,6 @@ class AzerbaijaniRenderer(LexicalRenderer):
     locale = "az"
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
-    data = locale_data("az", tuple(CARDINALS["az"][i] for i in range(10)))
+    data = locale_data(
+        "az", tuple(CARDINALS["az"][i] for i in range(10)), negative="mənfi"
+    )

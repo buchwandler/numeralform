@@ -69,6 +69,10 @@ class CzechRenderer:
                     domain=NumericDomain(maximum=_MAX_CARDINAL),
                 ),
                 CapabilityProfile(NumeralForm.DIGITS),
+                CapabilityProfile(
+                    NumeralForm.DECIMAL,
+                    domain=NumericDomain(maximum=_MAX_CARDINAL, decimals=True),
+                ),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
             notes=(
@@ -81,11 +85,30 @@ class CzechRenderer:
         value = request.value
         if request.form is NumeralForm.DIGITS:
             text = self._digits(value)
+        elif request.form is NumeralForm.DECIMAL:
+            text = self._decimal(value)
         else:
             text = self._cardinal(require_int(value))
         return NumeralResult(
             text, request.locale, request.form, request.style, request.morphology
         )
+
+    def _decimal(self, value) -> str:
+        from ..model import DecimalNumber
+
+        if not isinstance(value, DecimalNumber):
+            raise InvalidValueError("decimal form requires DecimalNumber or Decimal")
+        whole = self._cardinal(int(value.integer))
+        if value.negative:
+            whole = f"mínus {whole}"
+        stripped = value.fraction.lstrip("0")
+        words = [_UNDER_20[0]] * (len(value.fraction) - len(stripped))
+        if stripped:
+            words.append(self._cardinal(int(stripped)))
+        elif not words:
+            words.append(_UNDER_20[0])
+        fraction = " ".join(words)
+        return f"{whole} celá {fraction}"
 
     def _cardinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool):

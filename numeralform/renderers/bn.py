@@ -9,5 +9,8 @@ class BengaliRenderer(LexicalRenderer):
     cardinals = CARDINALS[locale]
     ordinals = ORDINALS[locale]
     data = locale_data(
-        "bn", tuple(CARDINALS["bn"][i] for i in range(10)), negative="ঋণাত্মক"
+        "bn",
+        tuple(CARDINALS["bn"][i] for i in range(10)),
+        negative="ঋণাত্মক",
+        omit_one_scales=frozenset(),
     )

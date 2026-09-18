@@ -648,7 +648,7 @@ def test_recursive_composition_reuses_reviewed_subnumbers(locale, value, expecte
         ("ca", 2_000_000, "dos milions"),
         ("eo", 2_000_000, "du milionoj"),
         ("pl", 2_000_000, "dwa miliony"),
-        ("ro", 2_000_000, "doi milioane"),
+        ("ro", 2_000_000, "două milioane"),
         ("uk", 2_000_000, "два мільйони"),
     ],
 )

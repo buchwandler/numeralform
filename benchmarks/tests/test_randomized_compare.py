@@ -732,7 +732,7 @@ def test_01_todo_equivalence_rules_and_negative_controls():
         case(locale="zh-CN", value=-13),
         "负一十三",
         "负十三",
-        "oracle:zh-cn-leading-one-ten",
+        "variant:zh-leading-one-ten",
     )
     assert_variant(
         case(locale="sv", kind="decimal", value=Decimal("40.20")),
@@ -832,3 +832,299 @@ def test_new_todo_equivalence_rules_reject_changed_semantics():
             accept_variants=True,
         )
         assert result.status == "mismatch"
+
+
+def test_seed109_comparator_repairs_accept_report_examples():
+    def assert_variant(local_case, expected, actual, rule):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+    assert_variant(
+        case(locale="ro", kind="ordinal_num", value=1),
+        "1-ul",
+        "1-lea",
+        "oracle:numeric-ordinal-reading",
+    )
+    for expected in ("१ला", "३रा", "४था", "६ठा"):
+        assert_variant(
+            case(locale="hi", kind="ordinal_num", value=int(expected[0])),
+            expected,
+            f"{expected[0]}वाँ",
+            "oracle:numeric-ordinal-reading",
+        )
+    assert_variant(
+        case(locale="mn", kind="ordinal", value=1),
+        "нэг дүгээр",
+        "нэгдүгээр",
+        "variant:mn-ordinal-spacing",
+    )
+    assert_variant(
+        case(locale="ko", kind="ordinal", value=2319),
+        "이천삼백 열아홉 번째",
+        "이천삼백십구 번째",
+        "variant:ko-ordinal-reading",
+    )
+
+
+def test_seed109_comparator_repairs_reject_semantic_changes():
+    def assert_mismatch(local_case, expected, actual):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"
+
+    # Romanian suffix variant applies only to the value 1.
+    assert_mismatch(case(locale="ro", kind="ordinal_num", value=2), "2-ul", "2-lea")
+    # Hindi ordinal suffix variants must keep the same numeric body.
+    assert_mismatch(case(locale="hi", kind="ordinal_num", value=3), "४ला", "३वाँ")
+    # Mongolian spacing repair must not hide a different number.
+    assert_mismatch(
+        case(locale="mn", kind="ordinal", value=3),
+        "гурав дүгээр",
+        "дөрөвдүгээр",
+    )
+    # Korean native-tens repair must not hide a different value.
+    assert_mismatch(
+        case(locale="ko", kind="ordinal", value=2319),
+        "이천삼백 열아홉 번째",
+        "이천삼백스무 번째",
+    )
+
+
+def test_seed109_rule_families_accept_report_examples():
+    """One positive per seed-109 rule family, with asserted rule names."""
+    checks = (
+        # Decimal read styles.
+        (
+            case(kind="decimal", value=Decimal("9.99"), locale="pl"),
+            "dziewięć przecinek dziewięćdziesiąt dziewięć",
+            "dziewięć przecinek dziewięć dziewięć",
+            "variant:integral-fraction-reading",
+        ),
+        (
+            case(kind="decimal", value=Decimal("763568.067"), locale="vi"),
+            "bảy trăm sáu mươi ba nghìn năm trăm sáu mươi tám phẩy bảy",
+            "bảy trăm sáu mươi ba nghìn năm trăm sáu mươi tám phẩy không sáu bảy",
+            "variant:integral-fraction-reading",
+        ),
+        (
+            case(kind="decimal", value=Decimal("27689.6374"), locale="az"),
+            "iyirmi yeddi min altı yüz səksən doqquz nöqtə altı min üç yüz yetmiş dörd",
+            "iyirmi yeddi min altı yüz səksən doqquz nöqtə altı üç yeddi dörd",
+            "variant:integral-fraction-reading",
+        ),
+        (
+            case(kind="decimal", value=Decimal("1.20"), locale="fa"),
+            "یک و بیست صدم",
+            "یک ممیز دو صفر",
+            "oracle:fa-denominator-reading",
+        ),
+        (
+            case(kind="decimal", value=Decimal("484099.2950"), locale="te"),
+            "నాలుగు లక్ష ఎనభై నాలుగు వేయిల తొంభై తొమ్మిది బిందువు రెండు తొమ్మిది అయిదు",
+            "నాలుగు లక్ష ఎనభై నాలుగు వేయిల తొంభై తొమ్మిది బిందువు రెండు తొమ్మిది అయిదు సున్న",
+            "decimal-trailing-zero-precision",
+        ),
+        (
+            case(kind="decimal", value=Decimal("1.00"), locale="zh"),
+            "一",
+            "一點零零",
+            "decimal-trailing-zero-precision",
+        ),
+        # Oracle repairs.
+        (
+            case(locale="sl", value=485298582),
+            "štiristo petinosemdeset milijon dvesto osemindevetdeset tisoč petsto dvainosemdeset",
+            "štiristo petinosemdeset milijonov dvesto osemindevetdeset tisoč petsto dvainosemdeset",
+            "oracle:sl-million-genitive",
+        ),
+        (
+            case(locale="kn", value=789066754),
+            "ಎಪ್ಪತ್ತೆಂಟು ಕೋಟಿ ತೊಂಬತ್ತು ಒಂದು ಲಕ್ಷ ಅರವತ್ತಾರು ಸಾವಿರ ಏಳು ನೂರ ಐವತ್ತ್ನಾಲ್ಕು",
+            "ಎಪ್ಪತ್ತೆಂಟು ಕೋಟಿ ತೊಂಬತ್ತು ಲಕ್ಷ ಅರವತ್ತಾರು ಸಾವಿರ ಏಳು ನೂರ ಐವತ್ತ್ನಾಲ್ಕು",
+            "oracle:kn-extra-one",
+        ),
+        (
+            case(locale="az", value=434501592),
+            "dörd yüz otuz dörd milyon beş yüz min beş yüz doxsan iki",
+            "dörd yüz otuz dörd milyon beş yüz bir min beş yüz doxsan iki",
+            "oracle:az-bir-omission",
+        ),
+        (
+            case(locale="te", value=-677971926),
+            "(-) అరవై ఏడు కోట్ల డెబ్బై తొమ్మిది లక్ష డెబ్బై ఒకటి వేయి తొమ్మిది వందల ఇరవై ఆరు",
+            "మైనస్ అరవై ఏడు కోట్ల డెబ్బై తొమ్మిది లక్ష డెబ్బై ఒకటి వేయి తొమ్మిది వందల ఇరవై ఆరు",
+            "oracle:te-parenthesized-sign",
+        ),
+        (
+            case(locale="tr", value=-3),
+            "eksiüç",
+            "eksi üç",
+            "oracle:tr-concatenated-negative",
+        ),
+        (
+            case(locale="hy", value=-129430938),
+            "մինուս հարյուր քսանինը հազար չորս հարյուր երեսուն հազար ինը հարյուր երեսունութ",
+            "մինուս հարյուր քսանինը միլիոն չորս հարյուր երեսուն հազար ինը հարյուր երեսունութ",
+            "oracle:hy-negative-million-thousands",
+        ),
+        (
+            case(locale="ar", value=2000),
+            "ألفا",
+            "ألفان",
+            "oracle:ar-scale-defects",
+        ),
+        (
+            case(locale="tet", value=896903190),
+            "miliaun atus ualu sianulu resin neen ho rihun atus sia tolu atus ida sianulu",
+            "miliaun atus ualu sianulu resin neen rihun atus sia tolu atus ida sianulu",
+            "oracle:tet-ho-conjunction",
+        ),
+        # Year readings.
+        (
+            case(kind="year", value=8501, locale="am"),
+            "ሰማኒያ አምስት መቶ አንድ",
+            "ስምንት ሺህ አምስት መቶ አንድ",
+            "variant:split-hundreds-year",
+        ),
+        (
+            case(kind="year", value=301, locale="da"),
+            "tre hundrede et",
+            "trehundrede og et",
+            "variant:split-hundreds-year",
+        ),
+        (
+            case(kind="year", value=6731, locale="zh-CN"),
+            "六七三一年",
+            "六七三一",
+            "variant:zh-cn-year-suffix",
+        ),
+        # Composition rules.
+        (
+            case(kind="decimal", value=Decimal("767500.2654"), locale="pt"),
+            "setecentos e sessenta e sete mil quinhentos vírgula dois seis cinco quatro",
+            "setecentos e sessenta e sete mil e quinhentos vírgula dois seis cinco quatro",
+            "variant:pt-millar-conjunction",
+        ),
+        (
+            case(locale="eo", value=1100),
+            "milcent",
+            "mil cent",
+            "variant:eo-milcent-compound",
+        ),
+    )
+    for local_case, expected, actual, rule in checks:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant", (rule, local_case.locale)
+        assert result.equivalence_rule == rule, (rule, result.equivalence_rule)
+
+
+def test_seed109_rule_families_reject_semantic_defects():
+    """Negative controls: altered digits, signs, or scale words stay mismatched."""
+
+    def assert_mismatch(local_case, expected, actual):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"
+
+    # Wrong Arabic scale form (million for thousands).
+    assert_mismatch(
+        case(locale="sl", value=485298582),
+        "štiristo petinosemdeset milijonov sto tisoč petsto dvainosemdeset",
+        "štiristo petinosemdeset milijonov dvesto osemindevetdeset tisoč petsto dvainosemdeset",
+    )
+    # Wrong Welsh thousand gender.
+    assert_mismatch(
+        case(locale="cy", value=3000),
+        "tri mil",
+        "tair mil",
+    )
+    # Wrong Romanian de construction.
+    assert_mismatch(
+        case(locale="ro", value=21000),
+        "douăzeci și unu mii",
+        "douăzeci și unu de mii",
+    )
+    # Ukrainian scale form defect.
+    assert_mismatch(
+        case(locale="uk", value=21000),
+        "двадцять одна тисяч",
+        "двадцять одна тисяча",
+    )
+    # Chinese deletion of 一 outside the tens pattern.
+    assert_mismatch(
+        case(locale="zh-CN", value=115),
+        "一十五",
+        "一百一十五",
+    )
+    # Decimal internal-zero loss: 0.01 must not equal 0.1.
+    assert_mismatch(
+        case(kind="decimal", value=Decimal("0.01"), locale="pl"),
+        "zero przecinek jeden",
+        "zero przecinek zero jeden",
+    )
+    assert_mismatch(
+        case(kind="decimal", value=Decimal("0.01"), locale="zh"),
+        "點零一",
+        "零點零一",
+    )
+    # Kannada extra-one must not alter a different value.
+    assert_mismatch(
+        case(locale="kn", value=789066754),
+        "ಎಪ್ಪತ್ತೆಂಟು ಕೋಟಿ ತೊಂಬತ್ತೊಂದು ಒಂದು ಲಕ್ಷ ಅರವತ್ತಾರು ಸಾವಿರ ಏಳು ನೂರ ಐವತ್ತ್ನಾಲ್ಕು",
+        "ಎಪ್ಪತ್ತೆಂಟು ಕೋಟಿ ತೊಂಬತ್ತು ಲಕ್ಷ ಅರವತ್ತಾರು ಸಾವಿರ ಏಳು ನೂರ ಐವತ್ತ್ನಾಲ್ಕು",
+    )
+    # Sign changes are never accepted as variants.
+    assert_mismatch(
+        case(locale="te", value=677971926),
+        "(-) అరవై ఏడు కోట్ల డెబ్బై తొమ్మిది లక్ష డెబ్బై ఒకటి వేయి తొమ్మిది వందల ఇరవై ఆరు",
+        "అరవై ఏడు కోట్ల డెబ్బై తొమ్మిది లಕ್ಷ డೆಬ್ಬೈ ಒಕಟి ವೇయಿ తೊಮ్ಮಿది ವಂದಲ ఇరವై ఆరು",
+    )
+
+
+def test_seed109_composed_precision_rules():
+    # Component alone: precision contraction.
+    result = compare_results(
+        case(kind="decimal", value=Decimal("1.20"), locale="zh"),
+        ExecutionResult.text_result("一點二"),
+        ExecutionResult.text_result("一點二零"),
+        accept_variants=True,
+    )
+    assert result.status == "variant"
+    assert result.equivalence_rule == "decimal-trailing-zero-precision"
+    # Component alone: leading-one-ten.
+    result = compare_results(
+        case(locale="zh", value=15),
+        ExecutionResult.text_result("一十五"),
+        ExecutionResult.text_result("十五"),
+        accept_variants=True,
+    )
+    assert result.status == "variant"
+    assert result.equivalence_rule == "variant:zh-leading-one-ten"
+    # Composed: both differences at once.
+    result = compare_results(
+        case(kind="decimal", value=Decimal("-10.10"), locale="zh"),
+        ExecutionResult.text_result("負一十點一"),
+        ExecutionResult.text_result("負十點一零"),
+        accept_variants=True,
+    )
+    assert result.status == "variant"
+    assert result.equivalence_rule == "variant:zh-leading-one-ten"
