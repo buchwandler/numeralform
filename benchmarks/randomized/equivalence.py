@@ -1791,8 +1791,46 @@ def _negative_sign_dropped_oracle(case: RandomCase, expected: str, actual: str) 
     return expected_key in repaired_forms and expected_key != actual_key
 
 
+def _hungarian_trailing_two_oracle(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    """Pinned HU oracle uses attributive ket for a terminal standalone 2."""
+    if case.locale != "hu" or case.kind not in {"decimal", "year"}:
+        return False
+
+    expected_key = _surface_key(expected)
+    actual_key = _surface_key(actual)
+
+    if case.kind == "decimal":
+        marker = " egész "
+        if marker not in expected_key or marker not in actual_key:
+            return False
+        expected_integer, expected_fraction = expected_key.split(marker, 1)
+        actual_integer, actual_fraction = actual_key.split(marker, 1)
+        if expected_fraction != actual_fraction:
+            return False
+    else:
+        expected_integer = expected_key
+        actual_integer = actual_key
+
+    expected_parts = expected_integer.rsplit(" ", 1)
+    actual_parts = actual_integer.rsplit(" ", 1)
+    if len(expected_parts) != 2 or len(actual_parts) != 2:
+        return False
+
+    expected_prefix, expected_two = expected_parts
+    actual_prefix, actual_two = actual_parts
+
+    return (
+        expected_two == "két"
+        and actual_two == "kettő"
+        and expected_prefix == actual_prefix
+        and expected_key != actual_key
+    )
+
+
 def _tetum_ho_conjunction_variant(case: RandomCase, expected: str, actual: str) -> bool:
-    """Oracle inserts the conjunction ho before rihun for X0Y thousands."""
+    """Oracle inserts one or more unstable ho tokens at scale boundaries."""
     if case.locale != "tet" or case.kind not in {"cardinal", "decimal", "year"}:
         return False
 
@@ -1804,6 +1842,8 @@ def _tetum_ho_conjunction_variant(case: RandomCase, expected: str, actual: str) 
         actual_forms.update(_decimal_precision_forms(case, actual_key))
 
     tokens = expected_key.split()
+    removable: set[int] = set()
+
     for index, token in enumerate(tokens):
         if token != "ho":
             continue
@@ -1813,17 +1853,21 @@ def _tetum_ho_conjunction_variant(case: RandomCase, expected: str, actual: str) 
 
         scale_boundary = (
             following in {"rihun", "atus"}
+            or following.endswith("iliaun")
             or previous == "rihun"
             or previous.endswith("iliaun")
         )
-        if not scale_boundary:
-            continue
+        if scale_boundary:
+            removable.add(index)
 
-        candidate = " ".join(tokens[:index] + tokens[index + 1 :])
-        if candidate in actual_forms and candidate != expected_key:
-            return True
+    if not removable:
+        return False
 
-    return False
+    candidate = " ".join(
+        token for index, token in enumerate(tokens) if index not in removable
+    )
+
+    return candidate in actual_forms and candidate != expected_key
 
 
 def _slovenian_million_genitive_oracle(
@@ -2443,6 +2487,7 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
         ("oracle:fa-denominator-reading", _persian_denominator_reading_variant),
         ("variant:digit-fraction-contraction", _digit_fraction_contraction_variant),
         ("oracle:negative-sign-dropped-decimal", _negative_sign_dropped_oracle),
+        ("oracle:hu-trailing-two", _hungarian_trailing_two_oracle),
         ("oracle:tet-ho-conjunction", _tetum_ho_conjunction_variant),
         ("oracle:sl-million-genitive", _slovenian_million_genitive_oracle),
         ("oracle:kn-extra-one", _kannada_extra_one_oracle),

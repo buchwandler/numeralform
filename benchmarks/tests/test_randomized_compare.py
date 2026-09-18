@@ -1227,3 +1227,92 @@ def test_seed_110_mismatch_regression_and_negative_controls():
             accept_variants=True,
         )
         assert result.status == "mismatch"
+
+
+def test_seed_111_mismatch_regression_and_negative_controls():
+    def assert_variant(local_case, expected, actual, rule):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+    assert_variant(
+        case(locale="hu", kind="decimal", value=Decimal("74002.7")),
+        "hetvennégyezer-két egész hét tized",
+        "hetvennégyezer-kettő egész hét tized",
+        "oracle:hu-trailing-two",
+    )
+
+    assert_variant(
+        case(locale="hu", kind="year", value=2002),
+        "kétezer-két",
+        "kétezer-kettő",
+        "oracle:hu-trailing-two",
+    )
+
+    assert_variant(
+        case(locale="tet", value=35104104),
+        "miliaun tolunulu resin lima ho rihun atus ida haat ho atus ida haat",
+        "miliaun tolunulu resin lima rihun atus ida haat atus ida haat",
+        "oracle:tet-ho-conjunction",
+    )
+
+    assert_variant(
+        case(locale="tet", value=-709666072),
+        "menus ho miliaun atus hitu sia rihun atus neen "
+        "neenulu resin neen hitunulu resin rua",
+        "menus miliaun atus hitu sia rihun atus neen "
+        "neenulu resin neen hitunulu resin rua",
+        "oracle:tet-ho-conjunction",
+    )
+
+    assert_variant(
+        case(
+            locale="tet",
+            kind="decimal",
+            value=Decimal("-308205.7909"),
+        ),
+        "menus ho rihun atus tolu ualu ho atus rua lima vírgula hitu sia mamuk sia",
+        "menus rihun atus tolu ualu atus rua lima vírgula hitu sia mamuk sia",
+        "oracle:tet-ho-conjunction",
+    )
+
+    negative_cases = (
+        (
+            case(locale="hu", kind="year", value=2002),
+            "kétezer-két",
+            "kétezer-három",
+        ),
+        (
+            case(
+                locale="hu",
+                kind="decimal",
+                value=Decimal("74002.7"),
+            ),
+            "hetvennégyezer-két egész hét tized",
+            "hetvennégyezer-kettő egész nyolc tized",
+        ),
+        (
+            case(locale="tet", value=35104104),
+            "miliaun tolunulu resin lima ho rihun atus ida haat ho atus ida haat",
+            "miliaun tolunulu resin lima rihun atus ida lima atus ida haat",
+        ),
+        (
+            case(locale="tet", value=35104104),
+            "miliaun tolunulu resin lima resin ho rua",
+            "miliaun tolunulu resin lima resin rua",
+        ),
+    )
+
+    for local_case, expected, actual in negative_cases:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"
