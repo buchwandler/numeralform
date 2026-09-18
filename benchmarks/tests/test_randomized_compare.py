@@ -1128,3 +1128,102 @@ def test_seed109_composed_precision_rules():
     )
     assert result.status == "variant"
     assert result.equivalence_rule == "variant:zh-leading-one-ten"
+    assert result.equivalence_rule == "variant:zh-leading-one-ten"
+
+
+def test_seed_110_mismatch_regression_and_negative_controls():
+    def assert_variant(local_case, expected, actual, rule):
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "variant"
+        assert result.equivalence_rule == rule
+
+    # Italian GBP currency: composed orthography + currency variant
+    assert_variant(
+        case(locale="it", kind="currency", value=Decimal("5403.56"), currency="GBP"),
+        "cinquemilaquattrocentotré sterline e 56 penny",
+        "cinquemilaquattrocentotre sterline e 56 pence",
+        "oracle:it-number-orthography+it-gbp-currency",
+    )
+
+    # Slovak cardinal: scale boundary spacing
+    assert_variant(
+        case(locale="sk", value=337826000),
+        "tristotridsaťsedem miliónovosemstodvadsaťšesťtisíc",
+        "tristotridsaťsedem miliónov osemstodvadsaťšesťtisíc",
+        "oracle:sk-scale-boundary-spacing",
+    )
+
+    # Slovenian decimal: scale agreement + trailing zero contraction
+    assert_variant(
+        case(locale="sl", kind="decimal", value=Decimal("902376.70")),
+        "devetsto dve tisoč tristo šestinsedemdeset celih sedem",
+        "devetsto dva tisoč tristo šestinsedemdeset celih sedem nič",
+        "oracle:sl-million-genitive",
+    )
+
+    # Tetum cardinal: ho before rihun
+    assert_variant(
+        case(locale="tet", value=-10001),
+        "menus ho rihun sanulu ida",
+        "menus rihun sanulu ida",
+        "oracle:tet-ho-conjunction",
+    )
+
+    # Tetum cardinal: rihun ho atus
+    assert_variant(
+        case(locale="tet", value=506310),
+        "rihun ho atus lima neen atus tolu sanulu",
+        "rihun atus lima neen atus tolu sanulu",
+        "oracle:tet-ho-conjunction",
+    )
+
+    # Tetum decimal: ho + omitted .0
+    assert_variant(
+        case(locale="tet", kind="decimal", value=Decimal("780201.0")),
+        "rihun atus hitu ualunulu ho atus rua ida",
+        "rihun atus hitu ualunulu atus rua ida vírgula mamuk",
+        "oracle:tet-ho-conjunction",
+    )
+
+    # Negative controls: changed digits/amounts must remain mismatch
+    negative_cases = (
+        # Italian: change 56 pence to 57 pence
+        (
+            case(
+                locale="it", kind="currency", value=Decimal("5403.56"), currency="GBP"
+            ),
+            "cinquemilaquattrocentotré sterline e 56 penny",
+            "cinquemilaquattrocentotre sterline e 57 pence",
+        ),
+        # Slovak: change lower numeric chunk
+        (
+            case(locale="sk", value=337826000),
+            "tristotridsaťsedem miliónovosemstodvadsaťšesťtisíc",
+            "tristotridsaťsedem miliónov osemstodvadsaťšesťsedemtisíc",
+        ),
+        # Slovenian: change šestinsedemdeset to a different number
+        (
+            case(locale="sl", kind="decimal", value=Decimal("902376.70")),
+            "devetsto dve tisoč tristo šestinsedemdeset celih sedem",
+            "devetsto dva tisoč tristo petinsedemdeset celih sedem nič",
+        ),
+        # Tetum: change an atus component rather than only ho
+        (
+            case(locale="tet", value=506310),
+            "rihun ho atus lima neen atus tolu sanulu",
+            "rihun atus empat neen atus tolu sanulu",
+        ),
+    )
+    for local_case, expected, actual in negative_cases:
+        result = compare_results(
+            local_case,
+            ExecutionResult.text_result(expected),
+            ExecutionResult.text_result(actual),
+            accept_variants=True,
+        )
+        assert result.status == "mismatch"

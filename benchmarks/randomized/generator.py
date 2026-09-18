@@ -23,7 +23,7 @@ from .surfaces import surface_for
 BENCHMARK_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = BENCHMARK_ROOT / "config" / "num2words_random.toml"
 SCHEMA_VERSION = 3
-GENERATOR_VERSION = 3
+GENERATOR_VERSION = 4
 PROGRESS_INTERVAL = 2500
 
 
@@ -796,6 +796,24 @@ def _default_currency_supports(
     return True
 
 
+def _shared_semantically_compatible(
+    locale: str,
+    kind: str,
+    value: object,
+) -> bool:
+    if locale.split("-", 1)[0] == "vi" and kind == "decimal":
+        if not isinstance(value, Decimal):
+            return False
+
+        # Reproduce the pinned oracle's conversion exactly.
+        oracle_value = Decimal(f"{value:.2f}")
+
+        # Only compare when num2words preserves the numeric value.
+        return oracle_value == value
+
+    return True
+
+
 def generate_cases(
     *,
     seed: int,
@@ -912,6 +930,11 @@ def generate_cases(
             config=config,
             target=target,
         )
+        if profile == "shared" and not _shared_semantically_compatible(
+            locale, kind, value
+        ):
+            rejected["generation_rejected_semantic_incompatibility"] += 1
+            continue
         if (
             profile == "shared"
             and _is_ordinal_kind(kind)

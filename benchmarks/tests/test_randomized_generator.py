@@ -384,4 +384,11 @@ def test_shared_generation_is_deterministic_with_fake_oracle():
     second, _, _ = generate_cases(**kwargs)
     assert [case.to_dict() for case in first] == [case.to_dict() for case in second]
     assert len(first) == 25
-    assert first[0].case_id == "random-v3:20260910:000000"
+    assert first[0].case_id == "random-v4:20260910:000000"
+
+
+def test_vi_decimal_rounding_change_is_not_shared_comparable():
+    from benchmarks.randomized.generator import _shared_semantically_compatible
+
+    assert not _shared_semantically_compatible("vi", "decimal", Decimal("599222.997"))
+    assert _shared_semantically_compatible("vi", "decimal", Decimal("599222.99"))

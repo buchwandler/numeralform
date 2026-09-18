@@ -6,10 +6,38 @@ import re
 import unicodedata
 from collections.abc import Callable
 from decimal import Decimal
-from itertools import combinations as _combinations
 
 from .model import RandomCase
 
+_SK_HIGH_SCALE_FORMS = (
+    "milión",
+    "milióny",
+    "miliónov",
+    "miliarda",
+    "miliardy",
+    "miliárd",
+    "bilión",
+    "bilióny",
+    "biliónov",
+    "biliarda",
+    "biliardy",
+    "biliárd",
+    "trilión",
+    "trilióny",
+    "triliónov",
+    "triliarda",
+    "triliardy",
+    "triliárd",
+    "kvadrilón",
+    "kvadrilióny",
+    "kvadriliónov",
+    "kvadriliarda",
+    "kvadriliardy",
+    "kvadriliárd",
+    "kvintilión",
+    "kvintillióny",
+    "kvintiliónov",
+)
 _PUNCTUATION_RE = re.compile(r"[^\w\s]", re.UNICODE)
 _SPACE_RE = re.compile(r"\s+")
 _SAFE_SURFACE_SHAPES = frozenset(
@@ -1012,6 +1040,50 @@ def _italian_number_orthography_variant(
     )
 
 
+def _italian_gbp_currency_orthography_variant(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if (
+        case.locale.split("-", 1)[0] != "it"
+        or case.kind != "currency"
+        or case.currency != "GBP"
+    ):
+        return False
+
+    raw_expected = _surface_key(expected)
+    raw_actual = _surface_key(actual)
+
+    expected_key = raw_expected.replace("dicotto", "diciotto")
+    actual_key = raw_actual
+
+    expected_key = re.sub(r"tré\b", "tre", expected_key)
+    actual_key = re.sub(r"tré\b", "tre", actual_key)
+
+    expected_key = re.sub(
+        r"cento(?=(?:ottanta|ottant|otto|uno|undici))",
+        "cent",
+        expected_key,
+    )
+    actual_key = re.sub(
+        r"cento(?=(?:ottanta|ottant|otto|uno|undici))",
+        "cent",
+        actual_key,
+    )
+
+    orthography_changed = expected_key != raw_expected or actual_key != raw_actual
+    if not orthography_changed:
+        return False
+
+    expected_currency = _currency_key(case, expected_key)
+    actual_currency = _currency_key(case, actual_key)
+
+    return (
+        expected_currency is not None
+        and expected_currency == actual_currency
+        and raw_expected != raw_actual
+    )
+
+
 def _italian_ordinal_oracle_quirk(case: RandomCase, expected: str, actual: str) -> bool:
     if case.locale.split("-", 1)[0] != "it" or case.kind != "ordinal":
         return False
@@ -1719,83 +1791,39 @@ def _negative_sign_dropped_oracle(case: RandomCase, expected: str, actual: str) 
     return expected_key in repaired_forms and expected_key != actual_key
 
 
-def _tetum_ho_precision_variant(case: RandomCase, expected: str, actual: str) -> bool:
-    """Tetum ho + precision contraction for all-zero fractions."""
-    if case.locale != "tet" or case.kind != "decimal":
-        return False
-    _expected_key = _surface_key(expected)
-    _actual_key = _surface_key(actual)
-    # The expected has ho and the actual doesn't, but the actual has
-    # a trailing fraction that should be contracted.
-    # Try: expected == precision_forms(actual) after ho insertion
-    # This is a composed rule: ho + precision
-    # For all-zero fractions, the actual has '...vírgula mamuk' that should
-    # be contracted to just '...'
-    return False  # placeholder - need specific logic
-
-
 def _tetum_ho_conjunction_variant(case: RandomCase, expected: str, actual: str) -> bool:
     """Oracle inserts the conjunction ho before rihun for X0Y thousands."""
     if case.locale != "tet" or case.kind not in {"cardinal", "decimal", "year"}:
         return False
-    value = case.python_value()
-    if isinstance(value, Decimal):
-        value = int(value)
-    if not isinstance(value, int):
-        return False
-    digits = str(abs(value))
-    if (
-        value > 0
-        and digits[-1] != "0"
-        and digits[-2] == "0"
-        and (len(digits) <= 4 or not digits[:-4].endswith("0"))
-    ):
-        return False
-    magnitude = abs(value)
-    millions = magnitude // 1_000_000
-    thousands = (magnitude // 1_000) % 1_000
-    remainder = magnitude % 1_000
+
     expected_key = _surface_key(expected)
     actual_key = _surface_key(actual)
-    repairs: list[str] = []
-    extra_candidates: list[str] = []
-    if millions and millions % 100 < 10 and (millions >= 100 or millions % 10):
-        repairs.append((" miliaun", " ho miliaun"))
-    if thousands and thousands % 100 < 10 and (thousands >= 100 or thousands % 10):
-        repairs.append((" rihun", " ho rihun"))
-        index = actual_key.find(" rihun")
-        if index != -1:
-            rest = actual_key[index:]
-            atus = rest.find(" atus")
-            if atus != -1:
-                head_part = actual_key[: index + atus]
-                tail_part = actual_key[index + atus :]
-                extra_candidates.append(head_part + " ho" + tail_part)
-    remainder_candidates: list[str] = []
-    if remainder >= 100 and remainder % 100 < 10 and remainder % 10:
-        head, sep, tail = actual_key.rpartition(" atus")
-        if sep:
-            remainder_candidates = [head + " ho atus" + tail]
-    candidates = [actual_key, *remainder_candidates, *extra_candidates]
-    for index in range(1, len(repairs) + 1):
-        for combo in _combinations(repairs, index):
-            candidate = actual_key
-            for old_part, new_part in combo:
-                candidate = candidate.replace(old_part, new_part, 1)
-            candidates.append(candidate)
-            for extra in remainder_candidates:
-                candidates.append(
-                    extra.replace(old_part, new_part, 1) if old_part in extra else extra
-                )
+
+    actual_forms = {actual_key}
     if case.kind == "decimal":
-        expanded = list(candidates)
-        for candidate in expanded:
-            candidate_forms = _decimal_precision_forms(case, candidate)
-            candidates.extend(candidate_forms - set(candidates))
-    return any(
-        expected_key == candidate and expected_key != actual_key
-        for candidate in candidates
-    )
+        actual_forms.update(_decimal_precision_forms(case, actual_key))
+
+    tokens = expected_key.split()
+    for index, token in enumerate(tokens):
+        if token != "ho":
+            continue
+
+        previous = tokens[index - 1] if index else ""
+        following = tokens[index + 1] if index + 1 < len(tokens) else ""
+
+        scale_boundary = (
+            following in {"rihun", "atus"}
+            or previous == "rihun"
+            or previous.endswith("iliaun")
+        )
+        if not scale_boundary:
+            continue
+
+        candidate = " ".join(tokens[:index] + tokens[index + 1 :])
+        if candidate in actual_forms and candidate != expected_key:
+            return True
+
+    return False
 
 
 def _slovenian_million_genitive_oracle(
@@ -1835,6 +1863,12 @@ def _slovenian_million_genitive_oracle(
         ):
             reverted = _replace_phrase(reverted, masculine, plain)
         candidates.append(reverted)
+    if case.kind == "decimal":
+        expanded = list(candidates)
+        for candidate in expanded:
+            candidates.extend(
+                _decimal_precision_forms(case, candidate) - set(candidates)
+            )
     return any(
         expected_key == candidate and expected_key != actual_key
         for candidate in candidates
@@ -2335,6 +2369,23 @@ def _sk_million_space_variant(case: RandomCase, expected: str, actual: str) -> b
     return collapse_space(expected_key) == collapse_space(actual_key)
 
 
+def _slovak_scale_boundary_spacing_oracle(
+    case: RandomCase, expected: str, actual: str
+) -> bool:
+    if case.locale != "sk" or case.kind not in {"cardinal", "decimal", "year"}:
+        return False
+
+    expected_key = _surface_key(expected)
+    actual_key = _surface_key(actual)
+
+    for scale in _SK_HIGH_SCALE_FORMS:
+        candidate = actual_key.replace(f"{scale} ", scale, 1)
+        if candidate != actual_key and candidate == expected_key:
+            return True
+
+    return False
+
+
 def _hy_one_million_variant(case: RandomCase, expected: str, actual: str) -> bool:
     """Hy oracle omits the 'one' word before million for1 million."""
     if case.locale != "hy" or case.kind not in {"cardinal", "year"}:
@@ -2440,6 +2491,11 @@ def _rule_registry() -> tuple[tuple[str, Callable[[RandomCase, str, str], bool]]
         ("oracle:fr-number-orthography", _french_oracle_orthography_quirk),
         ("variant:it-cento-elision", _italian_cento_elision_variant),
         ("oracle:it-ordinal-orthography", _italian_ordinal_oracle_quirk),
+        (
+            "oracle:it-number-orthography+it-gbp-currency",
+            _italian_gbp_currency_orthography_variant,
+        ),
+        ("oracle:sk-scale-boundary-spacing", _slovak_scale_boundary_spacing_oracle),
         ("oracle:it-number-orthography", _italian_number_orthography_variant),
         ("variant:ja-ordinal-notation", _japanese_ordinal_numeric_variant),
         ("variant:ko-ordinal-spacing", _korean_ordinal_numeric_spacing_variant),

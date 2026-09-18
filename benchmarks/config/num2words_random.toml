@@ -1,6 +1,6 @@
 [randomized]
 schema_version = 3
-generator_version = 3
+generator_version = 4
 default_seed = 20260910
 default_profile = "shared"
 
