@@ -12,19 +12,19 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:b36f0ada919092371afde4f2f09f9dd54f866873
-- git:3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
+  - git:b36f0ada919092371afde4f2f09f9dd54f866873
+  - git:3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
 paths:
-- benchmarks/config/num2words_random.toml
-- benchmarks/randomized/equivalence.py
-- benchmarks/randomized/generator.py
-- benchmarks/tests/test_randomized_compare.py
-- benchmarks/tests/test_randomized_generator.py
+  - benchmarks/config/num2words_random.toml
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/randomized/generator.py
+  - benchmarks/tests/test_randomized_compare.py
+  - benchmarks/tests/test_randomized_generator.py
 issues: []
 prs: []
 sources:
-- git:b36f0ada919092371afde4f2f09f9dd54f866873
-- git:3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
+  - git:b36f0ada919092371afde4f2f09f9dd54f866873
+  - git:3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
 contributors: []
 breaking: false
 internal: true
