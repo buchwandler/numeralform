@@ -1,10 +1,10 @@
 # Locale inventory
 
-Numeralform exposes executable canonical forms for the 49 Spokenform base language families and exact regional variants. The runtime registry and generated capability matrix are authoritative.
+Numeralform exposes executable canonical forms for the 62 Spokenform base language families and exact regional variants. The runtime registry and generated capability matrix are authoritative.
 
 ## Base languages
 
-`am` `ar` `az` `be` `bn` `ca` `ce` `cs` `cy` `da` `de` `en` `eo` `es` `fa` `fi` `fr` `he` `hi` `hu` `hy` `id` `is` `it` `ja` `kk` `kn` `ko` `lt` `lv` `mn` `nl` `no` `pl` `pt` `ro` `ru` `sk` `sl` `sr` `sv` `te` `tet` `tg` `th` `tr` `uk` `vi` `zh`
+`am` `ar` `az` `be` `bg` `bn` `ca` `ce` `cs` `cy` `da` `de` `el` `en` `eo` `es` `et` `eu` `fa` `fi` `fr` `he` `hi` `hu` `hy` `id` `is` `it` `ja` `ka` `kk` `kn` `ko` `ku` `lb` `lt` `lv` `ml` `mn` `mr` `ne` `nl` `no` `pl` `pt` `ro` `ru` `sk` `sl` `sq` `sr` `sv` `sw` `te` `tet` `tg` `th` `tr` `uk` `ur` `vi` `zh`
 
 ## Regional variants
 
