@@ -1,0 +1,172 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: v0.1.8
+git_base_ref: v0.1.7
+git_base_sha: 488382f4daf6366b505426fd4d7c03a58d8bf7cb
+git_head_ref: HEAD
+git_head_sha: 3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
+git_range: 488382f4daf6366b505426fd4d7c03a58d8bf7cb..3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
+commit_count: 4
+rows:
+- sha: 1e6924df38ca1cc66923bca8afc8a10595ea7787
+  source_ref: git:1e6924df38ca1cc66923bca8afc8a10595ea7787
+  short_sha: 1e6924d
+  changed_paths:
+  - benchmarks/randomized/adapters.py
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/randomized/report.py
+  - benchmarks/tests/test_randomized_adapters.py
+  - benchmarks/tests/test_randomized_compare.py
+  - benchmarks/tests/test_randomized_report.py
+  - numeralform/compat/num2words.py
+  - numeralform/renderers/_shared.py
+  - numeralform/renderers/ordinal.py
+  - numeralform/renderers/zh.py
+  - tests/test_decimal_localization.py
+  - tests/test_regressions.py
+  stats:
+    files_changed: 12
+    insertions: 943
+    deletions: 109
+  inspected: true
+  inspected_paths:
+  - numeralform/compat/num2words.py
+  - numeralform/renderers/_shared.py
+  - numeralform/renderers/ordinal.py
+  - numeralform/renderers/zh.py
+  - tests/test_decimal_localization.py
+  - tests/test_regressions.py
+  - benchmarks/randomized/equivalence.py
+  observed_behavior: Expanded locale rendering corrections for benchmark-backed decimal,
+    currency, and ordinal edge cases, with regression coverage.
+  public_impact: public
+  decision: accepted
+  stale: false
+  evidence_subject: 'feat: improvements based on benchmark'
+  target_entry_key: locale-rendering-corrections
+  target_entry_id: entry-0001
+  notes: Reviewed implementation and regression tests; benchmark oracle changes support
+    the renderer behavior.
+- sha: 3c6351cba25af786e5b1f281a7eb453e3fce0945
+  source_ref: git:3c6351cba25af786e5b1f281a7eb453e3fce0945
+  short_sha: 3c6351c
+  changed_paths:
+  - benchmarks/config/num2words_random.toml
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/tests/test_randomized_compare.py
+  - numeralform/renderers/_shared.py
+  - numeralform/renderers/ar.py
+  - numeralform/renderers/az.py
+  - numeralform/renderers/be.py
+  - numeralform/renderers/bn.py
+  - numeralform/renderers/ca.py
+  - numeralform/renderers/ce.py
+  - numeralform/renderers/cs.py
+  - numeralform/renderers/cy.py
+  - numeralform/renderers/da.py
+  - numeralform/renderers/fa.py
+  - numeralform/renderers/he.py
+  - numeralform/renderers/hi.py
+  - numeralform/renderers/hu.py
+  - numeralform/renderers/hy.py
+  - numeralform/renderers/id.py
+  - numeralform/renderers/is.py
+  - numeralform/renderers/kn.py
+  - numeralform/renderers/lt.py
+  - numeralform/renderers/lv.py
+  - numeralform/renderers/mn.py
+  - numeralform/renderers/nl.py
+  - numeralform/renderers/no.py
+  - numeralform/renderers/ro.py
+  - numeralform/renderers/sk.py
+  - numeralform/renderers/sl.py
+  - numeralform/renderers/sr.py
+  - numeralform/renderers/te.py
+  - numeralform/renderers/tet.py
+  - numeralform/renderers/tg.py
+  - numeralform/renderers/uk.py
+  - scripts/replay_differences.py
+  - scripts/survey_oracle.py
+  - tests/test_decimal_policy_invariants.py
+  - tests/test_regressions.py
+  - tests/test_seed109_locale_regressions.py
+  stats:
+    files_changed: 39
+    insertions: 3617
+    deletions: 140
+  inspected: true
+  inspected_paths:
+  - numeralform/renderers/_shared.py
+  - numeralform/renderers/ar.py
+  - numeralform/renderers/he.py
+  - numeralform/renderers/mn.py
+  - numeralform/renderers/ordinal.py
+  - tests/test_decimal_policy_invariants.py
+  - tests/test_regressions.py
+  - tests/test_seed109_locale_regressions.py
+  - benchmarks/randomized/equivalence.py
+  observed_behavior: Added and corrected locale-specific number, decimal, ordinal,
+    and currency behavior across the reviewed renderer profiles, with seed-109 regression
+    coverage.
+  public_impact: public
+  decision: accepted
+  stale: false
+  evidence_subject: 'feat: improvements based on benchmark'
+  target_entry_key: locale-rendering-corrections
+  target_entry_id: entry-0001
+  notes: Reviewed changed renderer profiles and associated regression tests.
+- sha: b36f0ada919092371afde4f2f09f9dd54f866873
+  source_ref: git:b36f0ada919092371afde4f2f09f9dd54f866873
+  short_sha: b36f0ad
+  changed_paths:
+  - benchmarks/config/num2words_random.toml
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/randomized/generator.py
+  - benchmarks/tests/test_randomized_compare.py
+  - benchmarks/tests/test_randomized_generator.py
+  stats:
+    files_changed: 5
+    insertions: 259
+    deletions: 74
+  inspected: true
+  inspected_paths:
+  - benchmarks/config/num2words_random.toml
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/randomized/generator.py
+  - benchmarks/tests/test_randomized_compare.py
+  - benchmarks/tests/test_randomized_generator.py
+  observed_behavior: Refined randomized benchmark oracle compatibility rules and generator
+    handling for precision and locale edge cases.
+  public_impact: internal
+  decision: internal
+  stale: false
+  evidence_subject: 'chore: pre-commit'
+  target_entry_key: benchmark-coverage
+  target_entry_id: entry-0002
+  notes: Benchmark-only maintenance; no direct product API change.
+- sha: 3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
+  source_ref: git:3b8b9bdcdc2cf68b4468613ad368b04ad510c4b8
+  short_sha: 3b8b9bd
+  changed_paths:
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/tests/test_randomized_compare.py
+  stats:
+    files_changed: 2
+    insertions: 141
+    deletions: 7
+  inspected: true
+  inspected_paths:
+  - benchmarks/randomized/equivalence.py
+  - benchmarks/tests/test_randomized_compare.py
+  observed_behavior: Added benchmark oracle handling and regression cases for Hungarian
+    and Tetum rendering variants.
+  public_impact: internal
+  decision: internal
+  stale: false
+  evidence_subject: 'feat: improve benchmark'
+  target_entry_key: benchmark-coverage
+  target_entry_id: entry-0002
+  notes: Benchmark-only maintenance; no direct product API change.
