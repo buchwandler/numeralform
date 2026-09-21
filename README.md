@@ -1,4 +1,4 @@
-[![PyPI - Version](https://img.shields.io/pypi/v/numeralfrom)](https://pypi.org/project/numeralform/)
+[![PyPI - Version](https://img.shields.io/pypi/v/numeralform)](https://pypi.org/project/numeralform/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/numeralform)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/numeralform)
 [![codecov](https://codecov.io/gh/buchwandler/numeralform/graph/badge.svg?token=gdXfPp7RTe)](https://codecov.io/gh/buchwandler/numeralform)

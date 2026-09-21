@@ -1,0 +1,45 @@
+schema: releaseledger.entry-batch.v1
+operation: create
+schema_version: 1
+object_type: release_entry_batch
+release_version: v0.1.9
+git_base_ref: 83342d4ea1878d6b06efb2d85375b0d107f71f70
+git_base_sha: 83342d4ea1878d6b06efb2d85375b0d107f71f70
+git_head_ref: d5643523233351cbd761e8a3b1f7130df3a52f3a
+git_head_sha: d5643523233351cbd761e8a3b1f7130df3a52f3a
+include_merges: nontrivial
+entries:
+  - kind: added
+    summary: "Added standalone cardinal rendering for 13 locales, expanding base-language coverage from 49 to 62"
+    status: accepted
+    source_refs:
+      - git:d5643523233351cbd761e8a3b1f7130df3a52f3a
+    paths:
+      - benchmarks/config/cldr.toml
+      - benchmarks/provenance/cldr.md
+      - docs/locales/README.md
+      - docs/locales/capability-matrix.md
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/_foundation.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/bg.py
+      - numeralform/renderers/el.py
+      - numeralform/renderers/et.py
+      - numeralform/renderers/eu.py
+      - numeralform/renderers/ka.py
+      - numeralform/renderers/ku.py
+      - numeralform/renderers/lb.py
+      - numeralform/renderers/ml.py
+      - numeralform/renderers/mr.py
+      - numeralform/renderers/ne.py
+      - numeralform/renderers/sq.py
+      - numeralform/renderers/sw.py
+      - numeralform/renderers/ur.py
+      - tests/test_new_spokenform_foundation_locales.py
+    sources:
+      - git:d5643523233351cbd761e8a3b1f7130df3a52f3a
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"

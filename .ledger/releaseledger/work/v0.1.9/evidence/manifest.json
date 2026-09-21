@@ -1,0 +1,46 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "additions": 1122,
+      "deletions": 2,
+      "patch_file": "d564352.patch",
+      "patch_sha256": "f023e14752113655819d4e6ec08a375072c7dcdedcf39c513202d235a65686ed",
+      "paths": [
+        "benchmarks/config/cldr.toml",
+        "benchmarks/provenance/cldr.md",
+        "docs/locales/README.md",
+        "docs/locales/capability-matrix.md",
+        "numeralform/registry.py",
+        "numeralform/renderers/__init__.py",
+        "numeralform/renderers/_foundation.py",
+        "numeralform/renderers/_shared.py",
+        "numeralform/renderers/bg.py",
+        "numeralform/renderers/el.py",
+        "numeralform/renderers/et.py",
+        "numeralform/renderers/eu.py",
+        "numeralform/renderers/ka.py",
+        "numeralform/renderers/ku.py",
+        "numeralform/renderers/lb.py",
+        "numeralform/renderers/ml.py",
+        "numeralform/renderers/mr.py",
+        "numeralform/renderers/ne.py",
+        "numeralform/renderers/sq.py",
+        "numeralform/renderers/sw.py",
+        "numeralform/renderers/ur.py",
+        "tests/test_new_spokenform_foundation_locales.py"
+      ],
+      "sha": "d5643523233351cbd761e8a3b1f7130df3a52f3a",
+      "short_sha": "d564352",
+      "source_ref": "git:d5643523233351cbd761e8a3b1f7130df3a52f3a"
+    }
+  ],
+  "git_base_ref": "83342d4ea1878d6b06efb2d85375b0d107f71f70",
+  "git_base_sha": "83342d4ea1878d6b06efb2d85375b0d107f71f70",
+  "git_head_ref": "d5643523233351cbd761e8a3b1f7130df3a52f3a",
+  "git_head_sha": "d5643523233351cbd761e8a3b1f7130df3a52f3a",
+  "include_merges": "nontrivial",
+  "object_type": "git_evidence_manifest",
+  "release_version": "v0.1.9",
+  "schema_version": 1
+}

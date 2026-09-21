@@ -1,0 +1,33 @@
+rows:
+  - sha: d5643523233351cbd761e8a3b1f7130df3a52f3a
+    inspected: true
+    inspected_paths:
+      - benchmarks/config/cldr.toml
+      - benchmarks/provenance/cldr.md
+      - docs/locales/README.md
+      - docs/locales/capability-matrix.md
+      - numeralform/registry.py
+      - numeralform/renderers/__init__.py
+      - numeralform/renderers/_foundation.py
+      - numeralform/renderers/_shared.py
+      - numeralform/renderers/bg.py
+      - numeralform/renderers/el.py
+      - numeralform/renderers/et.py
+      - numeralform/renderers/eu.py
+      - numeralform/renderers/ka.py
+      - numeralform/renderers/ku.py
+      - numeralform/renderers/lb.py
+      - numeralform/renderers/ml.py
+      - numeralform/renderers/mr.py
+      - numeralform/renderers/ne.py
+      - numeralform/renderers/sq.py
+      - numeralform/renderers/sw.py
+      - numeralform/renderers/ur.py
+      - tests/test_new_spokenform_foundation_locales.py
+    observed_behavior: "The runtime registry now exposes 13 additional locale renderers with standalone cardinal, decimal, digit-sequence, and year support bounded at 9,999; locale documentation and CLDR benchmark mappings were updated, and focused tests cover count words, numeric contracts, and NFC output."
+    public_impact: public
+    decision: accepted
+    target_entry_key: null
+    target_entry_id: null
+    notes: ""
+    stale: false

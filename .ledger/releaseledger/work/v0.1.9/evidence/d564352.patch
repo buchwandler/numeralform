@@ -1,0 +1,1495 @@
+ benchmarks/config/cldr.toml                     | 143 ++++++++++++++++++++++++
+ benchmarks/provenance/cldr.md                   |   1 +
+ docs/locales/README.md                          |   4 +-
+ docs/locales/capability-matrix.md               |  13 +++
+ numeralform/registry.py                         |  26 +++++
+ numeralform/renderers/__init__.py               |  26 +++++
+ numeralform/renderers/_foundation.py            |  12 ++
+ numeralform/renderers/_shared.py                |  26 +++++
+ numeralform/renderers/bg.py                     |  58 ++++++++++
+ numeralform/renderers/el.py                     |  54 +++++++++
+ numeralform/renderers/et.py                     |  54 +++++++++
+ numeralform/renderers/eu.py                     |  53 +++++++++
+ numeralform/renderers/ka.py                     |  58 ++++++++++
+ numeralform/renderers/ku.py                     |  62 ++++++++++
+ numeralform/renderers/lb.py                     |  69 ++++++++++++
+ numeralform/renderers/ml.py                     |  43 +++++++
+ numeralform/renderers/mr.py                     |  56 ++++++++++
+ numeralform/renderers/ne.py                     |  47 ++++++++
+ numeralform/renderers/sq.py                     |  65 +++++++++++
+ numeralform/renderers/sw.py                     |  65 +++++++++++
+ numeralform/renderers/ur.py                     |  56 ++++++++++
+ tests/test_new_spokenform_foundation_locales.py | 133 ++++++++++++++++++++++
+ 22 files changed, 1122 insertions(+), 2 deletions(-)
+
+diff --git a/benchmarks/config/cldr.toml b/benchmarks/config/cldr.toml
+index 0e2c96c..abac33d 100644
+--- a/benchmarks/config/cldr.toml
++++ b/benchmarks/config/cldr.toml
+@@ -98,3 +98,146 @@ oracle = ""
+ oracle_locale = "ru"
+ rule_set = ""
+ mode = "reviewed-only"
++
++[[mapping]]
++id = "bg-cardinal-standalone"
++numeralform_locale = "bg"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "bg"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "el-cardinal-standalone"
++numeralform_locale = "el"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "el"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "et-cardinal-standalone"
++numeralform_locale = "et"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "et"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "eu-cardinal-standalone"
++numeralform_locale = "eu"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "eu"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "ka-cardinal-standalone"
++numeralform_locale = "ka"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "ka"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "ku-cardinal-standalone"
++numeralform_locale = "ku"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "ku"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "lb-cardinal-standalone"
++numeralform_locale = "lb"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "lb"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "ml-cardinal-standalone"
++numeralform_locale = "ml"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "ml"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "mr-cardinal-standalone"
++numeralform_locale = "mr"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "mr"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "ne-cardinal-standalone"
++numeralform_locale = "ne"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "ne"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "sq-cardinal-standalone"
++numeralform_locale = "sq"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "sq"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "sw-cardinal-standalone"
++numeralform_locale = "sw"
++form = "cardinal"
++style = "default"
++syntax = "standalone"
++oracle = ""
++oracle_locale = "sw"
++rule_set = ""
++mode = "reviewed-only"
++
++[[mapping]]
++id = "ur-cardinal-standalone"
++numeralform_locale = "ur"
++form = "cardinal"
++syntax = "standalone"
++style = "default"
++oracle = ""
++oracle_locale = "ur"
++rule_set = ""
++mode = "reviewed-only"
+diff --git a/benchmarks/provenance/cldr.md b/benchmarks/provenance/cldr.md
+index f035451..771142a 100644
+--- a/benchmarks/provenance/cldr.md
++++ b/benchmarks/provenance/cldr.md
+@@ -4,4 +4,5 @@ Benchmark corpora are generated from Unicode CLDR Rule-Based Number Formatting t
+
+ Generated corpus data is local benchmark output under `benchmarks/data/corpora/cldr/`; it is not committed and does not vendor the CLDR repository or add CLDR/ICU to Numeralform runtime dependencies.
+
++The new foundation policies use the CLDR 48.2 standalone/count surface where available. Basque follows Euskaltzaindia's normative vigesimal spelling, Marathi uses a reviewed native inventory, Nepali follows the pinned CLDR spelling `तिन`, and `ku` is explicitly Kurmanji/Hawar rather than Sorani. These reviewed-only mappings do not add an ICU runtime dependency.
+ Unicode CLDR data is available under the Unicode CLDR license. Review the applicable Unicode license and notice text before redistributing regenerated data. Manifests record oracle and release provenance.
+diff --git a/docs/locales/README.md b/docs/locales/README.md
+index f64e3f6..cac730c 100644
+--- a/docs/locales/README.md
++++ b/docs/locales/README.md
+@@ -1,10 +1,10 @@
+ # Locale inventory
+
+-Numeralform exposes executable canonical forms for the 49 Spokenform base language families and exact regional variants. The runtime registry and generated capability matrix are authoritative.
++Numeralform exposes executable canonical forms for the 62 Spokenform base language families and exact regional variants. The runtime registry and generated capability matrix are authoritative.
+
+ ## Base languages
+
+-`am` `ar` `az` `be` `bn` `ca` `ce` `cs` `cy` `da` `de` `en` `eo` `es` `fa` `fi` `fr` `he` `hi` `hu` `hy` `id` `is` `it` `ja` `kk` `kn` `ko` `lt` `lv` `mn` `nl` `no` `pl` `pt` `ro` `ru` `sk` `sl` `sr` `sv` `te` `tet` `tg` `th` `tr` `uk` `vi` `zh`
++`am` `ar` `az` `be` `bg` `bn` `ca` `ce` `cs` `cy` `da` `de` `el` `en` `eo` `es` `et` `eu` `fa` `fi` `fr` `he` `hi` `hu` `hy` `id` `is` `it` `ja` `ka` `kk` `kn` `ko` `ku` `lb` `lt` `lv` `ml` `mn` `mr` `ne` `nl` `no` `pl` `pt` `ro` `ru` `sk` `sl` `sq` `sr` `sv` `sw` `te` `tet` `tg` `th` `tr` `uk` `ur` `vi` `zh`
+
+ ## Regional variants
+
+diff --git a/docs/locales/capability-matrix.md b/docs/locales/capability-matrix.md
+index bd850ab..f018492 100644
+--- a/docs/locales/capability-matrix.md
++++ b/docs/locales/capability-matrix.md
+@@ -13,6 +13,7 @@ morphology, style, and feature constraints.
+ | `ar`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `az`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `be`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `bg`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `bn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `ca`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 29, 9,999, 999,999,999      |
+ | `ce`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+@@ -20,6 +21,7 @@ morphology, style, and feature constraints.
+ | `cy`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 100, 9,999, 999,999,999     |
+ | `da`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `de`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999,999         |
++| `el`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `en`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+ | `en-GB` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+ | `en-IN` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999             |
+@@ -33,6 +35,8 @@ morphology, style, and feature constraints.
+ | `es-MX` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
+ | `es-NI` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
+ | `es-VE` | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999                 |
++| `et`    | cardinal, decimal, digits, year                                 | 9,999                       |
++| `eu`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `fa`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `fi`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `fr`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+@@ -47,12 +51,18 @@ morphology, style, and feature constraints.
+ | `is`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `it`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
+ | `ja`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
++| `ka`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `kk`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 3, 9,999, 999,999,999       |
+ | `kn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `ko`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
++| `ku`    | cardinal, decimal, digits, year                                 | 9,999                       |
++| `lb`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `lt`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `lv`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
++| `ml`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `mn`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 3, 9,999, 999,999,999       |
++| `mr`    | cardinal, decimal, digits, year                                 | 9,999                       |
++| `ne`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `nl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `no`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `pl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+@@ -63,14 +73,17 @@ morphology, style, and feature constraints.
+ | `ru`    | cardinal, decimal, digits, fraction, ordinal, ordinal_num, year | 999,999,999,999,999,999     |
+ | `sk`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `sl`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `sq`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `sr`    | cardinal, decimal, digits, ordinal_num, year                    | 9,999, 999,999,999          |
+ | `sv`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 999,999,999,999             |
++| `sw`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `te`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `tet`   | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `tg`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `th`    | cardinal, decimal, digits, ordinal_num, year                    | 999,999,999,999             |
+ | `tr`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
+ | `uk`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 1,000, 9,999, 999,999,999   |
++| `ur`    | cardinal, decimal, digits, year                                 | 9,999                       |
+ | `vi`    | cardinal, decimal, digits, ordinal_num, year                    | 999,999,999,999             |
+ | `zh`    | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+ | `zh-CN` | cardinal, decimal, digits, ordinal, ordinal_num, year           | 9,999, 999,999,999          |
+diff --git a/numeralform/registry.py b/numeralform/registry.py
+index d27059d..2c8e75c 100644
+--- a/numeralform/registry.py
++++ b/numeralform/registry.py
+@@ -118,12 +118,15 @@ def _ensure_builtins() -> None:
+     # Set the guard before importing/registering so re-entrant lookups are safe.
+     _BUILTINS_INITIALIZED = True
+     from .renderers import (
++        AlbanianRenderer,
+         AmharicRenderer,
+         ArabicRenderer,
+         ArmenianRenderer,
+         AzerbaijaniRenderer,
++        BasqueRenderer,
+         BelarusianRenderer,
+         BengaliRenderer,
++        BulgarianRenderer,
+         CatalanRenderer,
+         ChechenRenderer,
+         ChineseRegionalRenderer,
+@@ -137,11 +140,14 @@ def _ensure_builtins() -> None:
+         EnglishRenderer,
+         EnglishUSRenderer,
+         EsperantoRenderer,
++        EstonianRenderer,
+         FinnishRenderer,
+         FrenchBelgiumRenderer,
+         FrenchRenderer,
+         FrenchSwissRenderer,
++        GeorgianRenderer,
+         GermanRenderer,
++        GreekRenderer,
+         HebrewRenderer,
+         HindiRenderer,
+         HungarianRenderer,
+@@ -152,9 +158,14 @@ def _ensure_builtins() -> None:
+         KannadaRenderer,
+         KazakhRenderer,
+         KoreanRenderer,
++        KurdishRenderer,
+         LatvianRenderer,
+         LithuanianRenderer,
++        LuxembourgishRenderer,
++        MalayalamRenderer,
++        MarathiRenderer,
+         MongolianRenderer,
++        NepaliRenderer,
+         NorwegianRenderer,
+         PersianRenderer,
+         PolishRenderer,
+@@ -165,6 +176,7 @@ def _ensure_builtins() -> None:
+         SlovakRenderer,
+         SlovenianRenderer,
+         SpanishRenderer,
++        SwahiliRenderer,
+         SwedishRenderer,
+         TajikRenderer,
+         TeluguRenderer,
+@@ -172,6 +184,7 @@ def _ensure_builtins() -> None:
+         ThaiRenderer,
+         TurkishRenderer,
+         UkrainianRenderer,
++        UrduRenderer,
+         VietnameseRenderer,
+         WelshRenderer,
+     )
+@@ -179,6 +192,19 @@ def _ensure_builtins() -> None:
+     base_renderers: dict[str, object] = {
+         "am": AmharicRenderer,
+         "ar": ArabicRenderer,
++        "bg": BulgarianRenderer,
++        "el": GreekRenderer,
++        "et": EstonianRenderer,
++        "eu": BasqueRenderer,
++        "ka": GeorgianRenderer,
++        "ku": KurdishRenderer,
++        "lb": LuxembourgishRenderer,
++        "ml": MalayalamRenderer,
++        "mr": MarathiRenderer,
++        "ne": NepaliRenderer,
++        "sq": AlbanianRenderer,
++        "sw": SwahiliRenderer,
++        "ur": UrduRenderer,
+         "az": AzerbaijaniRenderer,
+         "be": BelarusianRenderer,
+         "bn": BengaliRenderer,
+diff --git a/numeralform/renderers/__init__.py b/numeralform/renderers/__init__.py
+index b7b0b39..cf047ba 100644
+--- a/numeralform/renderers/__init__.py
++++ b/numeralform/renderers/__init__.py
+@@ -6,6 +6,7 @@ from .am import AmharicRenderer
+ from .ar import ArabicRenderer
+ from .az import AzerbaijaniRenderer
+ from .be import BelarusianRenderer
++from .bg import BulgarianRenderer
+ from .bn import BengaliRenderer
+ from .ca import CatalanRenderer
+ from .ce import ChechenRenderer
+@@ -13,9 +14,12 @@ from .cs import CzechRenderer
+ from .cy import WelshRenderer
+ from .da import DanishRenderer
+ from .de import GermanRenderer
++from .el import GreekRenderer
+ from .en import EnglishRenderer
+ from .eo import EsperantoRenderer
+ from .es import SpanishRenderer
++from .et import EstonianRenderer
++from .eu import BasqueRenderer
+ from .fa import PersianRenderer
+ from .fi import FinnishRenderer
+ from .fr import FrenchRenderer
+@@ -28,12 +32,18 @@ from .id import IndonesianRenderer
+ IcelandicRenderer = import_module(".is", __name__).IcelandicRenderer
+ from .it import ItalianRenderer
+ from .ja import JapaneseRenderer
++from .ka import GeorgianRenderer
+ from .kk import KazakhRenderer
+ from .kn import KannadaRenderer
+ from .ko import KoreanRenderer
++from .ku import KurdishRenderer
++from .lb import LuxembourgishRenderer
+ from .lt import LithuanianRenderer
+ from .lv import LatvianRenderer
++from .ml import MalayalamRenderer
+ from .mn import MongolianRenderer
++from .mr import MarathiRenderer
++from .ne import NepaliRenderer
+ from .nl import DutchRenderer
+ from .no import NorwegianRenderer
+ from .ordinal import OrdinalNotationRenderer
+@@ -51,8 +61,10 @@ from .ro import RomanianRenderer
+ from .ru import RussianRenderer
+ from .sk import SlovakRenderer
+ from .sl import SlovenianRenderer
++from .sq import AlbanianRenderer
+ from .sr import SerbianRenderer
+ from .sv import SwedishRenderer
++from .sw import SwahiliRenderer
+ from .te import TeluguRenderer
+ from .tet import TetumRenderer
+ from .tg import TajikRenderer
+@@ -60,16 +72,20 @@ from .th import ThaiRenderer
+ from .tr import TurkishRenderer
+ from .uk import UkrainianRenderer
+ from .unsupported import UnsupportedLocaleRenderer
++from .ur import UrduRenderer
+ from .vi import VietnameseRenderer
+ from .zh import ChineseRegionalRenderer, ChineseRenderer
+
+ __all__ = [
++    "AlbanianRenderer",
+     "AmharicRenderer",
+     "ArabicRenderer",
+     "ArmenianRenderer",
+     "AzerbaijaniRenderer",
++    "BasqueRenderer",
+     "BelarusianRenderer",
+     "BengaliRenderer",
++    "BulgarianRenderer",
+     "CatalanRenderer",
+     "ChechenRenderer",
+     "ChineseRegionalRenderer",
+@@ -83,11 +99,14 @@ __all__ = [
+     "EnglishRenderer",
+     "EnglishUSRenderer",
+     "EsperantoRenderer",
++    "EstonianRenderer",
+     "FinnishRenderer",
+     "FrenchBelgiumRenderer",
+     "FrenchRenderer",
+     "FrenchSwissRenderer",
++    "GeorgianRenderer",
+     "GermanRenderer",
++    "GreekRenderer",
+     "HebrewRenderer",
+     "HindiRenderer",
+     "HungarianRenderer",
+@@ -98,9 +117,14 @@ __all__ = [
+     "KannadaRenderer",
+     "KazakhRenderer",
+     "KoreanRenderer",
++    "KurdishRenderer",
+     "LatvianRenderer",
+     "LithuanianRenderer",
++    "LuxembourgishRenderer",
++    "MalayalamRenderer",
++    "MarathiRenderer",
+     "MongolianRenderer",
++    "NepaliRenderer",
+     "NorwegianRenderer",
+     "OrdinalNotationRenderer",
+     "PersianRenderer",
+@@ -112,6 +136,7 @@ __all__ = [
+     "SlovakRenderer",
+     "SlovenianRenderer",
+     "SpanishRenderer",
++    "SwahiliRenderer",
+     "SwedishRenderer",
+     "TajikRenderer",
+     "TeluguRenderer",
+@@ -120,6 +145,7 @@ __all__ = [
+     "TurkishRenderer",
+     "UkrainianRenderer",
+     "UnsupportedLocaleRenderer",
++    "UrduRenderer",
+     "VietnameseRenderer",
+     "WelshRenderer",
+ ]
+diff --git a/numeralform/renderers/_foundation.py b/numeralform/renderers/_foundation.py
+new file mode 100644
+index 0000000..aff14ad
+--- /dev/null
++++ b/numeralform/renderers/_foundation.py
+@@ -0,0 +1,12 @@
++"""Shared base for small, reviewed foundation locale renderers."""
++
++from typing import ClassVar
++
++from ._shared import LexicalRenderer
++
++
++class FoundationRenderer(LexicalRenderer):
++    """Standalone cardinal renderer with an intentionally bounded domain."""
++
++    max_cardinal = 9_999
++    ordinals: ClassVar[dict[int, str]] = {}
+diff --git a/numeralform/renderers/_shared.py b/numeralform/renderers/_shared.py
+index 7ed6e28..d317f86 100644
+--- a/numeralform/renderers/_shared.py
++++ b/numeralform/renderers/_shared.py
+@@ -326,6 +326,19 @@ _YEAR_SUFFIXES = {
+
+ _DECIMAL_POLICIES: dict[str, DecimalPolicy] = {
+     "am": DecimalPolicy("ነጥብ", negative_prefix="አሉታዊ"),
++    "bg": DecimalPolicy("запетая", negative_prefix="минус"),
++    "el": DecimalPolicy("κόμμα", negative_prefix="μείον"),
++    "et": DecimalPolicy("koma", negative_prefix="miinus"),
++    "eu": DecimalPolicy("koma", negative_prefix="minus"),
++    "ka": DecimalPolicy("წერტილი", negative_prefix="მინუს"),
++    "ku": DecimalPolicy("xal", negative_prefix="neyînî"),
++    "lb": DecimalPolicy("Komma", negative_prefix="minus"),
++    "ml": DecimalPolicy("ദശാംശം", negative_prefix="മൈനസ്"),
++    "mr": DecimalPolicy("दशांश", negative_prefix="उणे"),
++    "ne": DecimalPolicy("दशमलव", negative_prefix="माइनस"),
++    "sq": DecimalPolicy("presje", negative_prefix="minus"),
++    "sw": DecimalPolicy("nukta", negative_prefix="hasi"),
++    "ur": DecimalPolicy("اعشاریہ", negative_prefix="منفی"),
+     "ce": DecimalPolicy("а", negative_prefix="тӀехьара"),
+     "ar": DecimalPolicy("فاصلة", negative_prefix="سالب"),
+     "az": DecimalPolicy("nöqtə", negative_prefix="mənfi"),
+@@ -521,6 +534,19 @@ class DecimalFallbackRenderer:
+
+ _DEFAULT_SCALES = {
+     "am": ((1_000_000, "ሚሊዮን"), (1_000, "ሺህ"), (100, "መቶ")),
++    "bg": ((1_000, "хиляда"), (100, "сто")),
++    "el": ((1_000, "χίλια"), (100, "εκατό")),
++    "et": ((1_000, "tuhat"), (100, "sada")),
++    "eu": ((1_000, "mila"), (100, "ehun")),
++    "ka": ((1_000, "ათასი"), (100, "ასი")),
++    "ku": ((1_000, "hezar"), (100, "sed")),
++    "lb": ((1_000, "dausend"), (100, "honnert")),
++    "ml": ((1_000, "ആയിരം"), (100, "നൂറ്")),
++    "mr": ((1_000, "हजार"), (100, "शंभर")),
++    "ne": ((1_000, "हजार"), (100, "सय")),
++    "sq": ((1_000, "mijë"), (100, "qind")),
++    "sw": ((1_000, "elfu"), (100, "mia")),
++    "ur": ((1_000, "ہزار"), (100, "سو")),
+     "ar": ((1_000_000, "مليون"), (1_000, "ألف"), (100, "مائة")),
+     "az": ((1_000_000, "milyon"), (1_000, "min"), (100, "yüz")),
+     "be": ((1_000_000, "мільён"), (1_000, "тысяча"), (100, "сто")),
+diff --git a/numeralform/renderers/bg.py b/numeralform/renderers/bg.py
+new file mode 100644
+index 0000000..9f78112
+--- /dev/null
++++ b/numeralform/renderers/bg.py
+@@ -0,0 +1,58 @@
++"""Bulgarian standalone/count numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "нула",
++    "едно",
++    "две",
++    "три",
++    "четири",
++    "пет",
++    "шест",
++    "седем",
++    "осем",
++    "девет",
++)
++_TEENS = (
++    "десет",
++    "единадесет",
++    "дванадесет",
++    "тринадесет",
++    "четиринадесет",
++    "петнадесет",
++    "шестнадесет",
++    "седемнадесет",
++    "осемнадесет",
++    "деветнадесет",
++)
++_TENS = {
++    20: "двадесет",
++    30: "тридесет",
++    40: "четиридесет",
++    50: "петдесет",
++    60: "шестдесет",
++    70: "седемдесет",
++    80: "осемдесет",
++    90: "деветдесет",
++}
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update({10 + i: word for i, word in enumerate(_TEENS)})
++_CARDINALS.update({ten: word for ten, word in _TENS.items()})
++_CARDINALS.update(
++    {
++        ten + i: f"{word} и {_ONES[i]}"
++        for ten, word in _TENS.items()
++        for i in range(1, 10)
++    }
++)
++
++
++class BulgarianRenderer(FoundationRenderer):
++    locale = "bg"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "сто", 1_000: "хиляда"}
++    data = locale_data("bg", _ONES, negative="минус", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/el.py b/numeralform/renderers/el.py
+new file mode 100644
+index 0000000..1116852
+--- /dev/null
++++ b/numeralform/renderers/el.py
+@@ -0,0 +1,54 @@
++"""Greek standalone/count numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "μηδέν",
++    "ένα",
++    "δύο",
++    "τρία",
++    "τέσσερα",
++    "πέντε",
++    "έξι",
++    "επτά",
++    "οκτώ",
++    "εννέα",
++)
++_TEENS = (
++    "δέκα",
++    "έντεκα",
++    "δώδεκα",
++    "δεκατρία",
++    "δεκατέσσερα",
++    "δεκαπέντε",
++    "δεκαέξι",
++    "δεκαεπτά",
++    "δεκαοκτώ",
++    "δεκαεννέα",
++)
++_TENS = {
++    20: "είκοσι",
++    30: "τριάντα",
++    40: "σαράντα",
++    50: "πενήντα",
++    60: "εξήντα",
++    70: "εβδομήντα",
++    80: "ογδόντα",
++    90: "ενενήντα",
++}
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update({10 + i: word for i, word in enumerate(_TEENS)})
++_CARDINALS.update({ten: word for ten, word in _TENS.items()})
++_CARDINALS.update(
++    {ten + i: f"{word} {_ONES[i]}" for ten, word in _TENS.items() for i in range(1, 10)}
++)
++
++
++class GreekRenderer(FoundationRenderer):
++    locale = "el"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "εκατό", 1_000: "χίλια"}
++    data = locale_data("el", _ONES, negative="μείον", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/et.py b/numeralform/renderers/et.py
+new file mode 100644
+index 0000000..a882470
+--- /dev/null
++++ b/numeralform/renderers/et.py
+@@ -0,0 +1,54 @@
++"""Estonian standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "null",
++    "üks",
++    "kaks",
++    "kolm",
++    "neli",
++    "viis",
++    "kuus",
++    "seitse",
++    "kaheksa",
++    "üheksa",
++)
++_TEENS = (
++    "kümme",
++    "üksteist",
++    "kaksteist",
++    "kolmteist",
++    "neliteist",
++    "viisteist",
++    "kuusteist",
++    "seitseteist",
++    "kaheksateist",
++    "üheksateist",
++)
++_TENS = {
++    20: "kakskümmend",
++    30: "kolmkümmend",
++    40: "nelikümmend",
++    50: "viiskümmend",
++    60: "kuuskümmend",
++    70: "seitsekümmend",
++    80: "kaheksakümmend",
++    90: "üheksakümmend",
++}
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update({10 + i: word for i, word in enumerate(_TEENS)})
++_CARDINALS.update({ten: word for ten, word in _TENS.items()})
++_CARDINALS.update(
++    {ten + i: f"{word} {_ONES[i]}" for ten, word in _TENS.items() for i in range(1, 10)}
++)
++
++
++class EstonianRenderer(FoundationRenderer):
++    locale = "et"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "sada", 1_000: "tuhat"}
++    data = locale_data("et", _ONES, negative="miinus", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/eu.py b/numeralform/renderers/eu.py
+new file mode 100644
+index 0000000..f31534f
+--- /dev/null
++++ b/numeralform/renderers/eu.py
+@@ -0,0 +1,53 @@
++"""Basque numerals using the reviewed vigesimal count system."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "zero",
++    "bat",
++    "bi",
++    "hiru",
++    "lau",
++    "bost",
++    "sei",
++    "zazpi",
++    "zortzi",
++    "bederatzi",
++)
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "hamar",
++        11: "hamaika",
++        12: "hamabi",
++        13: "hamahiru",
++        14: "hamalau",
++        15: "hamabost",
++        16: "hamasei",
++        17: "hamazazpi",
++        18: "hemezortzi",
++        19: "hemeretzi",
++    }
++)
++_CARDINALS.update({20: "hogei", 40: "berrogei", 60: "hirurogei", 80: "laurogei"})
++for _base, _word in (
++    (20, "hogei"),
++    (40, "berrogei"),
++    (60, "hirurogei"),
++    (80, "laurogei"),
++):
++    for _i in range(1, 20):
++        if _base + _i < 100:
++            _CARDINALS[_base + _i] = (
++                f"{_word}ta {_ONES[_i]}" if _i < 10 else f"{_word}ta {_CARDINALS[_i]}"
++            )
++
++
++class BasqueRenderer(FoundationRenderer):
++    locale = "eu"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "ehun", 1_000: "mila"}
++    data = locale_data("eu", _ONES, negative="minus", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/ka.py b/numeralform/renderers/ka.py
+new file mode 100644
+index 0000000..db77256
+--- /dev/null
++++ b/numeralform/renderers/ka.py
+@@ -0,0 +1,58 @@
++"""Georgian standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = ("ნული", "ერთი", "ორი", "სამი", "ოთხი", "ხუთი", "ექვსი", "შვიდი", "რვა", "ცხრა")
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "ათი",
++        11: "თერთმეტი",
++        12: "თორმეტი",
++        13: "ცამეტი",
++        14: "თოთხმეტი",
++        15: "თხუთმეტი",
++        16: "თექვსმეტი",
++        17: "ჩვიდმეტი",
++        18: "თვრამეტი",
++        19: "ცხრამეტი",
++    }
++)
++_CARDINALS.update(
++    {
++        20: "ოცი",
++        30: "ოცდაათი",
++        40: "ორმოცი",
++        50: "ორმოცდაათი",
++        60: "სამოცი",
++        70: "სამოცდაათი",
++        80: "ოთხმოცი",
++        90: "ოთხმოცდაათი",
++    }
++)
++_CARDINALS.update(
++    {
++        ten + i: f"{word[:-2] if word.endswith('ათი') else word}და{_ONES[i]}"
++        for ten, word in (
++            (20, "ოცი"),
++            (30, "ოცდაათი"),
++            (40, "ორმოცი"),
++            (50, "ორმოცდაათი"),
++            (60, "სამოცი"),
++            (70, "სამოცდაათი"),
++            (80, "ოთხმოცი"),
++            (90, "ოთხმოცდაათი"),
++        )
++        for i in range(1, 10)
++    }
++)
++
++
++class GeorgianRenderer(FoundationRenderer):
++    locale = "ka"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "ასი", 1_000: "ათასი"}
++    data = locale_data("ka", _ONES, negative="მინუს", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/ku.py b/numeralform/renderers/ku.py
+new file mode 100644
+index 0000000..0d9d928
+--- /dev/null
++++ b/numeralform/renderers/ku.py
+@@ -0,0 +1,62 @@
++"""Kurmanji/Northern Kurdish numerals in Hawar Latin orthography.
++
++The ``ku`` foundation policy is the Kurmanji surface requested by ``ku_TR``;
++Sorani is intentionally not claimed by this renderer.
++"""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = ("sifir", "yek", "du", "sê", "çar", "pênc", "şeş", "heft", "heşt", "neh")
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "deh",
++        11: "yanzde",
++        12: "dwanzde",
++        13: "sêzde",
++        14: "çardeh",
++        15: "panzdeh",
++        16: "şanzdeh",
++        17: "hevdeh",
++        18: "hejdeh",
++        19: "nozdeh",
++    }
++)
++_CARDINALS.update(
++    {
++        20: "bîst",
++        30: "sî",
++        40: "çil",
++        50: "pêncî",
++        60: "şêst",
++        70: "heftê",
++        80: "heştê",
++        90: "nod",
++    }
++)
++_CARDINALS.update(
++    {
++        ten + i: f"{word} û {_ONES[i]}"
++        for ten, word in (
++            (20, "bîst"),
++            (30, "sî"),
++            (40, "çil"),
++            (50, "pêncî"),
++            (60, "şêst"),
++            (70, "heftê"),
++            (80, "heştê"),
++            (90, "nod"),
++        )
++        for i in range(1, 10)
++    }
++)
++
++
++class KurdishRenderer(FoundationRenderer):
++    locale = "ku"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "sed", 1_000: "hezar"}
++    data = locale_data("ku", _ONES, negative="neyînî", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/lb.py b/numeralform/renderers/lb.py
+new file mode 100644
+index 0000000..13b5d99
+--- /dev/null
++++ b/numeralform/renderers/lb.py
+@@ -0,0 +1,69 @@
++"""Luxembourgish standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "null",
++    "eent",
++    "zwee",
++    "dräi",
++    "véier",
++    "fënnef",
++    "sechs",
++    "siwen",
++    "aacht",
++    "néng",
++)
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "zéng",
++        11: "elef",
++        12: "zwielef",
++        13: "dräizéng",
++        14: "véierzéng",
++        15: "fofzéng",
++        16: "siechzéng",
++        17: "siwwenzéng",
++        18: "uechtzéng",
++        19: "nonzéng",
++    }
++)
++_CARDINALS.update(
++    {
++        20: "zwanzeg",
++        30: "drësseg",
++        40: "véierzeg",
++        50: "fofzeg",
++        60: "siechzeg",
++        70: "siwwenzeg",
++        80: "achtzeg",
++        90: "nonzeg",
++    }
++)
++_CARDINALS.update(
++    {
++        ten + i: f"{_ONES[i]}an{word}"
++        for ten, word in (
++            (20, "zwanzeg"),
++            (30, "drësseg"),
++            (40, "véierzeg"),
++            (50, "fofzeg"),
++            (60, "siechzeg"),
++            (70, "siwwenzeg"),
++            (80, "achtzeg"),
++            (90, "nonzeg"),
++        )
++        for i in range(1, 10)
++    }
++)
++
++
++class LuxembourgishRenderer(FoundationRenderer):
++    locale = "lb"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "honnert", 1_000: "dausend"}
++    data = locale_data("lb", _ONES, negative="minus", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/ml.py b/numeralform/renderers/ml.py
+new file mode 100644
+index 0000000..26e0acd
+--- /dev/null
++++ b/numeralform/renderers/ml.py
+@@ -0,0 +1,43 @@
++"""Malayalam standalone/count numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = ("പൂജ്യം", "ഒന്ന്", "രണ്ട്", "മൂന്ന്", "നാല്", "അഞ്ച്", "ആറ്", "ഏഴ്", "എട്ട്", "ഒൻപത്")
++_TEENS = {
++    10: "പത്ത്",
++    11: "പതിനൊന്ന്",
++    12: "പന്ത്രണ്ട്",
++    13: "പതിമൂന്ന്",
++    14: "പതിനാല്",
++    15: "പതിനഞ്ച്",
++    16: "പതിനാറ്",
++    17: "പതിനേഴ്",
++    18: "പതിനെട്ട്",
++    19: "പത്തൊൻപത്",
++}
++_TENS = {
++    20: "ഇരുപത്",
++    30: "മുപ്പത്",
++    40: "നാൽപ്പത്",
++    50: "അൻപത്",
++    60: "അറുപത്",
++    70: "എഴുപത്",
++    80: "എൺപത്",
++    90: "തൊണ്ണൂറ്",
++}
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(_TEENS)
++_CARDINALS.update(_TENS)
++_CARDINALS.update(
++    {ten + i: f"{word} {_ONES[i]}" for ten, word in _TENS.items() for i in range(1, 10)}
++)
++
++
++class MalayalamRenderer(FoundationRenderer):
++    locale = "ml"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "നൂറ്", 1_000: "ആയിരം"}
++    data = locale_data("ml", _ONES, negative="മൈനസ്", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/mr.py b/numeralform/renderers/mr.py
+new file mode 100644
+index 0000000..65abca2
+--- /dev/null
++++ b/numeralform/renderers/mr.py
+@@ -0,0 +1,56 @@
++"""Marathi standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = ("शून्य", "एक", "दोन", "तीन", "चार", "पाच", "सहा", "सात", "आठ", "नऊ")
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "दहा",
++        11: "अकरा",
++        12: "बारा",
++        13: "तेरा",
++        14: "चौदा",
++        15: "पंधरा",
++        16: "सोळा",
++        17: "सतरा",
++        18: "अठरा",
++        19: "एकोणीस",
++        20: "वीस",
++        21: "एकवीस",
++        22: "बावीस",
++        23: "तेवीस",
++        24: "चोवीस",
++        25: "पंचवीस",
++        26: "सव्वीस",
++        27: "सत्तावीस",
++        28: "अठ्ठावीस",
++        29: "एकोणतीस",
++        30: "तीस",
++        31: "एकतीस",
++        32: "बत्तीस",
++        33: "तेहेतीस",
++        34: "चौतीस",
++        35: "पस्तीस",
++        36: "छत्तीस",
++        37: "सदतीस",
++        38: "अडतीस",
++        39: "एकोणचाळीस",
++        40: "चाळीस",
++        50: "पन्नास",
++        60: "साठ",
++        70: "सत्तर",
++        80: "ऐंशी",
++        90: "नव्वद",
++    }
++)
++
++
++class MarathiRenderer(FoundationRenderer):
++    locale = "mr"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "शंभर", 1_000: "हजार"}
++    data = locale_data("mr", _ONES, negative="उणे", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/ne.py b/numeralform/renderers/ne.py
+new file mode 100644
+index 0000000..63a8c7d
+--- /dev/null
++++ b/numeralform/renderers/ne.py
+@@ -0,0 +1,47 @@
++"""Nepali standalone numerals using the CLDR 48.2 spelling policy."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = ("शून्य", "एक", "दुई", "तिन", "चार", "पाँच", "छ", "सात", "आठ", "नौ")
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "दस",
++        11: "एघार",
++        12: "बाह्र",
++        13: "तेह्र",
++        14: "चौध",
++        15: "पन्ध्र",
++        16: "सोह्र",
++        17: "सत्र",
++        18: "अठार",
++        19: "उन्नाइस",
++        20: "बीस",
++        21: "एक्काइस",
++        22: "बाइस",
++        23: "तेइस",
++        24: "चौबीस",
++        25: "पच्चीस",
++        26: "छब्बीस",
++        27: "सत्ताइस",
++        28: "अट्ठाइस",
++        29: "उनन्तीस",
++        30: "तीस",
++        40: "चालीस",
++        50: "पचास",
++        60: "साठी",
++        70: "सत्तरी",
++        80: "असी",
++        90: "नब्बे",
++    }
++)
++
++
++class NepaliRenderer(FoundationRenderer):
++    locale = "ne"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "एक सय", 1_000: "एक हजार"}
++    data = locale_data("ne", _ONES, negative="माइनस", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/sq.py b/numeralform/renderers/sq.py
+new file mode 100644
+index 0000000..bffde6a
+--- /dev/null
++++ b/numeralform/renderers/sq.py
+@@ -0,0 +1,65 @@
++"""Albanian standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "zero",
++    "një",
++    "dy",
++    "tre",
++    "katër",
++    "pesë",
++    "gjashtë",
++    "shtatë",
++    "tetë",
++    "nëntë",
++)
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "dhjetë",
++        11: "njëmbëdhjetë",
++        12: "dymbëdhjetë",
++        13: "trembëdhjetë",
++        14: "katërmbëdhjetë",
++        15: "pesëmbëdhjetë",
++        16: "gjashtëmbëdhjetë",
++        17: "shtatëmbëdhjetë",
++        18: "tetëmbëdhjetë",
++        19: "nëntëmbëdhjetë",
++        20: "njëzet",
++        30: "tridhjetë",
++        40: "dyzet",
++        50: "pesëdhjetë",
++        60: "gjashtëdhjetë",
++        70: "shtatëdhjetë",
++        80: "tetëdhjetë",
++        90: "nëntëdhjetë",
++    }
++)
++_CARDINALS.update(
++    {
++        ten + i: f"{word} e {_ONES[i]}"
++        for ten, word in (
++            (20, "njëzet"),
++            (30, "tridhjetë"),
++            (40, "dyzet"),
++            (50, "pesëdhjetë"),
++            (60, "gjashtëdhjetë"),
++            (70, "shtatëdhjetë"),
++            (80, "tetëdhjetë"),
++            (90, "nëntëdhjetë"),
++        )
++        for i in range(1, 10)
++    }
++)
++
++
++class AlbanianRenderer(FoundationRenderer):
++    locale = "sq"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "njëqind", 1_000: "një mijë"}
++    data = locale_data("sq", _ONES, negative="minus", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/sw.py b/numeralform/renderers/sw.py
+new file mode 100644
+index 0000000..413dd63
+--- /dev/null
++++ b/numeralform/renderers/sw.py
+@@ -0,0 +1,65 @@
++"""Swahili standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = (
++    "sifuri",
++    "moja",
++    "mbili",
++    "tatu",
++    "nne",
++    "tano",
++    "sita",
++    "saba",
++    "nane",
++    "tisa",
++)
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "kumi",
++        11: "kumi na moja",
++        12: "kumi na mbili",
++        13: "kumi na tatu",
++        14: "kumi na nne",
++        15: "kumi na tano",
++        16: "kumi na sita",
++        17: "kumi na saba",
++        18: "kumi na nane",
++        19: "kumi na tisa",
++        20: "ishirini",
++        30: "thelathini",
++        40: "arobaini",
++        50: "hamsini",
++        60: "sitini",
++        70: "sabini",
++        80: "themanini",
++        90: "tisini",
++    }
++)
++_CARDINALS.update(
++    {
++        ten + i: f"{word} na {_ONES[i]}"
++        for ten, word in (
++            (20, "ishirini"),
++            (30, "thelathini"),
++            (40, "arobaini"),
++            (50, "hamsini"),
++            (60, "sitini"),
++            (70, "sabini"),
++            (80, "themanini"),
++            (90, "tisini"),
++        )
++        for i in range(1, 10)
++    }
++)
++
++
++class SwahiliRenderer(FoundationRenderer):
++    locale = "sw"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "mia moja", 1_000: "elfu moja"}
++    data = locale_data("sw", _ONES, negative="hasi", omit_one_scales=frozenset())
+diff --git a/numeralform/renderers/ur.py b/numeralform/renderers/ur.py
+new file mode 100644
+index 0000000..ccec6a4
+--- /dev/null
++++ b/numeralform/renderers/ur.py
+@@ -0,0 +1,56 @@
++"""Urdu standalone numerals."""
++
++from typing import ClassVar
++
++from ._foundation import FoundationRenderer
++from ._shared import locale_data
++
++_ONES = ("صفر", "ایک", "دو", "تین", "چار", "پانچ", "چھ", "سات", "آٹھ", "نو")
++_CARDINALS = {i: word for i, word in enumerate(_ONES)}
++_CARDINALS.update(
++    {
++        10: "دس",
++        11: "گیارہ",
++        12: "بارہ",
++        13: "تیرہ",
++        14: "چودہ",
++        15: "پندرہ",
++        16: "سولہ",
++        17: "سترہ",
++        18: "اٹھارہ",
++        19: "انیس",
++        20: "بیس",
++        21: "اکیس",
++        22: "بائیس",
++        23: "تئیس",
++        24: "چوبیس",
++        25: "پچیس",
++        26: "چھبیس",
++        27: "ستائیس",
++        28: "اٹھائیس",
++        29: "انتیس",
++        30: "تیس",
++        31: "اکتیس",
++        32: "بتیس",
++        33: "تینتیس",
++        34: "چونتیس",
++        35: "پینتیس",
++        36: "چھتیس",
++        37: "سینتیس",
++        38: "اڑتیس",
++        39: "انتالیس",
++        40: "چالیس",
++        50: "پچاس",
++        60: "ساٹھ",
++        70: "ستر",
++        80: "اسی",
++        90: "نوے",
++    }
++)
++
++
++class UrduRenderer(FoundationRenderer):
++    locale = "ur"
++    cardinals = _CARDINALS
++    exact: ClassVar[dict[int, str]] = {100: "ایک سو", 1_000: "ایک ہزار"}
++    data = locale_data("ur", _ONES, negative="منفی", omit_one_scales=frozenset())
+diff --git a/tests/test_new_spokenform_foundation_locales.py b/tests/test_new_spokenform_foundation_locales.py
+new file mode 100644
+index 0000000..92730ce
+--- /dev/null
++++ b/tests/test_new_spokenform_foundation_locales.py
+@@ -0,0 +1,133 @@
++from __future__ import annotations
++
++import unicodedata
++
++import pytest
++
++from numeralform import DecimalNumber, DigitSequence, render, supports
++
++COUNT_WORDS = {
++    "bg": (
++        "едно",
++        "две",
++        "три",
++        "четири",
++        "пет",
++        "шест",
++        "седем",
++        "осем",
++        "девет",
++        "десет",
++    ),
++    "el": (
++        "ένα",
++        "δύο",
++        "τρία",
++        "τέσσερα",
++        "πέντε",
++        "έξι",
++        "επτά",
++        "οκτώ",
++        "εννέα",
++        "δέκα",
++    ),
++    "et": (
++        "üks",
++        "kaks",
++        "kolm",
++        "neli",
++        "viis",
++        "kuus",
++        "seitse",
++        "kaheksa",
++        "üheksa",
++        "kümme",
++    ),
++    "eu": (
++        "bat",
++        "bi",
++        "hiru",
++        "lau",
++        "bost",
++        "sei",
++        "zazpi",
++        "zortzi",
++        "bederatzi",
++        "hamar",
++    ),
++    "ka": (
++        "ერთი",
++        "ორი",
++        "სამი",
++        "ოთხი",
++        "ხუთი",
++        "ექვსი",
++        "შვიდი",
++        "რვა",
++        "ცხრა",
++        "ათი",
++    ),
++    "ku": ("yek", "du", "sê", "çar", "pênc", "şeş", "heft", "heşt", "neh", "deh"),
++    "lb": (
++        "eent",
++        "zwee",
++        "dräi",
++        "véier",
++        "fënnef",
++        "sechs",
++        "siwen",
++        "aacht",
++        "néng",
++        "zéng",
++    ),
++    "ml": ("ഒന്ന്", "രണ്ട്", "മൂന്ന്", "നാല്", "അഞ്ച്", "ആറ്", "ഏഴ്", "എട്ട്", "ഒൻപത്", "പത്ത്"),
++    "mr": ("एक", "दोन", "तीन", "चार", "पाच", "सहा", "सात", "आठ", "नऊ", "दहा"),
++    "ne": ("एक", "दुई", "तिन", "चार", "पाँच", "छ", "सात", "आठ", "नौ", "दस"),
++    "sq": (
++        "një",
++        "dy",
++        "tre",
++        "katër",
++        "pesë",
++        "gjashtë",
++        "shtatë",
++        "tetë",
++        "nëntë",
++        "dhjetë",
++    ),
++    "sw": (
++        "moja",
++        "mbili",
++        "tatu",
++        "nne",
++        "tano",
++        "sita",
++        "saba",
++        "nane",
++        "tisa",
++        "kumi",
++    ),
++    "ur": ("ایک", "دو", "تین", "چار", "پانچ", "چھ", "سات", "آٹھ", "نو", "دس"),
++}
++
++
++@pytest.mark.parametrize(("locale", "expected"), COUNT_WORDS.items())
++def test_reviewed_count_words(locale: str, expected: tuple[str, ...]) -> None:
++    assert tuple(render(i, locale=locale) for i in range(1, 11)) == expected
++
++
++@pytest.mark.parametrize("locale", COUNT_WORDS)
++def test_foundation_numeric_contract(locale: str) -> None:
++    for value in (0, 42, 89, 99, 100, 101, 110, 999, 1000, 1001, 2024):
++        assert render(value, locale=locale)
++    assert render(DigitSequence("0010"), locale=locale, form="digits")
++    assert render(DecimalNumber("1", "20"), locale=locale)
++    assert supports(locale, form="cardinal", value=9_999)
++    assert not supports(locale, form="cardinal", value=10_000)
++
++
++@pytest.mark.parametrize("locale", COUNT_WORDS)
++def test_new_outputs_are_nfc(locale: str) -> None:
++    assert unicodedata.normalize("NFC", render(42, locale=locale)) == render(
++        42, locale=locale
++    )
