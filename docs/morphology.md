@@ -16,6 +16,13 @@ not coerced into the universal `Case` enum.
   singular values from 0 through 999,999,999,999. The broader fifteen-case
   implementation remains an experiment outside the reviewed nominative singular
   surface. Requests outside this domain are rejected rather than advertised.
+- German word ordinals support explicit masculine, feminine, and neuter
+  gender agreement for standalone and ordinal-adjectival rendering from
+  0 through 999,999. Gender-only agreement uses the reviewed nominative
+  singular strong endings (`-er`, `-e`, `-es`). Explicit case, definiteness,
+  and grammatical-number agreement remain unsupported. Ungendered German
+  ordinals retain the broader legacy ordinal domain.
+
 - Currency phrases are validated as a sibling subsystem: numeral realization
   and currency-noun agreement are separate contracts.
 

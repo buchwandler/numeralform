@@ -57,6 +57,15 @@ def _ordinal_domains(locale: str):
     }
 
 
+def _ordinal_morphology(locale: str, domain) -> str | None:
+    if locale != "de":
+        return None
+    for profile in capabilities(locale).profiles:
+        if profile.form is ORDINAL and profile.domain == domain and profile.genders:
+            return "masculine"
+    return None
+
+
 def _locales_with_ordinals() -> list[str]:
     return [locale for locale in locales() if _ordinal_domains(locale)]
 
@@ -85,20 +94,24 @@ def _contiguous_block(values) -> tuple[int, int] | None:
     return minimum, maximum
 
 
-def _assert_renders(locale: str, value: int) -> None:
-    assert supports(locale, form=ORDINAL, value=value), (
+def _assert_renders(locale: str, value: int, gender: str | None = None) -> None:
+    support_kwargs = {"morphology": {"gender": gender}} if gender else {}
+    render_kwargs = {"gender": gender} if gender else {}
+    assert supports(locale, form=ORDINAL, value=value, **support_kwargs), (
         f"{locale}: supports() rejected advertised ordinal value {value}"
     )
-    text = render(value, locale=locale, form=ORDINAL)
+    text = render(value, locale=locale, form=ORDINAL, **render_kwargs)
     assert text, f"{locale}: ordinal {value} rendered empty"
 
 
-def _assert_rejects(locale: str, value: int) -> None:
-    assert not supports(locale, form=ORDINAL, value=value), (
+def _assert_rejects(locale: str, value: int, gender: str | None = None) -> None:
+    support_kwargs = {"morphology": {"gender": gender}} if gender else {}
+    render_kwargs = {"gender": gender} if gender else {}
+    assert not supports(locale, form=ORDINAL, value=value, **support_kwargs), (
         f"{locale}: supports() advertised ordinal value {value} outside the domain"
     )
     with pytest.raises(NumeralFormError):
-        render(value, locale=locale, form=ORDINAL)
+        render(value, locale=locale, form=ORDINAL, **render_kwargs)
 
 
 def test_no_ordinal_profile_advertises_negatives_or_negative_minimum():
@@ -117,10 +130,11 @@ def test_ordinal_domain_boundaries_are_executable():
         for domain in _ordinal_domains(locale):
             minimum = domain.minimum or 0
             maximum = domain.maximum
-            _assert_renders(locale, minimum)
-            _assert_renders(locale, maximum)
-            _assert_rejects(locale, maximum + 1)
-            _assert_rejects(locale, -1)
+            morphology = _ordinal_morphology(locale, domain)
+            _assert_renders(locale, minimum, morphology)
+            _assert_renders(locale, maximum, morphology)
+            _assert_rejects(locale, maximum + 1, morphology)
+            _assert_rejects(locale, -1, morphology)
 
 
 @pytest.mark.parametrize("locale", _locales_with_ordinals())
@@ -128,7 +142,7 @@ def test_common_ordinal_sweep(locale):
     for domain in _ordinal_domains(locale):
         minimum = domain.minimum or 0
         for value in range(minimum, min(domain.maximum, COMMON_SWEEP_LIMIT) + 1):
-            _assert_renders(locale, value)
+            _assert_renders(locale, value, _ordinal_morphology(locale, domain))
 
 
 SCALE_PROBES = (
@@ -157,7 +171,7 @@ def test_algorithmic_scale_probes(locale):
         probes = [value for value in SCALE_PROBES if value <= domain.maximum]
         probes += [domain.maximum - 1, domain.maximum]
         for value in probes:
-            _assert_renders(locale, value)
+            _assert_renders(locale, value, _ordinal_morphology(locale, domain))
 
 
 @pytest.mark.parametrize("locale", _locales_with_ordinals())

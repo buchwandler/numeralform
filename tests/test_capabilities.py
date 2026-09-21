@@ -104,6 +104,26 @@ def test_domains_agree_with_renderer_boundaries():
     assert supports("fi", value=1_000_000)
 
 
+@pytest.mark.parametrize("gender", ["masculine", "feminine", "neuter"])
+def test_german_gendered_ordinal_reviewed_domain(gender):
+    morphology = {"gender": gender}
+    assert supports("de", form="ordinal", morphology=morphology, value=0)
+    assert supports("de", form="ordinal", morphology=morphology, value=999_999)
+    assert not supports("de", form="ordinal", morphology=morphology, value=1_000_000)
+
+
+def test_german_ordinal_does_not_overadvertise_morphology():
+    assert supports("de", form="ordinal", value=1_000_000)
+    assert not supports("de", form="ordinal", morphology={"gender": "common"}, value=2)
+    assert not supports("de", form="ordinal", morphology={"case": "dative"}, value=2)
+    assert not supports(
+        "de", form="ordinal_num", morphology={"gender": "masculine"}, value=2
+    )
+    assert not supports(
+        "de", form="cardinal", morphology={"gender": "masculine"}, value=2
+    )
+
+
 def test_finnish_reviewed_domain_boundaries():
     maximum = 999_999_999_999
     for form in (

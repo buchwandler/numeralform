@@ -44,6 +44,24 @@ def test_cli_main_covers_rendering_modes(capsys):
     assert capsys.readouterr().out
 
 
+def test_cli_german_ordinal_gender(capsys):
+    assert (
+        main(
+            [
+                "2",
+                "--locale",
+                "de",
+                "--form",
+                "ordinal",
+                "--gender",
+                "masculine",
+            ]
+        )
+        == 0
+    )
+    assert capsys.readouterr().out == "zweiter\n"
+
+
 def test_generic_baseline_renderer_preserves_typed_values():
     renderer = GenericLocaleRenderer("xx")
     assert renderer.render(NumeralRequest(42, "xx")).text == "42"

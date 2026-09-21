@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..errors import InvalidValueError
 from ..locale import CapabilityProfile, LocaleCapabilities, NumericDomain
-from ..model import NumeralForm, NumeralRequest, NumeralResult, Syntax
+from ..model import Gender, NumeralForm, NumeralRequest, NumeralResult, Syntax
 from .base import require_int, validate_request
 
 _UNITS = (
@@ -74,6 +74,7 @@ _SCALES = [
 ]
 _MAX_CARDINAL = 999_999_999_999_999
 _MAX_ORDINAL = _MAX_CARDINAL
+_MAX_GENDERED_ORDINAL = 999_999
 
 
 class GermanRenderer:
@@ -94,6 +95,22 @@ class GermanRenderer:
                         minimum=0, maximum=_MAX_ORDINAL, allow_negative=False
                     ),
                 ),
+                CapabilityProfile(
+                    NumeralForm.ORDINAL,
+                    syntaxes=frozenset({Syntax.STANDALONE, Syntax.ORDINAL_ADJECTIVAL}),
+                    genders=frozenset(
+                        {
+                            Gender.MASCULINE,
+                            Gender.FEMININE,
+                            Gender.NEUTER,
+                        }
+                    ),
+                    domain=NumericDomain(
+                        minimum=0,
+                        maximum=_MAX_GENDERED_ORDINAL,
+                        allow_negative=False,
+                    ),
+                ),
                 CapabilityProfile(NumeralForm.DIGITS),
                 CapabilityProfile(NumeralForm.YEAR),
             ),
@@ -109,7 +126,9 @@ class GermanRenderer:
         if request.form is NumeralForm.DIGITS:
             text = self._digits(value)
         elif request.form is NumeralForm.ORDINAL:
-            text = self._ordinal(require_int(value))
+            text = self._agree_ordinal(
+                self._ordinal(require_int(value)), request.morphology.gender
+            )
         elif request.form is NumeralForm.YEAR:
             text = self._year(require_int(value))
         else:
@@ -169,6 +188,15 @@ class GermanRenderer:
             prefix = f"{self._cardinal(century)}hundert"
             return prefix + (self._cardinal(remainder) if remainder else "")
         return self._cardinal(value)
+
+    @staticmethod
+    def _agree_ordinal(text: str, gender: Gender | None) -> str:
+        if gender is None or gender is Gender.FEMININE:
+            return text
+        if not text.endswith("e"):
+            raise InvalidValueError("German ordinal agreement requires an -e base form")
+        ending = "er" if gender is Gender.MASCULINE else "es"
+        return text[:-1] + ending
 
     def _ordinal(self, value: int) -> str:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:

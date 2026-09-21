@@ -369,6 +369,75 @@ def test_canonical_ordinal_stems_and_compounds():
     assert render(42, locale="sv", form="ordinal") == "fyrtioandra"
 
 
+@pytest.mark.parametrize(
+    ("value", "gender", "expected"),
+    [
+        (1, "masculine", "erster"),
+        (1, "feminine", "erste"),
+        (1, "neuter", "erstes"),
+        (2, "masculine", "zweiter"),
+        (2, "feminine", "zweite"),
+        (2, "neuter", "zweites"),
+        (3, "masculine", "dritter"),
+        (3, "feminine", "dritte"),
+        (3, "neuter", "drittes"),
+        (7, "masculine", "siebter"),
+        (8, "neuter", "achtes"),
+        (20, "masculine", "zwanzigster"),
+        (21, "masculine", "einundzwanzigster"),
+        (21, "neuter", "einundzwanzigstes"),
+        (100, "masculine", "einhundertster"),
+        (119, "masculine", "einhundertneunzehnter"),
+        (1000, "neuter", "eintausendstes"),
+        (5319, "masculine", "fünftausenddreihundertneunzehnter"),
+        (
+            999_999,
+            "masculine",
+            "neunhundertneunundneunzigtausendneunhundertneunundneunzigster",
+        ),
+    ],
+)
+def test_german_ordinal_gender_agreement(value, gender, expected):
+    assert render(value, locale="de", form="ordinal", gender=gender) == expected
+
+
+@pytest.mark.parametrize("syntax", ["standalone", "ordinal-adjectival"])
+def test_german_gendered_ordinal_supports_existing_syntaxes(syntax):
+    assert (
+        render(2, locale="de", form="ordinal", syntax=syntax, gender="masculine")
+        == "zweiter"
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (1, "erste"),
+        (2, "zweite"),
+        (3, "dritte"),
+        (21, "einundzwanzigste"),
+        (100, "einhundertste"),
+        (119, "einhundertneunzehnte"),
+        (5319, "fünftausenddreihundertneunzehnte"),
+    ],
+)
+def test_german_ordinal_without_gender_is_unchanged(value, expected):
+    assert render(value, locale="de", form="ordinal") == expected
+
+
+def test_german_gendered_ordinal_rejects_unsupported_dimensions():
+    with pytest.raises(UnsupportedMorphologyError):
+        render(2, locale="de", form="ordinal", gender="common")
+    with pytest.raises(UnsupportedMorphologyError):
+        render(2, locale="de", form="ordinal", case="dative")
+    with pytest.raises(NumeralFormError):
+        render(1_000_000, locale="de", form="ordinal", gender="masculine")
+    with pytest.raises(UnsupportedMorphologyError):
+        render(2, locale="de", form="ordinal_num", gender="masculine")
+    with pytest.raises(UnsupportedMorphologyError):
+        render(2, locale="de", gender="masculine")
+
+
 def test_canonical_year_policies():
     assert render(1828, locale="de", form="year") == "achtzehnhundertachtundzwanzig"
     assert render(1099, locale="de", form="year") == "eintausendneunundneunzig"
